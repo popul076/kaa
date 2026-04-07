@@ -6,13 +6,13 @@ import 'package:geocoding/geocoding.dart';
 import '../widgets/bottom_nav.dart';
 
 // ═══════════════════════════════════════════════════════════════
-// MOINCAR Home Screen v23.0.0
-// ─ 상단바: 스크롤 시 전체 올라감 / 위치띠만 sticky 내려옴
-// ─ 배너 230px, 검색바 겹침 없음
-// ─ 카테고리 이모지 복원
+// MOINCAR Home Screen v24.0.0
+// ─ 상단바: 스크롤 시 전체 올라감 / 위치띠만 sticky
+// ─ 배너 230px, 콘텐츠 top padding 동적 계산(겹침 없음)
+// ─ 카테고리: 3×3 그리드 (한 화면에 모두 표시)
+// ─ 추천점포: 진짜 무한 캐러셀 (큰배수 initialPage, 6초)
 // ─ 하단 BottomNav: 스크롤 중 숨김, 정지 후 나타남
-// ─ 하단 업체정보: 배달의민족 스타일 + KAA 실제정보
-// ─ 전체 카드 크기 확대 + 가까운 점포 7개씩 페이지 로딩
+// ─ 하단 업체정보: 배달의민족 스타일 + KAA 실제정보 (딱맞는 크기)
 // ═══════════════════════════════════════════════════════════════
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,40 +34,48 @@ class _HomeScreenState extends State<HomeScreen>
   static const Color _t2      = Color(0xFF7AB0D4);
   static const Color _t3      = Color(0xFF3A6080);
 
+  // ── 상단 레이아웃 고정값 ─────────────────────────────────────
+  static const double _topBarH = 56.0;   // 로고+검색 영역 높이
+  static const double _locBarH = 40.0;   // 위치띠 높이
+  // 로고바가 올라갈 최대치 = _topBarH (완전히 사라짐)
+  // 위치띠는 로고바와 함께 올라가다가 로고바가 다 올라가면 화면 최상단에 붙음
+
   // ── 스크롤 ───────────────────────────────────────────────────
   final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
 
   // BottomNav 숨김/표시 (스크롤 정지 감지)
   bool _navVisible = true;
   Timer? _navTimer;
-  double _lastScrollOffset = 0;
-
-  // 상단 로고/검색바 숨김 (스크롤 다운)
-  double _topBarOffset = 0; // 0 = 완전 표시, 음수 = 위로 이동
-  static const double _topBarH = 56.0;   // 로고+알림+검색 영역 높이
-  static const double _locBarH = 44.0;   // 위치띠 높이
 
   // ── 위치 ─────────────────────────────────────────────────────
   String _currentAddress = '위치 확인 중...';
   double _currentLat = 35.8562;
   double _currentLng = 128.6314;
 
-  // ── 배너 ─────────────────────────────────────────────────────
-  int _currentBanner = 0;
+  // ── 배너 (무한 캐러셀) ────────────────────────────────────────
+  // 진짜 무한: 큰 배수 initialPage 사용
+  static const int _bannerMultiplier = 500; // 충분히 큰 배수
+  int _currentBannerIndex = 0;              // 0-based 실제 인덱스
   late PageController _bannerController;
   Timer? _bannerTimer;
-  bool _bannerJumping = false;
 
   final List<Map<String, dynamic>> _bannerData = [
-    {'tag': 'MOINCAR 인증', 'title': '인증점포\n할인 이벤트',      'sub': '인증 점포 방문 시 10% 할인',   'emoji': '🏆'},
-    {'tag': '중고차',       'title': '내 차 시세\n무료 확인',       'sub': '전국 딜러 실시간 견적 비교',   'emoji': '🚗'},
-    {'tag': '자동차 소식',  'title': '중고차 성능점검\n수요 확대',  'sub': '사고이력·성능점검표 확인 필수','emoji': '📰'},
-    {'tag': '무료 서비스',  'title': '긴급 출동\n즉시 연결',        'sub': '24시간 긴급출동 서비스',       'emoji': '🚨'},
+    {'tag': 'MOINCAR 인증', 'title': '인증점포\n할인 이벤트',      'sub': '인증 점포 방문 시 10% 할인',    'emoji': '🏆'},
+    {'tag': '중고차',       'title': '내 차 시세\n무료 확인',       'sub': '전국 딜러 실시간 견적 비교',    'emoji': '🚗'},
+    {'tag': '자동차 소식',  'title': '중고차 성능점검\n수요 확대',  'sub': '사고이력·성능점검표 확인 필수', 'emoji': '📰'},
+    {'tag': '무료 서비스',  'title': '긴급 출동\n즉시 연결',        'sub': '24시간 긴급출동 서비스',        'emoji': '🚨'},
+    {'tag': 'AI 진단',      'title': 'AI 무료\n차량 진단',          'sub': '스마트 AI로 내 차 상태 확인',   'emoji': '🤖'},
+    {'tag': '이동리워드',   'title': '이동할수록\n적립되는 리워드', 'sub': '주행 거리당 포인트 지급',       'emoji': '🎁'},
   ];
-  List<Map<String, dynamic>> get _banners =>
-      [_bannerData.last, ..._bannerData, _bannerData.first];
 
-  // ── 카테고리 (이모지 복원) ───────────────────────────────────
+  // 무한 캐러셀: 전체 길이 = 배너 개수 × multiplier
+  int get _infiniteCount => _bannerData.length * _bannerMultiplier;
+
+  // 중간 시작 지점
+  int get _initialPage => (_bannerMultiplier ~/ 2) * _bannerData.length;
+
+  // ── 카테고리 (3×3 그리드) ───────────────────────────────────
   final List<Map<String, dynamic>> _categories = [
     {'name': '정비소',  'icon': '🔧'},
     {'name': '중고차',  'icon': '🚙'},
@@ -82,18 +90,20 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── 퀵 기능 (이동리워드 포함) ───────────────────────────────
   final List<Map<String, dynamic>> _quickItems = [
-    {'icon': Icons.local_fire_department_outlined, 'label': '긴급\n출동',  'color': Color(0xFF7B1E2A), 'aColor': Color(0xFFFF6B6B)},
+    {'icon': Icons.local_fire_department_outlined, 'label': '긴급\n출동',   'color': Color(0xFF7B1E2A), 'aColor': Color(0xFFFF6B6B)},
     {'icon': Icons.price_change_outlined,           'label': '내 차\n시세',  'color': Color(0xFF0D2A4A), 'aColor': Color(0xFF4FC3F7)},
-    {'icon': Icons.newspaper_outlined,              'label': '자동차\n뉴스',  'color': Color(0xFF0A1E3A), 'aColor': Color(0xFF4FC3F7)},
+    {'icon': Icons.newspaper_outlined,              'label': '자동차\n뉴스', 'color': Color(0xFF0A1E3A), 'aColor': Color(0xFF4FC3F7)},
     {'icon': Icons.card_giftcard_outlined,          'label': '이동\n리워드', 'color': Color(0xFF1A1040), 'aColor': Color(0xFF9B7CFF)},
   ];
 
-  // ── 추천 점포 ────────────────────────────────────────────────
+  // ── 추천 점포 (6개로 확장) ────────────────────────────────────
   final List<Map<String, dynamic>> _stores = [
-    {'tag': 'MOINCAR 인증', 'name': '강남자동차정비센터', 'distance': '1.8km', 'sub': '엔진·미션·판금 전문', 'image': 'assets/images/store_repair.jpg',  'emoji': '🔧'},
-    {'tag': '인증중고차',    'name': '서울모터스홀딩스',  'distance': '2.4km', 'sub': '수입차·국산차 전문', 'image': 'assets/images/store_carwash.jpg', 'emoji': '🚗'},
-    {'tag': '공식딜러',     'name': '현대자동차 강남점', 'distance': '3.0km', 'sub': '신차·인증중고·시승',  'image': 'assets/images/nearby3.jpg',      'emoji': '🏢'},
-    {'tag': 'MOINCAR 인증', 'name': '프리미엄 세차코팅', 'distance': '3.5km', 'sub': '손세차·광택·코팅',   'image': 'assets/images/nearby1.jpg',      'emoji': '🫧'},
+    {'tag': 'MOINCAR 인증', 'name': '강남자동차정비센터',  'distance': '1.8km', 'sub': '엔진·미션·판금 전문',   'image': 'assets/images/store_repair.jpg',  'emoji': '🔧'},
+    {'tag': '인증중고차',    'name': '서울모터스홀딩스',    'distance': '2.4km', 'sub': '수입차·국산차 전문',   'image': 'assets/images/store_carwash.jpg', 'emoji': '🚗'},
+    {'tag': '공식딜러',      'name': '현대자동차 강남점',   'distance': '3.0km', 'sub': '신차·인증중고·시승',   'image': 'assets/images/nearby3.jpg',       'emoji': '🏢'},
+    {'tag': 'MOINCAR 인증', 'name': '프리미엄 세차코팅',   'distance': '3.5km', 'sub': '손세차·광택·코팅',     'image': 'assets/images/nearby1.jpg',       'emoji': '🫧'},
+    {'tag': 'AI 진단',       'name': 'AI 진단 정비센터',   'distance': '4.2km', 'sub': 'AI 무료 차량 진단',    'image': 'assets/images/store_repair.jpg',  'emoji': '🤖'},
+    {'tag': '이동리워드',    'name': '리워드 파트너 정비',  'distance': '5.1km', 'sub': '이동리워드 적립 가능',  'image': 'assets/images/nearby2.jpg',       'emoji': '🎁'},
   ];
 
   // ── 근처 점포 ────────────────────────────────────────────────
@@ -101,9 +111,9 @@ class _HomeScreenState extends State<HomeScreen>
     {'badge': '신규',    'name': '수입차 브레이크 전문점', 'sub': '브레이크·하체점검', 'emoji': '🛞', 'image': 'assets/images/nearby1.jpg', 'lat': 35.857, 'lng': 128.633},
     {'badge': '인기',    'name': '하이브리드 배터리케어',  'sub': '배터리·전기점검',   'emoji': '⚡', 'image': 'assets/images/nearby2.jpg', 'lat': 35.858, 'lng': 128.630},
     {'badge': 'MOINCAR', 'name': '인증 중고차센터',        'sub': '중고차·성능점검',   'emoji': '🚙', 'image': 'assets/images/nearby3.jpg', 'lat': 35.855, 'lng': 128.635},
-    {'badge': '추천',    'name': '프리미엄 엔진오일샵',    'sub': '오일·경정비',        'emoji': '🔧', 'image': 'assets/images/store_repair.jpg','lat': 35.860,'lng': 128.628},
+    {'badge': '추천',    'name': '프리미엄 엔진오일샵',    'sub': '오일·경정비',        'emoji': '🔧', 'image': 'assets/images/store_repair.jpg', 'lat': 35.860, 'lng': 128.628},
     {'badge': '인기',    'name': '타이어 교환 전문센터',   'sub': '타이어·얼라인먼트', 'emoji': '🛞', 'image': 'assets/images/recent2.jpg', 'lat': 35.854, 'lng': 128.638},
-    {'badge': '신규',    'name': '손세차 디테일링샵',      'sub': '손세차·광택코팅',   'emoji': '✨', 'image': 'assets/images/store_carwash.jpg','lat': 35.862,'lng': 128.625},
+    {'badge': '신규',    'name': '손세차 디테일링샵',      'sub': '손세차·광택코팅',   'emoji': '✨', 'image': 'assets/images/store_carwash.jpg', 'lat': 35.862, 'lng': 128.625},
   ];
 
   // ── 최근 본 점포 ─────────────────────────────────────────────
@@ -115,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen>
     {'name': '프리미엄세차',    'sub': '핸드세차 전문', 'emoji': '🫧', 'image': 'assets/images/nearby2.jpg'},
   ];
 
-  // ── 가까운 점포순 (전체 12개, 7개씩 페이지) ─────────────────
+  // ── 가까운 점포순 (7개씩 페이지) ─────────────────────────────
   final List<Map<String, dynamic>> _allCloseStores = [
     {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 정비센터',  'sub': '정비·엔진오일',     'distance': '1.2km', 'emoji': '🔧', 'image': 'assets/images/store_repair.jpg'},
     {'badge': '추천',    'name': '프리미엄 디테일링 세차',  'sub': '손세차·코팅',        'distance': '2.1km', 'emoji': '🫧', 'image': 'assets/images/store_carwash.jpg'},
@@ -130,8 +140,7 @@ class _HomeScreenState extends State<HomeScreen>
     {'badge': '추천',    'name': '국산차 정비 전문점',        'sub': '정비·부품교환',     'distance': '7.2km', 'emoji': '🔧', 'image': 'assets/images/store_repair.jpg'},
     {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 렌트카',     'sub': '렌트카·단기임대',   'distance': '7.9km', 'emoji': '🚗', 'image': 'assets/images/nearby1.jpg'},
   ];
-  // 7개씩 페이지 로딩 (7→14→더보기 완전표시)
-  int _closeLoadedPage = 1; // 1페이지=7개, 2페이지=14개(전체)
+  int _closeLoadedPage = 1;
   static const int _pageSize = 7;
   bool _closeFullyLoaded = false;
 
@@ -141,7 +150,8 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _bannerController = PageController(initialPage: 1);
+    _bannerController = PageController(initialPage: _initialPage);
+    _currentBannerIndex = 0;
     _startBannerTimer();
     _initLocation();
     _scrollController.addListener(_onScroll);
@@ -150,15 +160,12 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset;
-    final diff = offset - _lastScrollOffset;
-    _lastScrollOffset = offset;
-
-    // 1) 상단 로고+검색바 hide/show
+    // 상단바 오프셋 계산 (위로 스크롤 시 올라감)
     setState(() {
-      _topBarOffset = (_topBarOffset - diff).clamp(-_topBarH, 0.0);
+      _scrollOffset = offset;
     });
 
-    // 2) BottomNav: 스크롤 중 숨김, 정지 후 나타남
+    // BottomNav: 스크롤 중 숨김, 정지 후 나타남
     _navTimer?.cancel();
     if (_navVisible) {
       setState(() => _navVisible = false);
@@ -166,7 +173,15 @@ class _HomeScreenState extends State<HomeScreen>
     _navTimer = Timer(const Duration(milliseconds: 600), () {
       if (mounted) setState(() => _navVisible = true);
     });
+
+
   }
+
+  // 스크롤량에 따른 상단바 오프셋 계산
+  // 0 ~ _topBarH 범위 내에서 올라감
+  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
+  // 위치띠: 상단바와 함께 올라가다가, 상단바가 다 올라가면 화면 최상단에 붙음
+  double get _locBarTop => (_topBarH - _topBarSlide).clamp(0.0, _topBarH);
 
   // ── 위치 초기화 ──────────────────────────────────────────────
   Future<void> _initLocation() async {
@@ -211,30 +226,24 @@ class _HomeScreenState extends State<HomeScreen>
     if (mounted) setState(() => _nearbyStores.sort((a, b) => (a['distM'] as double).compareTo(b['distM'] as double)));
   }
 
+  // ── 무한 배너 타이머 (6초) ───────────────────────────────────
   void _startBannerTimer() {
     _bannerTimer?.cancel();
-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!mounted || _bannerJumping) return;
-      _bannerController.animateToPage(_bannerController.page!.round() + 1,
-          duration: const Duration(milliseconds: 450), curve: Curves.easeInOut);
+    _bannerTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted) return;
+      final nextPage = _bannerController.page!.round() + 1;
+      _bannerController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
-  void _onBannerChanged(int index) {
-    final total = _banners.length;
-    setState(() => _currentBanner = (index - 1 + _bannerData.length) % _bannerData.length);
-    if (index == total - 1 && !_bannerJumping) {
-      _bannerJumping = true;
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) { _bannerController.jumpToPage(1); _bannerJumping = false; }
-      });
-    }
-    if (index == 0 && !_bannerJumping) {
-      _bannerJumping = true;
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) { _bannerController.jumpToPage(total - 2); _bannerJumping = false; }
-      });
-    }
+  void _onBannerPageChanged(int rawPage) {
+    setState(() {
+      _currentBannerIndex = rawPage % _bannerData.length;
+    });
   }
 
   @override
@@ -254,6 +263,9 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    // 콘텐츠 상단 여백 = statusBar + 항상 보이는 위치띠 + topBarH (초기)
+    // 스크롤 시 topBarH만큼 줄어들되 0보다 작아지지 않음
+    final contentTopPad = topPad + _topBarH + _locBarH - _topBarSlide;
 
     return Scaffold(
       backgroundColor: _bg,
@@ -265,13 +277,12 @@ class _HomeScreenState extends State<HomeScreen>
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-                // 상단 여백: topBar(로고+검색) + 위치띠
-                top: topPad + _topBarH + _locBarH + 8,
+                top: contentTopPad + 8,
                 bottom: 90,
               ),
               children: [
                 _buildBanner(),
-                _buildCategoryCircles(),
+                _buildCategoryGrid(),
                 _buildRecommendSection(),
                 _buildQuickActions(),
                 _buildMapPreview(),
@@ -284,16 +295,16 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 상단바 전체 (로고+검색) — 스크롤 시 위로 올라감 ──
+          // ── 상단 로고+검색바 (스크롤 시 위로 사라짐) ────────
           Positioned(
-            top: topPad + _topBarOffset,
+            top: topPad - _topBarSlide,
             left: 0, right: 0,
             child: _buildTopLogoBar(),
           ),
 
-          // ── 위치띠 — 항상 상단바 바로 아래 sticky ────────────
+          // ── 위치띠 (로고바가 사라진 후 화면 최상단에 고정) ───
           Positioned(
-            top: topPad + _topBarH + _topBarOffset,
+            top: topPad + _locBarTop,
             left: 0, right: 0,
             child: _buildLocationBar(),
           ),
@@ -313,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 상단 로고+검색 바 (스크롤 시 숨김)
+  // 상단 로고+검색 바
   // ══════════════════════════════════════════════════════════════
   Widget _buildTopLogoBar() {
     return Container(
@@ -330,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen>
               colors: [Color(0xFF1A3A8E), Color(0xFF0D1E5A)],
             ),
             borderRadius: BorderRadius.circular(9),
-            boxShadow: [BoxShadow(color: _accent.withOpacity(0.3), blurRadius: 8)],
+            boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.3), blurRadius: 8)],
           ),
           child: Center(child: Text('M', style: GoogleFonts.notoSansKr(
               fontSize: 17, fontWeight: FontWeight.w900, color: _accent))),
@@ -343,7 +354,7 @@ class _HomeScreenState extends State<HomeScreen>
               fontSize: 7.5, color: _t3, letterSpacing: 1.0)),
         ]),
         const Spacer(),
-        // 검색바 (상단에 포함)
+        // 검색바
         Expanded(
           flex: 3,
           child: GestureDetector(
@@ -398,21 +409,24 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 위치띠 (로고바 바로 아래, 스크롤해도 위치 따라감)
+  // 위치띠
   // ══════════════════════════════════════════════════════════════
   Widget _buildLocationBar() {
     return GestureDetector(
       onTap: _showLocationSearch,
       child: Container(
         height: _locBarH,
-        color: const Color(0xFF040F22),
+        decoration: const BoxDecoration(
+          color: Color(0xFF040F22),
+          boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 4, offset: Offset(0, 2))],
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(children: [
           Container(
             width: 8, height: 8,
             decoration: BoxDecoration(
               color: _accent, shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: _accent.withOpacity(0.6), blurRadius: 6)],
+              boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.6), blurRadius: 6)],
             ),
           ),
           const SizedBox(width: 8),
@@ -428,10 +442,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 배너 — 230px
+  // 배너 — 230px 무한 캐러셀 (6초 자동)
   // ══════════════════════════════════════════════════════════════
   Widget _buildBanner() {
-    final banners = _banners;
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 4, 14, 0),
       height: 230,
@@ -440,10 +453,10 @@ class _HomeScreenState extends State<HomeScreen>
           borderRadius: BorderRadius.circular(20),
           child: PageView.builder(
             controller: _bannerController,
-            itemCount: banners.length,
-            onPageChanged: _onBannerChanged,
-            itemBuilder: (_, i) {
-              final b = banners[i];
+            itemCount: _infiniteCount,
+            onPageChanged: _onBannerPageChanged,
+            itemBuilder: (_, rawIndex) {
+              final b = _bannerData[rawIndex % _bannerData.length];
               return Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -458,7 +471,7 @@ class _HomeScreenState extends State<HomeScreen>
                       width: 240, height: 240,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _accent.withOpacity(0.06),
+                        color: _accent.withValues(alpha: 0.06),
                       ),
                     ),
                   ),
@@ -478,8 +491,8 @@ class _HomeScreenState extends State<HomeScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
-                          color: _accent.withOpacity(0.15),
-                          border: Border.all(color: _accent.withOpacity(0.3)),
+                          color: _accent.withValues(alpha: 0.15),
+                          border: Border.all(color: _accent.withValues(alpha: 0.3)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text('✨  ${b['tag']}',
@@ -505,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen>
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _br.withOpacity(0.4)),
+              border: Border.all(color: _br.withValues(alpha: 0.4)),
             ),
           ),
         ),
@@ -514,10 +527,10 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(mainAxisSize: MainAxisSize.min,
             children: List.generate(_bannerData.length, (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 280),
-              width: i == _currentBanner ? 20 : 6, height: 6,
+              width: i == _currentBannerIndex ? 20 : 6, height: 6,
               margin: const EdgeInsets.only(left: 4),
               decoration: BoxDecoration(
-                color: i == _currentBanner ? _accent : _br,
+                color: i == _currentBannerIndex ? _accent : _br,
                 borderRadius: BorderRadius.circular(3),
               ),
             )),
@@ -528,59 +541,56 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 카테고리 — 원형 아이콘 + 이모지 (복원)
+  // 카테고리 — 3×3 그리드 (한 화면에 모두 표시)
   // ══════════════════════════════════════════════════════════════
-  Widget _buildCategoryCircles() {
+  Widget _buildCategoryGrid() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(0, 22, 0, 4),
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-          child: _sectionHeader('서비스', null),
-        ),
-        SizedBox(
-          height: 96,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _categories.length,
-            itemBuilder: (_, i) {
-              final c = _categories[i];
-              return GestureDetector(
-                onTap: () {},
-                child: Container(
-                  width: 72,
-                  margin: EdgeInsets.only(right: i < _categories.length - 1 ? 10 : 0),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(
-                      width: 58, height: 58,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _s1,
-                        border: Border.all(color: _br, width: 1.5),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                      ),
-                      child: Center(
-                        child: Text(c['icon'] as String,
-                            style: const TextStyle(fontSize: 26)),
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(c['name'] as String,
-                        style: GoogleFonts.notoSansKr(fontSize: 11, color: _t2, fontWeight: FontWeight.w500),
-                        textAlign: TextAlign.center),
-                  ]),
-                ),
-              );
-            },
+        _sectionHeader('서비스', null),
+        const SizedBox(height: 14),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 14,
+            childAspectRatio: 0.9,
           ),
+          itemCount: _categories.length,
+          itemBuilder: (_, i) {
+            final c = _categories[i];
+            return GestureDetector(
+              onTap: () {},
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(
+                  width: 66, height: 66,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _s1,
+                    border: Border.all(color: _br, width: 1.5),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: Center(
+                    child: Text(c['icon'] as String,
+                        style: const TextStyle(fontSize: 28)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(c['name'] as String,
+                    style: GoogleFonts.notoSansKr(fontSize: 12, color: _t2, fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center),
+              ]),
+            );
+          },
         ),
       ]),
     );
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 추천 점포 — 확대된 가로 슬라이드 카드
+  // 추천 점포 — 가로 슬라이드 카드 (6개)
   // ══════════════════════════════════════════════════════════════
   Widget _buildRecommendSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -602,8 +612,8 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: _s1,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _br.withOpacity(0.5)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 // 이미지
@@ -621,15 +631,15 @@ class _HomeScreenState extends State<HomeScreen>
                     Positioned.fill(child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                            colors: [Colors.transparent, _bg.withOpacity(0.55)]),
+                            colors: [Colors.transparent, _bg.withValues(alpha: 0.55)]),
                       ),
                     )),
                     Positioned(top: 10, left: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _bg.withOpacity(0.85), borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _accent.withOpacity(0.35)),
+                          color: _bg.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _accent.withValues(alpha: 0.35)),
                         ),
                         child: Text(s['tag'] as String,
                             style: GoogleFonts.notoSansKr(fontSize: 10, color: _accent, fontWeight: FontWeight.w700)),
@@ -651,9 +661,9 @@ class _HomeScreenState extends State<HomeScreen>
                       Text(s['distance'] as String,
                           style: GoogleFonts.notoSansKr(fontSize: 11, color: _accent, fontWeight: FontWeight.w600)),
                       const SizedBox(width: 6),
-                      Text(s['sub'] as String,
+                      Expanded(child: Text(s['sub'] as String,
                           style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                          maxLines: 1, overflow: TextOverflow.ellipsis)),
                     ]),
                     const SizedBox(height: 12),
                     Row(children: [
@@ -672,11 +682,11 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 퀵 기능 — 4칸 크게
+  // 퀵 기능 — 4칸
   // ══════════════════════════════════════════════════════════════
   Widget _buildQuickActions() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      margin: const EdgeInsets.fromLTRB(14, 18, 14, 0),
       child: Row(
         children: _quickItems.asMap().entries.map((e) {
           final item = e.value;
@@ -687,19 +697,19 @@ class _HomeScreenState extends State<HomeScreen>
               onTap: () {},
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.fromLTRB(4, 18, 4, 18),
+                padding: const EdgeInsets.fromLTRB(4, 20, 4, 20),
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: aColor.withOpacity(0.3)),
+                  border: Border.all(color: aColor.withValues(alpha: 0.3)),
                 ),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Container(
                     width: 54, height: 54,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.black.withOpacity(0.2),
-                      border: Border.all(color: aColor.withOpacity(0.35)),
+                      color: Colors.black.withValues(alpha: 0.2),
+                      border: Border.all(color: aColor.withValues(alpha: 0.35)),
                     ),
                     child: Icon(item['icon'] as IconData, color: aColor, size: 26),
                   ),
@@ -721,12 +731,12 @@ class _HomeScreenState extends State<HomeScreen>
   // ══════════════════════════════════════════════════════════════
   Widget _buildMapPreview() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 16, 14, 0),
+      margin: const EdgeInsets.fromLTRB(14, 18, 14, 0),
       height: 210,
       decoration: BoxDecoration(
         color: const Color(0xFF050E1E),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _br.withOpacity(0.4)),
+        border: Border.all(color: _br.withValues(alpha: 0.4)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -734,14 +744,14 @@ class _HomeScreenState extends State<HomeScreen>
           Positioned.fill(child: CustomPaint(painter: _NavyGridPainter())),
           Positioned.fill(child: Image.asset('assets/images/map_sample.png', fit: BoxFit.cover,
               errorBuilder: (c, e, s) => const SizedBox())),
-          Positioned.fill(child: Container(color: Colors.black.withOpacity(0.45))),
+          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: 0.45))),
           Positioned.fill(child: Center(child: Container(
             width: 18, height: 18,
             decoration: BoxDecoration(
               color: _accent, shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: _accent.withOpacity(0.25), blurRadius: 0, spreadRadius: 5),
-                BoxShadow(color: _accent.withOpacity(0.12), blurRadius: 0, spreadRadius: 12),
+                BoxShadow(color: _accent.withValues(alpha: 0.25), blurRadius: 0, spreadRadius: 5),
+                BoxShadow(color: _accent.withValues(alpha: 0.12), blurRadius: 0, spreadRadius: 12),
               ],
             ),
           ))),
@@ -753,9 +763,9 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: _bg.withOpacity(0.9),
+                color: _bg.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _br.withOpacity(0.5)),
+                border: Border.all(color: _br.withValues(alpha: 0.5)),
               ),
               child: Row(children: [
                 Text('📍  반경 5km 이내', style: GoogleFonts.notoSansKr(fontSize: 12, color: _t2)),
@@ -764,7 +774,7 @@ class _HomeScreenState extends State<HomeScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
                     color: _accentS, borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _accent.withOpacity(0.4)),
+                    border: Border.all(color: _accent.withValues(alpha: 0.4)),
                   ),
                   child: Text('10개 업체', style: GoogleFonts.notoSansKr(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
                 ),
@@ -782,8 +792,8 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         width: 32, height: 32,
         decoration: BoxDecoration(
-          color: _bg.withOpacity(0.8), shape: BoxShape.circle,
-          border: Border.all(color: _accent.withOpacity(0.4)),
+          color: _bg.withValues(alpha: 0.8), shape: BoxShape.circle,
+          border: Border.all(color: _accent.withValues(alpha: 0.4)),
         ),
         child: Center(child: Text(emoji, style: const TextStyle(fontSize: 16))),
       ),
@@ -791,7 +801,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 인근 점포 — 2배 크기 카드
+  // 인근 점포 — 가로 슬라이드
   // ══════════════════════════════════════════════════════════════
   Widget _buildNearbySection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -807,17 +817,16 @@ class _HomeScreenState extends State<HomeScreen>
           itemCount: _nearbyStores.length,
           itemBuilder: (_, i) {
             final s = _nearbyStores[i];
-            final dist = s['distLabel'] as String? ?? '거리 계산 중';
+            final dist = s['distLabel'] as String? ?? s['sub'] as String? ?? '';
             return Container(
               width: 180,
               margin: EdgeInsets.only(right: i < _nearbyStores.length - 1 ? 12 : 0),
               decoration: BoxDecoration(
                 color: _s1, borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: _br.withOpacity(0.5)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8)],
+                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8)],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // 이미지
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                   child: Stack(children: [
@@ -829,13 +838,12 @@ class _HomeScreenState extends State<HomeScreen>
                               child: Center(child: Text(s['emoji'] as String,
                                   style: const TextStyle(fontSize: 40))))),
                     ),
-                    // 뱃지
                     Positioned(top: 8, left: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: _bg.withOpacity(0.85), borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _accent.withOpacity(0.3)),
+                          color: _bg.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _accent.withValues(alpha: 0.3)),
                         ),
                         child: Text(s['badge'] as String,
                             style: GoogleFonts.notoSansKr(fontSize: 9, color: _accent, fontWeight: FontWeight.w700)),
@@ -843,7 +851,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ]),
                 ),
-                // 정보
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -871,7 +878,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ══════════════════════════════════════════════════════════════
   Widget _buildPromoBand() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 16, 14, 0),
+      margin: const EdgeInsets.fromLTRB(14, 18, 14, 0),
       height: 100,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
@@ -879,14 +886,14 @@ class _HomeScreenState extends State<HomeScreen>
           begin: Alignment.topLeft, end: Alignment.bottomRight,
           colors: [Color(0xFF071428), Color(0xFF0D2040), Color(0xFF071428)],
         ),
-        border: Border.all(color: _accentS.withOpacity(0.5)),
+        border: Border.all(color: _accentS.withValues(alpha: 0.5)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: Stack(children: [
           Positioned(right: -20, top: -20,
             child: Container(width: 120, height: 120,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: _accent.withOpacity(0.06)))),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: _accent.withValues(alpha: 0.06)))),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: Row(children: [
@@ -894,8 +901,8 @@ class _HomeScreenState extends State<HomeScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.12), borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: _accent.withOpacity(0.3)),
+                    color: _accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: _accent.withValues(alpha: 0.3)),
                   ),
                   child: Text('한국자동차협회 KAA', style: GoogleFonts.notoSansKr(fontSize: 10, color: _accent, fontWeight: FontWeight.w600)),
                 ),
@@ -909,7 +916,7 @@ class _HomeScreenState extends State<HomeScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: _accent.withOpacity(0.4)),
+                    side: BorderSide(color: _accent.withValues(alpha: 0.4)),
                   ),
                   elevation: 0,
                 ),
@@ -923,7 +930,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 최근 본 점포 — 추천 점포와 같은 크기 (230×270)
+  // 최근 본 점포
   // ══════════════════════════════════════════════════════════════
   Widget _buildRecentSection() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -944,8 +951,8 @@ class _HomeScreenState extends State<HomeScreen>
               margin: EdgeInsets.only(right: i < _recentStores.length - 1 ? 14 : 0),
               decoration: BoxDecoration(
                 color: _s1, borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _br.withOpacity(0.5)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 ClipRRect(
@@ -986,10 +993,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 가까운 점포순 — 메인배너 크기 카드 1장씩, 7개씩 페이지 로딩
+  // 가까운 점포순 — 7개씩 페이지 로딩
   // ══════════════════════════════════════════════════════════════
   Widget _buildCloseSection() {
-    // 현재 로드된 개수
     final loadCount = (_closeLoadedPage * _pageSize).clamp(0, _allCloseStores.length);
     final list = _allCloseStores.take(loadCount).toList();
     final canLoadMore = loadCount < _allCloseStores.length && !_closeFullyLoaded;
@@ -1007,11 +1013,10 @@ class _HomeScreenState extends State<HomeScreen>
           height: 230,
           decoration: BoxDecoration(
             color: _s1, borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _br.withOpacity(0.5)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+            border: Border.all(color: _br.withValues(alpha: 0.5)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // 이미지 상단
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: Stack(children: [
@@ -1026,27 +1031,25 @@ class _HomeScreenState extends State<HomeScreen>
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, _bg.withOpacity(0.5)]),
+                        colors: [Colors.transparent, _bg.withValues(alpha: 0.5)]),
                   ),
                 )),
-                // 뱃지
                 Positioned(top: 10, left: 10,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _bg.withOpacity(0.85), borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _accent.withOpacity(0.35)),
+                      color: _bg.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _accent.withValues(alpha: 0.35)),
                     ),
                     child: Text(s['badge'] as String,
                         style: GoogleFonts.notoSansKr(fontSize: 10, color: _accent, fontWeight: FontWeight.w700)),
                   ),
                 ),
-                // 거리
                 Positioned(top: 10, right: 10,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _bg.withOpacity(0.85), borderRadius: BorderRadius.circular(20),
+                      color: _bg.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.location_on, color: _accent, size: 11),
@@ -1058,7 +1061,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ]),
             ),
-            // 정보 하단
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -1082,7 +1084,6 @@ class _HomeScreenState extends State<HomeScreen>
         );
       }).toList(),
 
-      // 더 로드 / 더보기 버튼
       if (canLoadMore || isLastPage)
         Padding(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
@@ -1099,7 +1100,7 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
                 color: _s2, borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _br.withOpacity(0.5)),
+                border: Border.all(color: _br.withValues(alpha: 0.5)),
               ),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(
@@ -1122,26 +1123,26 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 하단 업체정보 — 배달의민족 스타일 + KAA 실제정보
+  // 하단 업체정보 — 배달의민족 스타일 + KAA 실제정보 (딱맞는 크기)
   // ══════════════════════════════════════════════════════════════
   Widget _buildCompanySection() {
     return Container(
       color: const Color(0xFF010610),
       margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-        // ── 전용 혜택 배너 (배민 스타일) ──────────────────────────
+        // ── MOINCAR 회원 전용 혜택 배너 ───────────────────────────
         GestureDetector(
           onTap: () {},
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            margin: const EdgeInsets.only(bottom: 18),
             decoration: BoxDecoration(
               color: const Color(0xFF0A1E3A),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _accent.withOpacity(0.3)),
+              border: Border.all(color: _accent.withValues(alpha: 0.3)),
             ),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Text('MOINCAR 회원 전용 혜택 있어요!',
@@ -1152,75 +1153,56 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        // ── 링크 목록 ─────────────────────────────────────────────
-        Wrap(
-          spacing: 0, runSpacing: 6,
-          children: [
-            ['사업자정보확인', '이용약관', '전자금융거래이용약관'],
-            ['개인정보처리방침', '리뷰운영정책', '데이터제공정책'],
-            ['소비자분쟁해결기준'],
-          ].expand((row) {
-            final widgets = <Widget>[];
-            for (int i = 0; i < row.length; i++) {
-              widgets.add(GestureDetector(
-                onTap: () {},
-                child: Text(row[i],
-                    style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
-              ));
-              if (i < row.length - 1) {
-                widgets.add(Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('|', style: GoogleFonts.notoSansKr(fontSize: 10, color: _br)),
-                ));
-              }
-            }
-            widgets.add(const SizedBox(width: double.infinity, height: 0)); // 줄바꿈
-            return widgets;
-          }).toList(),
-        ),
+        // ── 링크 행 1 ─────────────────────────────────────────────
+        _linkRow(['사업자정보확인', '이용약관', '전자금융거래이용약관']),
+        const SizedBox(height: 7),
+        _linkRow(['개인정보처리방침', '리뷰운영정책', '데이터제공정책']),
+        const SizedBox(height: 7),
+        _linkRow(['소비자분쟁해결기준']),
 
-        const SizedBox(height: 20),
-        Container(height: 1, color: _br.withOpacity(0.3)),
         const SizedBox(height: 18),
+        Container(height: 1, color: _br.withValues(alpha: 0.3)),
+        const SizedBox(height: 16),
 
-        // ── 회사명 (굵게) ─────────────────────────────────────────
+        // ── 회사명 ────────────────────────────────────────────────
         Text('(사)한국자동차협회',
             style: GoogleFonts.notoSansKr(fontSize: 13, fontWeight: FontWeight.w700, color: _t2)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // ── 상세정보 ──────────────────────────────────────────────
         _infoRow('대표이사', '사무총장 성기정'),
         _infoRow('사업자등록번호', '114-82-05386'),
         _infoRow('통신판매업', '제 2016-서울성동-01043호'),
         _infoRow('이메일', 'kaa21@kaa21.or.kr'),
-        _infoRow('주소', '서울 성동구 자동차시장1길 70 (용답동) 자비로디등 7층'),
-        _infoRow('전자금융분쟁처리', 'Tel 02-3482-7433'),
+        _infoRow('주소', '서울 성동구 자동차시장1길 70 (용답동)'),
+        _infoRow('전자금융분쟁', 'Tel 02-3482-7433'),
 
-        const SizedBox(height: 16),
-        Container(height: 1, color: _br.withOpacity(0.2)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        Container(height: 1, color: _br.withValues(alpha: 0.2)),
+        const SizedBox(height: 14),
 
-        // ── 대표 고객센터 ─────────────────────────────────────────
-        Text('대표 고객센터', style: GoogleFonts.notoSansKr(fontSize: 12, fontWeight: FontWeight.w700, color: _t2)),
+        // ── 고객센터 ──────────────────────────────────────────────
+        Text('대표 고객센터',
+            style: GoogleFonts.notoSansKr(fontSize: 12, fontWeight: FontWeight.w700, color: _t2)),
         const SizedBox(height: 6),
         Row(children: [
-          Text('• 02-3482-7433', style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
+          Text('02-3482-7433', style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
           const SizedBox(width: 8),
           Text('AM 10:00 ~ PM 17:00', style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
               color: _s2, borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: _br.withOpacity(0.5)),
+              border: Border.all(color: _br.withValues(alpha: 0.5)),
             ),
-            child: Text('평일운영', style: GoogleFonts.notoSansKr(fontSize: 9, color: _t3)),
+            child: Text('평일', style: GoogleFonts.notoSansKr(fontSize: 9, color: _t3)),
           ),
         ]),
 
-        const SizedBox(height: 16),
-        Container(height: 1, color: _br.withOpacity(0.2)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        Container(height: 1, color: _br.withValues(alpha: 0.2)),
+        const SizedBox(height: 14),
 
         // ── SNS 링크 ──────────────────────────────────────────────
         Row(children: [
@@ -1233,21 +1215,25 @@ class _HomeScreenState extends State<HomeScreen>
           _snsBadge('KT', const Color(0xFFFEE500)),
         ]),
 
-        const SizedBox(height: 20),
-        Container(height: 1, color: _br.withOpacity(0.2)),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
+        Container(height: 1, color: _br.withValues(alpha: 0.2)),
+        const SizedBox(height: 12),
 
         // ── 법적고지 ──────────────────────────────────────────────
         Text(
           '(사)한국자동차협회는 통신판매중개자로 거래 당사자가 아니므로,\n'
           '판매자가 등록한 상품 및 거래에 대해 책임을 지지 않습니다.\n'
-          '단, (사)한국자동차협회가 판매자로 등록한 상품은 판매자로서\n책임을 부담합니다.',
-          style: GoogleFonts.notoSansKr(fontSize: 10, color: _t3.withOpacity(0.7), height: 1.7),
+          '단, (사)한국자동차협회가 판매자로 등록한 상품은\n판매자로서 책임을 부담합니다.',
+          style: GoogleFonts.notoSansKr(fontSize: 10, color: _t3.withValues(alpha: 0.7), height: 1.7),
         ),
-        const SizedBox(height: 14),
+
+        const SizedBox(height: 12),
+        // ── 저작권 + 이동리워드 ───────────────────────────────────
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('Copyright © 한국자동차협회 All Rights Reserved.',
-              style: GoogleFonts.notoSansKr(fontSize: 9, color: _t3.withOpacity(0.5))),
+          Expanded(
+            child: Text('ⓒ 한국자동차협회 All Rights Reserved.',
+                style: GoogleFonts.notoSansKr(fontSize: 9, color: _t3.withValues(alpha: 0.5))),
+          ),
           GestureDetector(
             onTap: () {},
             child: Container(
@@ -1255,7 +1241,7 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: const Color(0xFF1A1040),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF6B4EFF).withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFF6B4EFF).withValues(alpha: 0.4)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.card_giftcard_outlined, size: 12, color: Color(0xFF9B7CFF)),
@@ -1270,12 +1256,30 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // 링크 행 헬퍼
+  Widget _linkRow(List<String> items) {
+    return Row(children: [
+      for (int i = 0; i < items.length; i++) ...[
+        GestureDetector(
+          onTap: () {},
+          child: Text(items[i],
+              style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
+        ),
+        if (i < items.length - 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text('|', style: GoogleFonts.notoSansKr(fontSize: 10, color: _br)),
+          ),
+      ],
+    ]);
+  }
+
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         SizedBox(
-          width: 110,
+          width: 100,
           child: Text(label, style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
         ),
         Expanded(
@@ -1289,9 +1293,9 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       width: 34, height: 34,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Center(child: Text(label,
           style: GoogleFonts.notoSansKr(fontSize: 10, color: color, fontWeight: FontWeight.w800))),
@@ -1360,8 +1364,8 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.08), borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _accent.withOpacity(0.25)),
+                    color: _accent.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _accent.withValues(alpha: 0.25)),
                   ),
                   child: Row(children: [
                     Icon(Icons.my_location, color: _accent, size: 18),
@@ -1421,8 +1425,8 @@ class _HomeScreenState extends State<HomeScreen>
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _accent.withOpacity(0.08), borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withOpacity(0.25)),
+        color: _accent.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _accent.withValues(alpha: 0.25)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.phone_outlined, size: 13, color: _accent),
@@ -1438,7 +1442,7 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _accentS, borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withOpacity(0.3)),
+        border: Border.all(color: _accent.withValues(alpha: 0.3)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.navigation_outlined, size: 13, color: _t2),
@@ -1455,7 +1459,7 @@ class _NavyGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF050E1E));
     final p = Paint()
-      ..color = const Color(0xFF142244).withOpacity(0.5)
+      ..color = const Color(0xFF142244).withValues(alpha: 0.5)
       ..strokeWidth = 0.5;
     const sp = 28.0;
     for (double x = 0; x < size.width; x += sp) {
@@ -1464,7 +1468,9 @@ class _NavyGridPainter extends CustomPainter {
     for (double y = 0; y < size.height; y += sp) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
     }
-    final road = Paint()..color = const Color(0xFF1A3A6E).withOpacity(0.35)..strokeWidth = 3;
+    final road = Paint()
+      ..color = const Color(0xFF1A3A6E).withValues(alpha: 0.35)
+      ..strokeWidth = 3;
     canvas.drawLine(Offset(0, size.height * 0.5), Offset(size.width, size.height * 0.5), road);
     canvas.drawLine(Offset(size.width * 0.4, 0), Offset(size.width * 0.4, size.height), road);
   }
