@@ -278,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen>
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
                 top: contentTopPad + 8,
-                bottom: 90,
+                bottom: 62,
               ),
               children: [
                 _buildBanner(),
@@ -541,49 +541,63 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 카테고리 — 3×3 그리드 (한 화면에 모두 표시)
+  // 카테고리 — 가로 2줄 (1줄:5개 + 2줄:4개), 원형 아이콘
   // ══════════════════════════════════════════════════════════════
   Widget _buildCategoryGrid() {
+    // 1줄: 5개, 2줄: 4개 (총 9개)
+    final row1 = _categories.sublist(0, 5);
+    final row2 = _categories.sublist(5, 9);
+
+    Widget _catItem(Map<String, dynamic> c) {
+      return GestureDetector(
+        onTap: () {},
+        child: SizedBox(
+          width: 58,
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              width: 52, height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _s1,
+                border: Border.all(color: _br, width: 1.5),
+                boxShadow: [BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 6, offset: const Offset(0, 2))],
+              ),
+              child: Center(
+                child: Text(c['icon'] as String,
+                    style: const TextStyle(fontSize: 22)),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(c['name'] as String,
+                style: GoogleFonts.notoSansKr(
+                    fontSize: 11, color: _t2, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+                maxLines: 1),
+          ]),
+        ),
+      );
+    }
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _sectionHeader('서비스', null),
         const SizedBox(height: 14),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 14,
-            childAspectRatio: 0.9,
+        // 1줄: 5개 균등 배치
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: row1.map(_catItem).toList(),
+        ),
+        const SizedBox(height: 14),
+        // 2줄: 4개 균등 배치 (양쪽 패딩으로 5개 간격과 맞춤)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 29),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: row2.map(_catItem).toList(),
           ),
-          itemCount: _categories.length,
-          itemBuilder: (_, i) {
-            final c = _categories[i];
-            return GestureDetector(
-              onTap: () {},
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Container(
-                  width: 66, height: 66,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _s1,
-                    border: Border.all(color: _br, width: 1.5),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))],
-                  ),
-                  child: Center(
-                    child: Text(c['icon'] as String,
-                        style: const TextStyle(fontSize: 28)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(c['name'] as String,
-                    style: GoogleFonts.notoSansKr(fontSize: 12, color: _t2, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center),
-              ]),
-            );
-          },
         ),
       ]),
     );
@@ -1129,7 +1143,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       color: const Color(0xFF010610),
       margin: const EdgeInsets.only(top: 20),
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
         // ── MOINCAR 회원 전용 혜택 배너 ───────────────────────────
