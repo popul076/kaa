@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 ───────────────────────────────────────────────────
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
+  double _maxScrollOffset = 0.0;  // 최대 스크롤 거리 (한 번 올라가면 고정)
 
   // BottomNav 숨김/표시
   bool _navVisible = true;
@@ -201,7 +202,13 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
-    setState(() => _scrollOffset = offset);
+    setState(() {
+      _scrollOffset = offset;
+      // 최대 스크롤 거리 업데이트 (한 번 올라가면 내려오지 않음)
+      if (offset > _maxScrollOffset) {
+        _maxScrollOffset = offset;
+      }
+    });
 
     // BottomNav: 스크롤 내리면 완전히 숨김 (복귀 안 함)
     if (offset > 50 && _navVisible) {
@@ -211,11 +218,11 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // 로고바: 스크롤하면 위로 완전히 사라짐
-  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
+  // 로고바: 스크롤하면 위로 완전히 사라짐 (최대 스크롤 거리 사용)
+  double get _topBarSlide => _maxScrollOffset.clamp(0.0, _topBarH);
 
-  // 위치띠 슬라이드: 로고바 다음에 계속 올라감 (최대 _topBarH + _locBarH)
-  double get _locBarSlide => (_scrollOffset - _topBarH).clamp(0.0, _locBarH);
+  // 위치띠 슬라이드: 로고바 다음에 계속 올라감 (최대 스크롤 거리 사용)
+  double get _locBarSlide => (_maxScrollOffset - _topBarH).clamp(0.0, _locBarH);
 
   // 로고바 현재 보이는 높이
   double get _logoVisible => _topBarH - _topBarSlide;
@@ -413,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen>
         // 로고 이미지만 (텍스트 삭제) - 크기 확대
         Image.asset(
           'assets/images/moincar_logo.png',
-          height: 80,  // 60 → 80 (+20px)
+          height: 40,  // 80 → 40 (상단바에 맞게 조정)
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => Container(
             width: 36, height: 36,
