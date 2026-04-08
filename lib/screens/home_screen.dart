@@ -214,11 +214,14 @@ class _HomeScreenState extends State<HomeScreen>
   // 로고바: 스크롤하면 위로 완전히 사라짐
   double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
 
+  // 위치띠 슬라이드: 로고바 다음에 계속 올라감 (최대 _topBarH + _locBarH)
+  double get _locBarSlide => (_scrollOffset - _topBarH).clamp(0.0, _locBarH);
+
   // 로고바 현재 보이는 높이
   double get _logoVisible => _topBarH - _topBarSlide;
 
-  // 위치띠 top: 상태바 + 로고바 남은 높이
-  double _locBarTop(double topPad) => topPad + _logoVisible;
+  // 위치띠 top: 상태바 + 로고바 남은 높이 - 위치띠 슬라이드
+  double _locBarTop(double topPad) => topPad + _logoVisible - _locBarSlide;
 
   // 검색바 top: 위치띠 바로 아래
   double _searchBarTop(double topPad) => _locBarTop(topPad) + _locBarH;
@@ -407,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen>
       color: Colors.black,   // 완전 검정 #000000
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // 로고 이미지 or M 텍스트
+        // 로고 이미지만 (텍스트 삭제)
         Image.asset(
           'assets/images/moincar_logo.png',
           height: 36,
@@ -425,14 +428,6 @@ class _HomeScreenState extends State<HomeScreen>
                     color: _accent, fontFamily: 'sans-serif'))),
           ),
         ),
-        const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text('MOINCAR', style: GoogleFonts.notoSansKr(
-              fontSize: 17, fontWeight: FontWeight.w900, color: _t1, letterSpacing: 2)),
-          Text('mobility international car', style: GoogleFonts.notoSansKr(
-              fontSize: 7.5, color: _t3, letterSpacing: 0.8)),
-        ]),
         const Spacer(),
         // 알림
         Stack(clipBehavior: Clip.none, children: [
@@ -860,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildMapPreview() {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 26, 14, 0),
-      height: 220,
+      height: 240,  // 220 → 240 (+20px)
       decoration: BoxDecoration(
         color: const Color(0xFF050E1E),
         borderRadius: BorderRadius.circular(20),
@@ -934,25 +929,27 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 인근 점포 — 2배 크기 (360px)
+  // 인근 점포 — 크기 축소 (270px), 수동 슬라이드
   // ══════════════════════════════════════════════════════════════
   Widget _buildNearbySection() {
-    const double cardW = 360;
-    const double imgH  = 200;
-    const double cardH = 340;
+    const double cardW = 270;  // 360 → 270 (축소)
+    const double imgH  = 165;  // 200 → 165 (축소)
+    const double cardH = 305;  // 340 → 305 (축소)
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 26, 16, 16),
         child: _sectionHeader('📍  인근 점포', '더보기'),
       ),
-      SizedBox(
-        height: cardH,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          itemCount: _nearbyStores.length,
-          itemBuilder: (_, i) {
+      Stack(children: [
+        SizedBox(
+          height: cardH,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),  // 수동 슬라이드
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            itemCount: _nearbyStores.length,
+            itemBuilder: (_, i) {
             final s = _nearbyStores[i];
             final dist = s['distLabel'] as String? ?? '';
             return Container(
@@ -1030,6 +1027,35 @@ class _HomeScreenState extends State<HomeScreen>
           },
         ),
       ),
+      // 우측 슬라이드 표시 (페이드 효과)
+      Positioned(
+        right: 0,
+        top: 0,
+        bottom: 0,
+        child: IgnorePointer(
+          child: Container(
+            width: 60,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  _bg.withValues(alpha: 0.0),
+                  _bg.withValues(alpha: 0.95),
+                ],
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: _t2.withValues(alpha: 0.6),
+                size: 32,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ]),
     ]);
   }
 
