@@ -72,7 +72,7 @@ class IntroScreen extends StatelessWidget {
                         errorBuilder: (c, e, s) => _buildNavyLogo(),
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 5),  // 12 → 5 (로고와 부제 간격 축소)
 
                       // 부제목 (MOINCAR 텍스트 삭제됨)
                       Text(

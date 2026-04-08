@@ -356,17 +356,17 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 시 위로 밀려 사라짐, SafeArea 유지)
+          // ── 로고바 (스크롤 시 화면 밖으로 완전히 나감, SafeArea 무시)
           Positioned(
-            top: (topPad - _topBarSlide).clamp(topPad, double.infinity),
+            top: topPad - _topBarSlide,
             left: 0,
             right: 0,
             child: _buildTopLogoBar(),
           ),
 
-          // ── 위치띠 (로고바 따라 올라가다 상단 고정) ──────────
+          // ── 위치띠 (로고바 다음 위치, 스크롤 시 함께 올라감)
           Positioned(
-            top: _locBarTop(topPad),
+            top: topPad + _topBarH - _topBarSlide - _locBarSlide,
             left: 0,
             right: 0,
             child: _buildLocationBar(),
@@ -413,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen>
         // 로고 이미지만 (텍스트 삭제) - 크기 확대
         Image.asset(
           'assets/images/moincar_logo.png',
-          height: 44,  // 36 → 44 (+8px)
+          height: 60,  // 44 → 60 (더 크게)
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => Container(
             width: 36, height: 36,
