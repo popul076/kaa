@@ -211,26 +211,22 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  // 로고바: 스크롤 시 위로 완전히 사라짐 (clamp 0 ~ topBarH+10 여유)
-  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH + 10);
+  // 로고바: 스크롤하면 위로 완전히 사라짐
+  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
 
-  // 위치띠: 로고바 따라 올라가다가 상단에 핀 고정
-  double _locBarTop(double topPad) {
-    final offset = (_topBarH - _topBarSlide).clamp(0.0, _topBarH);
-    return topPad + offset;
-  }
+  // 로고바 현재 보이는 높이
+  double get _logoVisible => _topBarH - _topBarSlide;
 
-  // 검색바: 위치띠 바로 아래에 고정
-  double _searchBarTop(double topPad) {
-    return _locBarTop(topPad) + _locBarH;
-  }
+  // 위치띠 top: 상태바 + 로고바 남은 높이
+  double _locBarTop(double topPad) => topPad + _logoVisible;
 
-  // 콘텐츠 시작 패딩 = 상태바 + 로고바(스크롤에 따라 줄어듦) + 위치띠 + 검색바
-  // 로고바가 올라갈수록(_topBarSlide 증가) 패딩도 줄어들어 빈 공간 없음
-  double _contentInitialPad(double topPad) {
-    final logoVisible = (_topBarH - _topBarSlide).clamp(0.0, _topBarH);
-    return topPad + logoVisible + _locBarH + _searchBarH;
-  }
+  // 검색바 top: 위치띠 바로 아래
+  double _searchBarTop(double topPad) => _locBarTop(topPad) + _locBarH;
+
+  // ★ ListView 상단 패딩: 항상 전체 헤더 높이 (스크롤과 무관하게 고정)
+  // 스크롤 시 로고바가 올라가므로 콘텐츠가 자연스럽게 올라옴
+  double _contentTopPad(double topPad) =>
+      topPad + _topBarH + _locBarH + _searchBarH;
 
   // ── 위치 초기화 ──────────────────────────────────────────────
   Future<void> _initLocation() async {
@@ -238,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen>
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-        if (mounted) setState(() => _currentAddress = '서울특별시 성동구');
+        if (mounted) setState(() => _currentAddress = '서울특별시 성동구 용답동');
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
@@ -248,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen>
       await _updateAddress(pos.latitude, pos.longitude);
       _sortNearby();
     } catch (_) {
-      if (mounted) setState(() => _currentAddress = '서울특별시 성동구');
+      if (mounted) setState(() => _currentAddress = '서울특별시 성동구 용답동');
     }
   }
 
@@ -257,10 +253,15 @@ class _HomeScreenState extends State<HomeScreen>
       final pm = await placemarkFromCoordinates(lat, lng);
       if (pm.isNotEmpty && mounted) {
         final p = pm.first;
+        // 시/도 + 구/군 + 동/읍/면 까지 표시
         final parts = <String>[];
-        if (p.administrativeArea?.isNotEmpty == true) parts.add(p.administrativeArea!);
-        if (p.subLocality?.isNotEmpty == true) parts.add(p.subLocality!);
-        setState(() => _currentAddress = parts.isNotEmpty ? parts.join(' ') : '현재 위치');
+        if (p.administrativeArea?.isNotEmpty == true) parts.add(p.administrativeArea!);  // 서울특별시
+        if (p.subAdministrativeArea?.isNotEmpty == true) parts.add(p.subAdministrativeArea!); // 성동구
+        if (p.locality?.isNotEmpty == true && p.locality != p.administrativeArea) parts.add(p.locality!); // 구
+        if (p.subLocality?.isNotEmpty == true) parts.add(p.subLocality!);  // 용답동
+        // 중복 제거 후 합치기
+        final unique = parts.toSet().toList();
+        setState(() => _currentAddress = unique.isNotEmpty ? unique.join(' ') : '현재 위치');
       }
     } catch (_) {
       if (mounted) setState(() => _currentAddress = '현재 위치');
@@ -317,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final initPad = _contentInitialPad(topPad);
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: _bg,
@@ -329,10 +330,9 @@ class _HomeScreenState extends State<HomeScreen>
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-            top: initPad + 8,
-            // BottomNav(60) + SafeArea 인셋 + 여백 8
-            bottom: MediaQuery.of(context).padding.bottom + 68,
-          ),
+                top: _contentTopPad(topPad),
+                bottom: bottomPad + 64,  // BottomNav 60 + 4px
+              ),
               children: [
                 _buildBanner(),
                 _buildCategoryGrid(),
@@ -348,8 +348,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 시 완전히 위로 사라짐) ─────────────
-          // top이 topPad - _topBarSlide 가 되면서 화면 위로 클립됨
+          // ── 로고바 (스크롤 시 위로 밀려 사라짐)
           Positioned(
             top: topPad - _topBarSlide,
             left: 0,
@@ -527,7 +526,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildBanner() {
     return Container(
       margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
-      height: 350,
+      height: 330,   // 350 → 330 (20px 축소)
       child: Stack(children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(22),
@@ -1443,8 +1442,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ]),
-            // BottomNav와 딱 맞춤 — 최소 여백 8px
-            const SizedBox(height: 8),
+            // 하단 여백 없음
           ]),
         ),
       ]),
