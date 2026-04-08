@@ -203,12 +203,12 @@ class _HomeScreenState extends State<HomeScreen>
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
     setState(() => _scrollOffset = offset);
 
-    // BottomNav: 스크롤 중 숨김, 600ms 정지 → 나타남
-    _navTimer?.cancel();
-    if (_navVisible) setState(() => _navVisible = false);
-    _navTimer = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _navVisible = true);
-    });
+    // BottomNav: 스크롤 내리면 완전히 숨김 (복귀 안 함)
+    if (offset > 50 && _navVisible) {
+      setState(() => _navVisible = false);
+    } else if (offset <= 50 && !_navVisible) {
+      setState(() => _navVisible = true);
+    }
   }
 
   // 로고바: 스크롤하면 위로 완전히 사라짐
@@ -413,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen>
         // 로고 이미지만 (텍스트 삭제) - 크기 확대
         Image.asset(
           'assets/images/moincar_logo.png',
-          height: 60,  // 44 → 60 (더 크게)
+          height: 80,  // 60 → 80 (+20px)
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => Container(
             width: 36, height: 36,
@@ -1377,7 +1377,7 @@ class _HomeScreenState extends State<HomeScreen>
                     fontSize: 14, fontWeight: FontWeight.w800, color: _t2)),
             const SizedBox(height: 12),
 
-            _infoRow('대표이사',      '사무총장 성기정'),
+            _infoRow('대표자',      '성백진'),
             _infoRow('사업자등록번호', '114-82-05386'),
             _infoRow('통신판매업',    '제 2016-서울성동-01043호'),
             _infoRow('이메일',        'kaa21@kaa21.or.kr'),

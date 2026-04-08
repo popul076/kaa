@@ -67,12 +67,12 @@ class IntroScreen extends StatelessWidget {
                       Image.asset(
                         'assets/images/moincar_logo.png',
                         width: 200,
-                        height: 200,
+                        height: 80,  // 200 → 80 (상단 로고와 같은 크기)
                         fit: BoxFit.contain,
                         errorBuilder: (c, e, s) => _buildNavyLogo(),
                       ),
 
-                      const SizedBox(height: 5),  // 12 → 5 (로고와 부제 간격 축소)
+                      const SizedBox(height: 4),  // 5 → 4 (로고와 부제 간격 더 축소)
 
                       // 부제목 (MOINCAR 텍스트 삭제됨)
                       Text(
