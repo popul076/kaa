@@ -225,9 +225,11 @@ class _HomeScreenState extends State<HomeScreen>
     return _locBarTop(topPad) + _locBarH;
   }
 
-  // 콘텐츠 시작 패딩 = 상태바 + 로고바 + 위치띠 + 검색바 (고정)
+  // 콘텐츠 시작 패딩 = 상태바 + 로고바(스크롤에 따라 줄어듦) + 위치띠 + 검색바
+  // 로고바가 올라갈수록(_topBarSlide 증가) 패딩도 줄어들어 빈 공간 없음
   double _contentInitialPad(double topPad) {
-    return topPad + _topBarH + _locBarH + _searchBarH;
+    final logoVisible = (_topBarH - _topBarSlide).clamp(0.0, _topBarH);
+    return topPad + logoVisible + _locBarH + _searchBarH;
   }
 
   // ── 위치 초기화 ──────────────────────────────────────────────
@@ -326,7 +328,11 @@ class _HomeScreenState extends State<HomeScreen>
             child: ListView(
               controller: _scrollController,
               physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.only(top: initPad + 10, bottom: 100),
+              padding: EdgeInsets.only(
+            top: initPad + 8,
+            // BottomNav(60) + SafeArea 인셋 + 여백 8
+            bottom: MediaQuery.of(context).padding.bottom + 68,
+          ),
               children: [
                 _buildBanner(),
                 _buildCategoryGrid(),
@@ -648,12 +654,12 @@ class _HomeScreenState extends State<HomeScreen>
                     color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 6, offset: const Offset(0, 2))],
               ),
-              // ★ 이모지 렌더링 핵심: fontFamily 지정 없는 기본 TextStyle
+              // ★ 이모지: 원형 유지, 크기 7px 줄여 19px
               child: Center(
                 child: Text(
                   c['emoji'] as String,
                   style: const TextStyle(
-                    fontSize: 26,
+                    fontSize: 19,   // 26 - 7 = 19
                     height: 1.0,
                     // fontFamily 지정 안 함 → 시스템 이모지 폰트 사용
                   ),
@@ -1293,7 +1299,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildCompanySection() {
     return Container(
       color: const Color(0xFF010814),
-      margin: const EdgeInsets.only(top: 20),
+      margin: const EdgeInsets.only(top: 12),
       child: Column(children: [
 
         // 혜택 배너 띠
@@ -1437,7 +1443,8 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ]),
-            // 하단 여백 없음 (BottomNav와 딱 맞춤)
+            // BottomNav와 딱 맞춤 — 최소 여백 8px
+            const SizedBox(height: 8),
           ]),
         ),
       ]),

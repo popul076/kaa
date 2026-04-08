@@ -63,13 +63,18 @@ class IntroScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 60),
 
-                      // MOINCAR 로고 (배경 없는 투명 PNG)
-                      Image.asset(
-                        'assets/images/moincar_logo.png',
+                      // MOINCAR 로고 — 배경/테두리 없이 투명 PNG 그대로 표시
+                      SizedBox(
                         width: 200,
                         height: 200,
-                        fit: BoxFit.contain,
-                        errorBuilder: (c, e, s) => _buildNavyLogo(),
+                        child: Image.asset(
+                          'assets/images/moincar_logo.png',
+                          fit: BoxFit.contain,
+                          // 흰 배경 없이 투명 그대로 렌더링
+                          color: null,
+                          colorBlendMode: BlendMode.dst,
+                          errorBuilder: (c, e, s) => _buildNavyLogo(),
+                        ),
                       ),
 
                       const SizedBox(height: 6),
