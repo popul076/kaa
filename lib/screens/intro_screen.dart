@@ -63,7 +63,7 @@ class IntroScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 60),
 
-                      // MOINCAR 로고 — 배경 없이 그대로 (Scaffold 배경이 _bg 다크색)
+                      // MOINCAR 로고 이미지 (텍스트 삭제, 부제 위로 배치)
                       Image.asset(
                         'assets/images/moincar_logo.png',
                         width: 200,
@@ -72,23 +72,9 @@ class IntroScreen extends StatelessWidget {
                         errorBuilder: (c, e, s) => _buildNavyLogo(),
                       ),
 
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 12),
 
-                      // MOINCAR 텍스트 로고
-                      Text(
-                        'MOINCAR',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: _t1,
-                          letterSpacing: 4,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      // 부제목
+                      // 부제목 (MOINCAR 텍스트 삭제됨)
                       Text(
                         'mobility international car',
                         style: GoogleFonts.notoSansKr(

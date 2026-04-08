@@ -356,9 +356,9 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 시 위로 밀려 사라짐)
+          // ── 로고바 (스크롤 시 위로 밀려 사라짐, SafeArea 유지)
           Positioned(
-            top: topPad - _topBarSlide,
+            top: (topPad - _topBarSlide).clamp(topPad, double.infinity),
             left: 0,
             right: 0,
             child: _buildTopLogoBar(),
@@ -410,10 +410,10 @@ class _HomeScreenState extends State<HomeScreen>
       color: Colors.black,   // 완전 검정 #000000
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // 로고 이미지만 (텍스트 삭제)
+        // 로고 이미지만 (텍스트 삭제) - 크기 확대
         Image.asset(
           'assets/images/moincar_logo.png',
-          height: 36,
+          height: 44,  // 36 → 44 (+8px)
           fit: BoxFit.contain,
           errorBuilder: (c, e, s) => Container(
             width: 36, height: 36,
@@ -929,12 +929,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 인근 점포 — 크기 축소 (270px), 수동 슬라이드
+  // 인근 점포 — 크기 축소 (180px), 화면에 4개 보이도록
   // ══════════════════════════════════════════════════════════════
   Widget _buildNearbySection() {
-    const double cardW = 270;  // 360 → 270 (축소)
-    const double imgH  = 165;  // 200 → 165 (축소)
-    const double cardH = 305;  // 340 → 305 (축소)
+    const double cardW = 180;  // 270 → 180 (더 축소)
+    const double imgH  = 120;  // 165 → 120 (절반은 사진)
+    const double cardH = 240;  // 305 → 240 (절반은 내용)
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
@@ -996,29 +996,29 @@ class _HomeScreenState extends State<HomeScreen>
                   ]),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(s['name'] as String,
                         style: GoogleFonts.notoSansKr(
-                            fontSize: 17, fontWeight: FontWeight.w700, color: _t1),
+                            fontSize: 13, fontWeight: FontWeight.w700, color: _t1),
                         maxLines: 1, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(children: [
-                      const Icon(Icons.location_on, color: Color(0xFF4FC3F7), size: 14),
-                      const SizedBox(width: 3),
+                      const Icon(Icons.location_on, color: Color(0xFF4FC3F7), size: 11),
+                      const SizedBox(width: 2),
                       Text(dist.isNotEmpty ? dist : s['sub'] as String,
                           style: GoogleFonts.notoSansKr(
-                              fontSize: 13, color: _accent, fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(s['sub'] as String,
-                          style: GoogleFonts.notoSansKr(fontSize: 12, color: _t3),
-                          maxLines: 1, overflow: TextOverflow.ellipsis)),
+                              fontSize: 10, color: _accent, fontWeight: FontWeight.w600)),
                     ]),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 2),
+                    Text(s['sub'] as String,
+                        style: GoogleFonts.notoSansKr(fontSize: 10, color: _t3),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
                     Row(children: [
-                      Expanded(child: _callBtn()),
-                      const SizedBox(width: 10),
-                      Expanded(child: _navBtn()),
+                      Expanded(child: _callBtnSmall()),
+                      const SizedBox(width: 6),
+                      Expanded(child: _navBtnSmall()),
                     ]),
                   ]),
                 ),
@@ -1714,6 +1714,45 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(width: 4),
         Text('길찾기', style: GoogleFonts.notoSansKr(
             fontSize: 13, color: _t2, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
+
+  // 작은 버튼 (인근 점포용)
+  Widget _callBtnSmall() => GestureDetector(
+    onTap: () {},
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: _accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _accent.withValues(alpha: 0.3)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.phone_outlined, size: 11, color: Color(0xFF4FC3F7)),
+        const SizedBox(width: 3),
+        Text('전화', style: GoogleFonts.notoSansKr(
+            fontSize: 10, color: _accent, fontWeight: FontWeight.w600)),
+      ]),
+    ),
+  );
+
+  Widget _navBtnSmall() => GestureDetector(
+    onTap: () {},
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      decoration: BoxDecoration(
+        color: _accentS,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center, children: [
+        const Icon(Icons.navigation_outlined, size: 11, color: Color(0xFF7AB0D4)),
+        const SizedBox(width: 3),
+        Text('길찾기', style: GoogleFonts.notoSansKr(
+            fontSize: 10, color: _t2, fontWeight: FontWeight.w600)),
       ]),
     ),
   );
