@@ -63,7 +63,7 @@ class IntroScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 60),
 
-                      // M 로고 마크 (이미지 fallback 포함)
+                      // MOINCAR 로고 (배경 없는 투명 PNG)
                       Image.asset(
                         'assets/images/moincar_logo.png',
                         width: 200,
