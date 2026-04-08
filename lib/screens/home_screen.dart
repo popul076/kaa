@@ -393,7 +393,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildTopLogoBar() {
     return Container(
       height: _topBarH,
-      color: const Color(0xFF030C1C),
+      color: Colors.black,   // 완전 검정 #000000
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         // 로고 이미지 or M 텍스트
@@ -1298,7 +1298,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildCompanySection() {
     return Container(
       color: const Color(0xFF010814),
-      margin: const EdgeInsets.only(top: 12),
+      margin: EdgeInsets.zero,   // margin 완전 제거
       child: Column(children: [
 
         // 혜택 배너 띠
@@ -1442,8 +1442,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ]),
-            // 하단 여백 없음
-          ]),
+          ]),   // Column 끝 - 패딩 없음
         ),
       ]),
     );
