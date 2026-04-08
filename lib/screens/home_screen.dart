@@ -320,8 +320,13 @@ class _HomeScreenState extends State<HomeScreen>
     final topPad = MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
+    // BottomNav 높이: 60px + SafeArea bottom
+    const double navH = 60.0;
+    final double navTotalH = navH + bottomPad;
+
     return Scaffold(
       backgroundColor: _bg,
+      // bottomNavigationBar 제거 → Stack 내부로 이동하여 공백 원천 차단
       body: Stack(
         children: [
           // ── 메인 스크롤 콘텐츠 ──────────────────────────────
@@ -331,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
                 top: _contentTopPad(topPad),
-                bottom: bottomPad + 64,  // BottomNav 60 + 4px
+                bottom: navTotalH + 8,  // BottomNav 완전히 가릴 패딩
               ),
               children: [
                 _buildBanner(),
@@ -371,18 +376,24 @@ class _HomeScreenState extends State<HomeScreen>
             right: 0,
             child: _buildSearchBar(),
           ),
+
+          // ── 하단 BottomNav (Stack 내부 → 숨겨도 공백 없음) ───
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSlide(
+              offset: _navVisible ? Offset.zero : const Offset(0, 1),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: AnimatedOpacity(
+                opacity: _navVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: const BottomNav(activeTab: 'home'),
+              ),
+            ),
+          ),
         ],
-      ),
-      // ── 하단 BottomNav ────────────────────────────────────────
-      bottomNavigationBar: AnimatedSlide(
-        offset: _navVisible ? Offset.zero : const Offset(0, 1),
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        child: AnimatedOpacity(
-          opacity: _navVisible ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: const BottomNav(activeTab: 'home'),
-        ),
       ),
     );
   }
