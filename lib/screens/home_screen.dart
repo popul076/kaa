@@ -218,11 +218,17 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // 로고바: 스크롤하면 위로 완전히 사라짐 (최대 스크롤 거리 사용)
-  double get _topBarSlide => _maxScrollOffset.clamp(0.0, _topBarH);
+  // 로고바: 스크롤 100 이상이면 완전히 숨김 (고정)
+  double get _topBarSlide {
+    if (_maxScrollOffset >= 100) return _topBarH;  // 완전히 숨김
+    return _maxScrollOffset.clamp(0.0, _topBarH);
+  }
 
-  // 위치띠 슬라이드: 로고바 다음에 계속 올라감 (최대 스크롤 거리 사용)
-  double get _locBarSlide => (_maxScrollOffset - _topBarH).clamp(0.0, _locBarH);
+  // 위치띠 슬라이드: 로고바 숨은 후 위치띠도 숨김
+  double get _locBarSlide {
+    if (_maxScrollOffset >= 100 + _locBarH) return _locBarH;  // 완전히 숨김
+    return (_maxScrollOffset - _topBarH).clamp(0.0, _locBarH);
+  }
 
   // 로고바 현재 보이는 높이
   double get _logoVisible => _topBarH - _topBarSlide;
@@ -363,16 +369,16 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 시 화면 밖으로 완전히 나감, SafeArea 무시)
-          Positioned(
+          // ── 로고바 (스크롤 100 이상이면 완전히 숨김)
+          if (_maxScrollOffset < 100) Positioned(
             top: topPad - _topBarSlide,
             left: 0,
             right: 0,
             child: _buildTopLogoBar(),
           ),
 
-          // ── 위치띠 (로고바 다음 위치, 스크롤 시 함께 올라감)
-          Positioned(
+          // ── 위치띠 (스크롤 시 함께 숨김)
+          if (_maxScrollOffset < 100 + _locBarH) Positioned(
             top: topPad + _topBarH - _topBarSlide - _locBarSlide,
             left: 0,
             right: 0,
@@ -939,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen>
   // 인근 점포 — 크기 조정 (화면에 2개 완전히 보이도록)
   // ══════════════════════════════════════════════════════════════
   Widget _buildNearbySection() {
-    const double cardW = 175;  // 180 → 175 (화면에 2개 보이게)
+    const double cardW = 150;  // 175 → 150 (화면에 2개 완전히)
     const double imgH  = 120;  // 사진 높이
     const double cardH = 240;  // 카드 전체 높이
 
