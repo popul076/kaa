@@ -202,13 +202,13 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
-    setState(() {
-      _scrollOffset = offset;
-      // 최대 스크롤 거리 업데이트 (한 번 올라가면 내려오지 않음)
-      if (offset > _maxScrollOffset) {
-        _maxScrollOffset = offset;
-      }
-    });
+    
+    // 최대 스크롤 거리 업데이트 (한 번 올라가면 고정)
+    if (offset > _maxScrollOffset) {
+      setState(() => _maxScrollOffset = offset);
+    }
+    
+    setState(() => _scrollOffset = offset);
 
     // BottomNav: 스크롤 내리면 완전히 숨김 (복귀 안 함)
     if (offset > 50 && _navVisible) {
@@ -936,12 +936,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 인근 점포 — 크기 축소 (180px), 화면에 4개 보이도록
+  // 인근 점포 — 크기 조정 (화면에 2개 완전히 보이도록)
   // ══════════════════════════════════════════════════════════════
   Widget _buildNearbySection() {
-    const double cardW = 180;  // 270 → 180 (더 축소)
-    const double imgH  = 120;  // 165 → 120 (절반은 사진)
-    const double cardH = 240;  // 305 → 240 (절반은 내용)
+    const double cardW = 175;  // 180 → 175 (화면에 2개 보이게)
+    const double imgH  = 120;  // 사진 높이
+    const double cardH = 240;  // 카드 전체 높이
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
