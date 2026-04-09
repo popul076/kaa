@@ -203,25 +203,18 @@ class _HomeScreenState extends State<HomeScreen>
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
     setState(() => _scrollOffset = offset);
 
-    // BottomNav: 스크롤 내리면 완전히 숨김 (복귀 안 함)
-    if (offset > 50 && _navVisible) {
-      setState(() => _navVisible = false);
-    } else if (offset <= 50 && !_navVisible) {
-      setState(() => _navVisible = true);
-    }
+    // BottomNav: 스크롤 중 숨김, 600ms 정지 후 복귀
+    _navTimer?.cancel();
+    if (_navVisible) setState(() => _navVisible = false);
+    _navTimer = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _navVisible = true);
+    });
   }
 
-  // 로고바: 스크롤 위치에 따라 슬라이드 (올리면 다시 내려옴)
-  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
-
-  // 위치띠 슬라이드: 로고바 숨은 후 위치띠 슬라이드
-  double get _locBarSlide => (_scrollOffset - _topBarH).clamp(0.0, _locBarH);
-
-  // 검색바 슬라이드: 위치띠 숨은 후 검색바 슬라이드
-  double get _searchBarSlide {
-    final threshold = _topBarH + _locBarH;
-    return (_scrollOffset - threshold).clamp(0.0, _searchBarH);
-  }
+  // 상단띠 고정 (스크롤과 무관)
+  double get _topBarSlide => 0.0;
+  double get _locBarSlide => 0.0;
+  double get _searchBarSlide => 0.0;
 
   // 로고바 현재 보이는 높이
   double get _logoVisible => _topBarH - _topBarSlide;
