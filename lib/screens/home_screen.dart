@@ -230,14 +230,22 @@ class _HomeScreenState extends State<HomeScreen>
     return (_maxScrollOffset - _topBarH).clamp(0.0, _locBarH);
   }
 
+  // 검색바 슬라이드: 위치띠 숨은 후 검색바도 숨김
+  double get _searchBarSlide {
+    final threshold = _topBarH + _locBarH;
+    if (_maxScrollOffset >= threshold + _searchBarH) return _searchBarH;
+    return (_maxScrollOffset - threshold).clamp(0.0, _searchBarH);
+  }
+
   // 로고바 현재 보이는 높이
   double get _logoVisible => _topBarH - _topBarSlide;
 
   // 위치띠 top: 상태바 + 로고바 남은 높이 - 위치띠 슬라이드
   double _locBarTop(double topPad) => topPad + _logoVisible - _locBarSlide;
 
-  // 검색바 top: 위치띠 바로 아래
-  double _searchBarTop(double topPad) => _locBarTop(topPad) + _locBarH;
+  // 검색바 top: 위치띠 바로 아래, 스크롤 시 함께 올라감
+  double _searchBarTop(double topPad) => 
+      topPad + _topBarH - _topBarSlide + _locBarH - _locBarSlide - _searchBarSlide;
 
   // ★ ListView 상단 패딩: 항상 전체 헤더 높이 (스크롤과 무관하게 고정)
   // 스크롤 시 로고바가 올라가므로 콘텐츠가 자연스럽게 올라옴
@@ -385,8 +393,8 @@ class _HomeScreenState extends State<HomeScreen>
             child: _buildLocationBar(),
           ),
 
-          // ── 검색바 (위치띠 아래 항상 고정) ───────────────────
-          Positioned(
+          // ── 검색바 (스크롤 시 함께 숨김) ───────────────────
+          if (_maxScrollOffset < 100 + _locBarH + _searchBarH) Positioned(
             top: _searchBarTop(topPad),
             left: 0,
             right: 0,

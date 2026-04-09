@@ -28,30 +28,7 @@ class LoginScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 20, color: Color(0xFF7AB0D4)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                  colors: [Color(0xFF1A3A8E), Color(0xFF0D1E5A)],
-                ),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [BoxShadow(color: _accent.withOpacity(0.25), blurRadius: 8)],
-              ),
-              child: Center(child: Text('M',
-                style: GoogleFonts.notoSansKr(
-                  fontSize: 14, fontWeight: FontWeight.w900, color: _accent))),
-            ),
-            const SizedBox(width: 8),
-            Text('MOINCAR',
-              style: GoogleFonts.notoSansKr(
-                fontSize: 16, fontWeight: FontWeight.w900,
-                color: _t1, letterSpacing: 2)),
-          ],
-        ),
+        title: null,  // M 로고 + MOINCAR 텍스트 삭제
         centerTitle: true,
       ),
       body: Stack(
