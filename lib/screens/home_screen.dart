@@ -39,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen>
   static const double _topBarH    = 56.0;   // 로고바 높이
   static const double _locBarH    = 44.0;   // 위치띠 높이
   static const double _searchBarH = 52.0;   // 검색바 높이
+  static const double _totalHeaderH = 152.0; // 전체 헤더 높이(56+44+52)
 
   // ── 스크롤 ───────────────────────────────────────────────────
   final ScrollController _scrollController = ScrollController();
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': 'MOINCAR 인증\n정비센터',
       'sub': '인증 점포 방문 시 10% 할인 혜택',
       'tag': '🏆 MOINCAR 인증',
-      'image': 'assets/images/store_repair.jpg',
+      'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80',
       'color': Color(0xFF0A2040),
     },
     {
@@ -74,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': '중고차 성능점검\n수요 확대',
       'sub': '사고이력·성능점검표 확인이 필수입니다',
       'tag': '📰 자동차 뉴스',
-      'image': 'assets/images/store_usedcar.jpg',
+      'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80',
       'color': Color(0xFF0A1A30),
     },
     {
@@ -82,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': '오늘의 유가\n실시간 확인',
       'sub': '전국 주유소 최저가 실시간 비교',
       'tag': '⛽ 주유 정보',
-      'image': 'assets/images/nearby1.jpg',
+      'image': 'https://images.unsplash.com/photo-1565728744382-61accd4aa148?w=600&q=80',
       'color': Color(0xFF0D1E10),
     },
     {
@@ -90,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': 'KAA 인증서\n발급 신청',
       'sub': '한국자동차협회 공식 인증 서비스',
       'tag': '🏅 협회 인증',
-      'image': 'assets/images/nearby3.jpg',
+      'image': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&q=80',
       'color': Color(0xFF1A0A20),
     },
     {
@@ -98,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': '이동할수록\n적립되는 리워드',
       'sub': '주행 거리당 포인트 지급 서비스',
       'tag': '🎁 이동리워드',
-      'image': 'assets/images/store_carwash.jpg',
+      'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600&q=80',
       'color': Color(0xFF1A1040),
     },
     {
@@ -106,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen>
       'title': '24시간\n긴급 출동',
       'sub': '언제 어디서나 즉시 출동 연결',
       'tag': '🚨 긴급 서비스',
-      'image': 'assets/images/nearby2.jpg',
+      'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
       'color': Color(0xFF200A0A),
     },
   ];
@@ -139,48 +140,48 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── 추천 점포 ────────────────────────────────────────────────
   final List<Map<String, dynamic>> _stores = [
-    {'tag': 'MOINCAR 인증', 'name': '강남자동차정비센터',  'distance': '1.8km', 'sub': '엔진·미션·판금 전문',   'image': 'assets/images/store_repair.jpg',  'emoji': '🔧'},
-    {'tag': '인증중고차',    'name': '서울모터스홀딩스',    'distance': '2.4km', 'sub': '수입차·국산차 전문',   'image': 'assets/images/store_carwash.jpg', 'emoji': '🚗'},
-    {'tag': '공식딜러',      'name': '현대자동차 강남점',   'distance': '3.0km', 'sub': '신차·인증중고·시승',   'image': 'assets/images/nearby3.jpg',       'emoji': '🏢'},
-    {'tag': 'MOINCAR 인증', 'name': '프리미엄 세차코팅',   'distance': '3.5km', 'sub': '손세차·광택·코팅',     'image': 'assets/images/nearby1.jpg',       'emoji': '🫧'},
-    {'tag': '이동리워드',    'name': '리워드 파트너 정비',  'distance': '5.1km', 'sub': '이동리워드 적립 가능',  'image': 'assets/images/nearby2.jpg',       'emoji': '🎁'},
+    {'tag': 'MOINCAR 인증', 'name': '강남자동차정비센터',  'distance': '1.8km', 'sub': '엔진·미션·판금 전문',   'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=300&q=80',  'emoji': '🔧'},
+    {'tag': '인증중고차',    'name': '서울모터스홀딩스',    'distance': '2.4km', 'sub': '수입차·국산차 전문',   'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=300&q=80', 'emoji': '🚗'},
+    {'tag': '공식딜러',      'name': '현대자동차 강남점',   'distance': '3.0km', 'sub': '신차·인증중고·시승',   'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80',       'emoji': '🏢'},
+    {'tag': 'MOINCAR 인증', 'name': '프리미엄 세차코팅',   'distance': '3.5km', 'sub': '손세차·광택·코팅',     'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=300&q=80',       'emoji': '🫧'},
+    {'tag': '이동리워드',    'name': '리워드 파트너 정비',  'distance': '5.1km', 'sub': '이동리워드 적립 가능',  'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80',       'emoji': '🎁'},
   ];
 
   // ── 인근 점포 ────────────────────────────────────────────────
   List<Map<String, dynamic>> _nearbyStores = [
-    {'badge': '신규',    'name': '수입차 브레이크 전문점', 'sub': '브레이크·하체점검', 'emoji': '🛞', 'image': 'assets/images/nearby1.jpg', 'lat': 35.857, 'lng': 128.633},
-    {'badge': '인기',    'name': '하이브리드 배터리케어',  'sub': '배터리·전기점검',   'emoji': '⚡', 'image': 'assets/images/nearby2.jpg', 'lat': 35.858, 'lng': 128.630},
-    {'badge': 'MOINCAR', 'name': '인증 중고차센터',        'sub': '중고차·성능점검',   'emoji': '🚗', 'image': 'assets/images/nearby3.jpg', 'lat': 35.855, 'lng': 128.635},
-    {'badge': '추천',    'name': '프리미엄 엔진오일샵',    'sub': '오일·경정비',        'emoji': '🔧', 'image': 'assets/images/store_repair.jpg', 'lat': 35.860, 'lng': 128.628},
-    {'badge': '인기',    'name': '타이어 교환 전문센터',   'sub': '타이어·얼라인먼트', 'emoji': '🛞', 'image': 'assets/images/recent2.jpg', 'lat': 35.854, 'lng': 128.638},
-    {'badge': '신규',    'name': '손세차 디테일링샵',      'sub': '손세차·광택코팅',   'emoji': '✨', 'image': 'assets/images/store_carwash.jpg', 'lat': 35.862, 'lng': 128.625},
+    {'badge': '신규',    'name': '수입차 브레이크 전문점', 'sub': '브레이크·하체점검', 'emoji': '🛞', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=120&q=80', 'lat': 35.857, 'lng': 128.633},
+    {'badge': '인기',    'name': '하이브리드 배터리케어',  'sub': '배터리·전기점검',   'emoji': '⚡', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=120&q=80', 'lat': 35.858, 'lng': 128.630},
+    {'badge': 'MOINCAR', 'name': '인증 중고차센터',        'sub': '중고차·성능점검',   'emoji': '🚗', 'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=120&q=80', 'lat': 35.855, 'lng': 128.635},
+    {'badge': '추천',    'name': '프리미엄 엔진오일샵',    'sub': '오일·경정비',        'emoji': '🔧', 'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=120&q=80', 'lat': 35.860, 'lng': 128.628},
+    {'badge': '인기',    'name': '타이어 교환 전문센터',   'sub': '타이어·얼라인먼트', 'emoji': '🛞', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=120&q=80', 'lat': 35.854, 'lng': 128.638},
+    {'badge': '신규',    'name': '손세차 디테일링샵',      'sub': '손세차·광택코팅',   'emoji': '✨', 'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=120&q=80', 'lat': 35.862, 'lng': 128.625},
   ];
 
   // ── 최근 본 점포 ─────────────────────────────────────────────
   final List<Map<String, dynamic>> _recentStores = [
-    {'name': '강남자동차정비',  'sub': '정비·엔진오일', 'emoji': '🔧', 'image': 'assets/images/recent1.jpg'},
-    {'name': '서울모터스',      'sub': '수입차 중고차', 'emoji': '🚗', 'image': 'assets/images/recent2.jpg'},
-    {'name': 'BMW 강남전시장',  'sub': '공식딜러 신차', 'emoji': '🏢', 'image': 'assets/images/recent3.jpg'},
-    {'name': 'GS칼텍스 강남',  'sub': '주유소 24시간', 'emoji': '⛽', 'image': 'assets/images/nearby1.jpg'},
-    {'name': '프리미엄세차',    'sub': '핸드세차 전문', 'emoji': '🫧', 'image': 'assets/images/nearby2.jpg'},
+    {'name': '강남자동차정비',  'sub': '정비·엔진오일', 'emoji': '🔧', 'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=400&q=80'},
+    {'name': '서울모터스',      'sub': '수입차 중고차', 'emoji': '🚗', 'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&q=80'},
+    {'name': 'BMW 강남전시장',  'sub': '공식딜러 신차', 'emoji': '🏢', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80'},
+    {'name': 'GS칼텍스 강남',  'sub': '주유소 24시간', 'emoji': '⛽', 'image': 'https://images.unsplash.com/photo-1565728744382-61accd4aa148?w=400&q=80'},
+    {'name': '프리미엄세차',    'sub': '핸드세차 전문', 'emoji': '🫧', 'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=400&q=80'},
   ];
 
   // ── 가까운 점포순 (7개씩 페이지 로딩) ───────────────────────
   final List<Map<String, dynamic>> _allCloseStores = [
-    {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 정비센터',  'sub': '정비·엔진오일',     'distance': '1.2km', 'emoji': '🔧', 'image': 'assets/images/store_repair.jpg'},
-    {'badge': '추천',    'name': '프리미엄 디테일링 세차',  'sub': '손세차·코팅',        'distance': '2.1km', 'emoji': '🫧', 'image': 'assets/images/store_carwash.jpg'},
-    {'badge': 'MOINCAR', 'name': '수입차 타이어 전문점',    'sub': '타이어·휠얼라인',   'distance': '3.4km', 'emoji': '🛞', 'image': 'assets/images/recent2.jpg'},
-    {'badge': '신규',    'name': '하이브리드 배터리 케어',  'sub': '배터리·전기점검',   'distance': '3.8km', 'emoji': '⚡', 'image': 'assets/images/nearby2.jpg'},
-    {'badge': '인기',    'name': '수입차 브레이크 전문',    'sub': '브레이크·하체점검', 'distance': '4.2km', 'emoji': '🛞', 'image': 'assets/images/nearby1.jpg'},
-    {'badge': 'MOINCAR', 'name': '종합 자동차 정비소',      'sub': '종합정비·검사',     'distance': '4.9km', 'emoji': '🏆', 'image': 'assets/images/store_repair.jpg'},
-    {'badge': '추천',    'name': '엔진오일 전문점',          'sub': '오일·경정비',        'distance': '5.3km', 'emoji': '🔧', 'image': 'assets/images/nearby3.jpg'},
-    {'badge': '신규',    'name': '프리미엄 세차 코팅',       'sub': '세차·유리막코팅',   'distance': '5.7km', 'emoji': '🫧', 'image': 'assets/images/store_carwash.jpg'},
-    {'badge': 'MOINCAR', 'name': '중고차 성능점검센터',      'sub': '중고차·성능점검',   'distance': '6.1km', 'emoji': '🚗', 'image': 'assets/images/nearby3.jpg'},
-    {'badge': '인기',    'name': '타이어 전문 할인점',        'sub': '타이어·얼라인먼트', 'distance': '6.8km', 'emoji': '🛞', 'image': 'assets/images/recent2.jpg'},
-    {'badge': '추천',    'name': '국산차 정비 전문점',        'sub': '정비·부품교환',     'distance': '7.2km', 'emoji': '🔧', 'image': 'assets/images/store_repair.jpg'},
-    {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 렌트카',     'sub': '렌트카·단기임대',   'distance': '7.9km', 'emoji': '🚗', 'image': 'assets/images/nearby1.jpg'},
-    {'badge': '신규',    'name': '전기차 충전 정비소',        'sub': '전기차·충전설비',   'distance': '8.2km', 'emoji': '⚡', 'image': 'assets/images/nearby2.jpg'},
-    {'badge': '인기',    'name': '수입차 종합 케어센터',      'sub': '수입차·판금·도색',  'distance': '8.9km', 'emoji': '🏢', 'image': 'assets/images/nearby3.jpg'},
+    {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 정비센터',  'sub': '정비·엔진오일',     'distance': '1.2km', 'emoji': '🔧', 'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=300&q=80'},
+    {'badge': '추천',    'name': '프리미엄 디테일링 세차',  'sub': '손세차·코팅',        'distance': '2.1km', 'emoji': '🫧', 'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=300&q=80'},
+    {'badge': 'MOINCAR', 'name': '수입차 타이어 전문점',    'sub': '타이어·휠얼라인',   'distance': '3.4km', 'emoji': '🛞', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80'},
+    {'badge': '신규',    'name': '하이브리드 배터리 케어',  'sub': '배터리·전기점검',   'distance': '3.8km', 'emoji': '⚡', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=300&q=80'},
+    {'badge': '인기',    'name': '수입차 브레이크 전문',    'sub': '브레이크·하체점검', 'distance': '4.2km', 'emoji': '🛞', 'image': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&q=80'},
+    {'badge': 'MOINCAR', 'name': '종합 자동차 정비소',      'sub': '종합정비·검사',     'distance': '4.9km', 'emoji': '🏆', 'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=300&q=80'},
+    {'badge': '추천',    'name': '엔진오일 전문점',          'sub': '오일·경정비',        'distance': '5.3km', 'emoji': '🔧', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'},
+    {'badge': '신규',    'name': '프리미엄 세차 코팅',       'sub': '세차·유리막코팅',   'distance': '5.7km', 'emoji': '🫧', 'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=300&q=80'},
+    {'badge': 'MOINCAR', 'name': '중고차 성능점검센터',      'sub': '중고차·성능점검',   'distance': '6.1km', 'emoji': '🚗', 'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=300&q=80'},
+    {'badge': '인기',    'name': '타이어 전문 할인점',        'sub': '타이어·얼라인먼트', 'distance': '6.8km', 'emoji': '🛞', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80'},
+    {'badge': '추천',    'name': '국산차 정비 전문점',        'sub': '정비·부품교환',     'distance': '7.2km', 'emoji': '🔧', 'image': 'https://images.unsplash.com/photo-1445991842772-097fea258e7b?w=300&q=80'},
+    {'badge': 'MOINCAR', 'name': 'MOINCAR 인증 렌트카',     'sub': '렌트카·단기임대',   'distance': '7.9km', 'emoji': '🚗', 'image': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=300&q=80'},
+    {'badge': '신규',    'name': '전기차 충전 정비소',        'sub': '전기차·충전설비',   'distance': '8.2km', 'emoji': '⚡', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=300&q=80'},
+    {'badge': '인기',    'name': '수입차 종합 케어센터',      'sub': '수입차·판금·도색',  'distance': '8.9km', 'emoji': '🏢', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'},
   ];
   int _closeLoadedPage = 1;
   static const int _pageSize = 7;
@@ -211,25 +212,16 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  // 상단띠 고정 (스크롤과 무관)
-  double get _topBarSlide => 0.0;
-  double get _locBarSlide => 0.0;
-  double get _searchBarSlide => 0.0;
+  // ★ 스크롤량만큼 헤더 전체가 올라감 (최대 _totalHeaderH)
+  double get _headerSlide => _scrollOffset.clamp(0.0, _totalHeaderH);
 
-  // 로고바 현재 보이는 높이
-  double get _logoVisible => _topBarH - _topBarSlide;
+  // 검색바 top 계산 (헤더 슬라이드 반영)
+  double _searchBarTop(double topPad) =>
+      topPad + _topBarH + _locBarH - _headerSlide;
 
-  // 위치띠 top: 상태바 + 로고바 남은 높이 - 위치띠 슬라이드
-  double _locBarTop(double topPad) => topPad + _logoVisible - _locBarSlide;
-
-  // 검색바 top: 위치띠 바로 아래, 스크롤 시 함께 올라감
-  double _searchBarTop(double topPad) => 
-      topPad + _topBarH - _topBarSlide + _locBarH - _locBarSlide - _searchBarSlide;
-
-  // ★ ListView 상단 패딩: 항상 전체 헤더 높이 (스크롤과 무관하게 고정)
-  // 스크롤 시 로고바가 올라가므로 콘텐츠가 자연스럽게 올라옴
+  // ★ ListView 상단 패딩: 헤더 높이 - 슬라이드된 만큼 줄어듦
   double _contentTopPad(double topPad) =>
-      topPad + _topBarH + _locBarH + _searchBarH;
+      topPad + _totalHeaderH - _headerSlide;
 
   // ── 위치 초기화 ──────────────────────────────────────────────
   Future<void> _initLocation() async {
@@ -356,28 +348,18 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 시 위로 슬라이드)
+          // ── 헤더 전체 (로고+위치+검색) 한몸으로 스크롤 연동
           Positioned(
-            top: topPad - _topBarSlide,
+            top: topPad - _headerSlide,
             left: 0,
             right: 0,
-            child: _buildTopLogoBar(),
-          ),
-
-          // ── 위치띠 (스크롤 시 함께 슬라이드)
-          Positioned(
-            top: topPad + _topBarH - _topBarSlide - _locBarSlide,
-            left: 0,
-            right: 0,
-            child: _buildLocationBar(),
-          ),
-
-          // ── 검색바 (스크롤 시 함께 슬라이드) ───────────────────
-          Positioned(
-            top: _searchBarTop(topPad),
-            left: 0,
-            right: 0,
-            child: _buildSearchBar(),
+            child: Column(
+              children: [
+                _buildTopLogoBar(),
+                _buildLocationBar(),
+                _buildSearchBar(),
+              ],
+            ),
           ),
 
           // ── 하단 BottomNav (Stack 내부 → 숨겨도 공백 없음) ───
@@ -543,11 +525,13 @@ class _HomeScreenState extends State<HomeScreen>
             itemBuilder: (_, rawIndex) {
               final b = _bannerData[rawIndex % _bannerData.length];
               return Stack(fit: StackFit.expand, children: [
-                // 배경 사진 이미지
-                Image.asset(
+                // 배경 사진 이미지 (네트워크)
+                Image.network(
                   b['image'] as String,
                   fit: BoxFit.cover,
                   errorBuilder: (c, e, s) => Container(color: b['color'] as Color),
+                  loadingBuilder: (c, child, progress) =>
+                      progress == null ? child : Container(color: b['color'] as Color),
                 ),
                 // 어두운 그라디언트 오버레이 (텍스트 가독성)
                 Container(
@@ -644,6 +628,8 @@ class _HomeScreenState extends State<HomeScreen>
 
     // 이모지 표시: TextStyle에 fontFamily 지정하지 않음
     Widget catItem(Map<String, dynamic> c) {
+      // 주차장은 P 간판 아이콘으로 특별 처리
+      final isParking = c['name'] == '주차장';
       return GestureDetector(
         onTap: () {},
         child: SizedBox(
@@ -659,16 +645,32 @@ class _HomeScreenState extends State<HomeScreen>
                     color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 6, offset: const Offset(0, 2))],
               ),
-              // ★ 이모지: 원형 유지, 크기 7px 줄여 19px
               child: Center(
-                child: Text(
-                  c['emoji'] as String,
-                  style: const TextStyle(
-                    fontSize: 19,   // 26 - 7 = 19
-                    height: 1.0,
-                    // fontFamily 지정 안 함 → 시스템 이모지 폰트 사용
-                  ),
-                ),
+                child: isParking
+                    ? Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1565C0),
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [BoxShadow(
+                            color: const Color(0xFF1E88E5).withValues(alpha: 0.5),
+                            blurRadius: 6,
+                          )],
+                        ),
+                        child: const Center(
+                          child: Text('P',
+                            style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w900,
+                              color: Colors.white, fontStyle: FontStyle.italic,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Text(
+                        c['emoji'] as String,
+                        style: const TextStyle(fontSize: 19, height: 1.0),
+                      ),
               ),
             ),
             const SizedBox(height: 8),
@@ -741,11 +743,13 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Stack(children: [
                     SizedBox(
                       width: double.infinity, height: imgH,
-                      child: Image.asset(s['image'] as String, fit: BoxFit.cover,
+                      child: Image.network(s['image'] as String, fit: BoxFit.cover,
                           errorBuilder: (c, e, st) => Container(
                               color: _s2,
                               child: Center(child: Text(s['emoji'] as String,
-                                  style: const TextStyle(fontSize: 60))))),
+                                  style: const TextStyle(fontSize: 60)))),
+                          loadingBuilder: (c, child, p) =>
+                              p == null ? child : Container(color: _s2)),
                     ),
                     Positioned.fill(child: Container(
                       decoration: BoxDecoration(gradient: LinearGradient(
@@ -969,11 +973,12 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Stack(children: [
                     SizedBox(
                       width: double.infinity, height: imgH,
-                      child: Image.asset(s['image'] as String, fit: BoxFit.cover,
+                      child: Image.network(s['image'] as String, fit: BoxFit.cover,
                           errorBuilder: (c, e, st) => Container(
                               color: _s2,
                               child: Center(child: Text(s['emoji'] as String,
-                                  style: const TextStyle(fontSize: 70))))),
+                                  style: const TextStyle(fontSize: 70)))),
+                          loadingBuilder: (c, child, p) => p == null ? child : Container(color: _s2)),
                     ),
                     Positioned.fill(child: Container(
                       decoration: BoxDecoration(gradient: LinearGradient(
@@ -1163,11 +1168,12 @@ class _HomeScreenState extends State<HomeScreen>
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: SizedBox(
                     width: double.infinity, height: imgH,
-                    child: Image.asset(s['image'] as String, fit: BoxFit.cover,
+                    child: Image.network(s['image'] as String, fit: BoxFit.cover,
                         errorBuilder: (c, e, st) => Container(
                             color: _s2,
                             child: Center(child: Text(s['emoji'] as String,
-                                style: const TextStyle(fontSize: 60))))),
+                                style: const TextStyle(fontSize: 60)))),
+                        loadingBuilder: (c, child, p) => p == null ? child : Container(color: _s2)),
                   ),
                 ),
                 Padding(
@@ -1228,11 +1234,12 @@ class _HomeScreenState extends State<HomeScreen>
               child: Stack(children: [
                 SizedBox(
                   width: double.infinity, height: 200,
-                  child: Image.asset(s['image'] as String, fit: BoxFit.cover,
+                  child: Image.network(s['image'] as String, fit: BoxFit.cover,
                       errorBuilder: (c, e2, st) => Container(
                           color: _s2,
                           child: Center(child: Text(s['emoji'] as String,
-                              style: const TextStyle(fontSize: 70))))),
+                              style: const TextStyle(fontSize: 70)))),
+                      loadingBuilder: (c, child, p) => p == null ? child : Container(color: _s2)),
                 ),
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(

@@ -102,7 +102,7 @@ class LoginScreen extends StatelessWidget {
                     iconWidget: const _KakaoIcon(),
                     label: '카카오로 시작하기',
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+                      Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 
@@ -115,7 +115,7 @@ class LoginScreen extends StatelessWidget {
                     iconWidget: const _NaverIcon(),
                     label: '네이버로 시작하기',
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+                      Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 
@@ -129,7 +129,7 @@ class LoginScreen extends StatelessWidget {
                     iconWidget: const _GoogleIcon(),
                     label: 'Google로 시작하기',
                     onTap: () {
-                      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+                      Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 

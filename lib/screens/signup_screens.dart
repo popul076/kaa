@@ -583,6 +583,9 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                 interests: state.signup.interests,
               ));
               Navigator.pushNamedAndRemoveUntil(context, '/signup-done', (_) => false);
+              Future.delayed(const Duration(milliseconds: 400), () {
+                if (context.mounted) _showOwnerPopup(context);
+              });
             }),
           ],
         ),
@@ -592,8 +595,20 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
 }
 
 // ==================== 가입 완료 ====================
-class SignupDoneScreen extends StatelessWidget {
+class SignupDoneScreen extends StatefulWidget {
   const SignupDoneScreen({super.key});
+  @override
+  State<SignupDoneScreen> createState() => _SignupDoneScreenState();
+}
+
+class _SignupDoneScreenState extends State<SignupDoneScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) _showOwnerPopup(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -717,6 +732,84 @@ class _DoneRow extends StatelessWidget {
       ],
     );
   }
+}
+
+// ==================== 점주여부 팝업 ====================
+void _showOwnerPopup(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierColor: Colors.black.withOpacity(0.55),
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primaryLight,
+                border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
+              ),
+              child: const Center(child: Text('🏪', style: TextStyle(fontSize: 28))),
+            ),
+            const SizedBox(height: 16),
+            const Text('점포를 운영 중이신가요?',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            const Text('자동차 관련 사업자라면 무료 AI 점포 페이지를 만들어 드려요!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+            ),
+            const SizedBox(height: 28),
+            // 점포 등록 버튼 (위쪽, 강조)
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pushNamed(context, '/store-register');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('네, 점포 등록하기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                    SizedBox(width: 6),
+                    Icon(Icons.arrow_forward, size: 16, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            // 나중에 버튼 (아래쪽, 약하게)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('아니요, 나중에', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 // ==================== 공통 헬퍼 ====================
