@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen>
     {'name': '중고차',   'emoji': '🚗'},
     {'name': '검사',     'emoji': '🔍'},
     {'name': '주유소',   'emoji': '⛽'},
-    {'name': '주차장',   'emoji': '🚘'},
+    {'name': '주차장',   'emoji': '🅿️'},
     {'name': '렌트카',   'emoji': '🚙'},
     {'name': '중고차수출','emoji': '🌏'},
     {'name': '차량용품', 'emoji': '🛒'},
@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen>
           Positioned.fill(
             child: ListView(
               controller: _scrollController,
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               padding: EdgeInsets.only(
                 top: _contentTopPad(topPad),
                 bottom: navTotalH + 8,  // BottomNav 완전히 가릴 패딩
