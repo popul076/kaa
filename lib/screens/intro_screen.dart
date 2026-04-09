@@ -66,7 +66,7 @@ class IntroScreen extends StatelessWidget {
                       // MOINCAR 로고 이미지 (텍스트 삭제, 부제 위로 배치)
                       Image.asset(
                         'assets/images/moincar_logo.png',
-                        width: 280,  // 가로 크기 확대 (비율 유지)
+                        width: 120,  // 280 → 120 (크기 축소)
                         fit: BoxFit.contain,
                         errorBuilder: (c, e, s) => _buildNavyLogo(),
                       ),
