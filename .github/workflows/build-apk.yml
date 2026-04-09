@@ -33,13 +33,12 @@ jobs:
 
       - name: Build APK (arm64)
         env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dkotlin.incremental=false"
-          JAVA_OPTS: "-Xmx3g"
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dkotlin.incremental=false -Dorg.gradle.jvmargs=-Xmx4g"
+          JAVA_TOOL_OPTIONS: "-Xmx4g"
         run: |
           flutter build apk --release \
             --no-tree-shake-icons \
-            --target-platform android-arm64 \
-            --verbose
+            --target-platform android-arm64
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
