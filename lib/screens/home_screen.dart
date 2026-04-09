@@ -43,7 +43,6 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 ───────────────────────────────────────────────────
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
-  double _maxScrollOffset = 0.0;  // 최대 스크롤 거리 (한 번 올라가면 고정)
 
   // BottomNav 숨김/표시
   bool _navVisible = true;
@@ -202,12 +201,6 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
-    
-    // 최대 스크롤 거리 업데이트 (한 번 올라가면 고정)
-    if (offset > _maxScrollOffset) {
-      setState(() => _maxScrollOffset = offset);
-    }
-    
     setState(() => _scrollOffset = offset);
 
     // BottomNav: 스크롤 내리면 완전히 숨김 (복귀 안 함)
@@ -218,23 +211,16 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // 로고바: 스크롤 100 이상이면 완전히 숨김 (고정)
-  double get _topBarSlide {
-    if (_maxScrollOffset >= 100) return _topBarH;  // 완전히 숨김
-    return _maxScrollOffset.clamp(0.0, _topBarH);
-  }
+  // 로고바: 스크롤 위치에 따라 슬라이드 (올리면 다시 내려옴)
+  double get _topBarSlide => _scrollOffset.clamp(0.0, _topBarH);
 
-  // 위치띠 슬라이드: 로고바 숨은 후 위치띠도 숨김
-  double get _locBarSlide {
-    if (_maxScrollOffset >= 100 + _locBarH) return _locBarH;  // 완전히 숨김
-    return (_maxScrollOffset - _topBarH).clamp(0.0, _locBarH);
-  }
+  // 위치띠 슬라이드: 로고바 숨은 후 위치띠 슬라이드
+  double get _locBarSlide => (_scrollOffset - _topBarH).clamp(0.0, _locBarH);
 
-  // 검색바 슬라이드: 위치띠 숨은 후 검색바도 숨김
+  // 검색바 슬라이드: 위치띠 숨은 후 검색바 슬라이드
   double get _searchBarSlide {
     final threshold = _topBarH + _locBarH;
-    if (_maxScrollOffset >= threshold + _searchBarH) return _searchBarH;
-    return (_maxScrollOffset - threshold).clamp(0.0, _searchBarH);
+    return (_scrollOffset - threshold).clamp(0.0, _searchBarH);
   }
 
   // 로고바 현재 보이는 높이
@@ -377,24 +363,24 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── 로고바 (스크롤 100 이상이면 완전히 숨김)
-          if (_maxScrollOffset < 100) Positioned(
+          // ── 로고바 (스크롤 시 위로 슬라이드)
+          Positioned(
             top: topPad - _topBarSlide,
             left: 0,
             right: 0,
             child: _buildTopLogoBar(),
           ),
 
-          // ── 위치띠 (스크롤 시 함께 숨김)
-          if (_maxScrollOffset < 100 + _locBarH) Positioned(
+          // ── 위치띠 (스크롤 시 함께 슬라이드)
+          Positioned(
             top: topPad + _topBarH - _topBarSlide - _locBarSlide,
             left: 0,
             right: 0,
             child: _buildLocationBar(),
           ),
 
-          // ── 검색바 (스크롤 시 함께 숨김) ───────────────────
-          if (_maxScrollOffset < 100 + _locBarH + _searchBarH) Positioned(
+          // ── 검색바 (스크롤 시 함께 슬라이드) ───────────────────
+          Positioned(
             top: _searchBarTop(topPad),
             left: 0,
             right: 0,
