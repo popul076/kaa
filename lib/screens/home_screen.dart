@@ -49,9 +49,9 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _navTimer;
 
   // ── 위치 ─────────────────────────────────────────────────────
-  String _currentAddress = '위치 확인 중...';
-  double _currentLat = 37.5665;
-  double _currentLng = 126.9780;
+  String _currentAddress = '서울특별시 금천구 가산동';
+  double _currentLat = 37.4817;  // 가산동 좌표
+  double _currentLng = 126.8820;
 
   // ── 배너 (무한 캐러셀) ────────────────────────────────────────
   static const int _bannerMultiplier = 500;
@@ -237,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen>
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-        if (mounted) setState(() => _currentAddress = '서울특별시 성동구 용답동');
+        if (mounted) setState(() => _currentAddress = '서울특별시 금천구 가산동');
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
@@ -247,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen>
       await _updateAddress(pos.latitude, pos.longitude);
       _sortNearby();
     } catch (_) {
-      if (mounted) setState(() => _currentAddress = '서울특별시 성동구 용답동');
+      if (mounted) setState(() => _currentAddress = '서울특별시 금천구 가산동');
     }
   }
 
