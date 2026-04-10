@@ -754,36 +754,46 @@ class StoreRegisterScreen extends StatefulWidget {
 
 class _StoreRegisterScreenState extends State<StoreRegisterScreen>
     with TickerProviderStateMixin {
-  // 0:사업자확인, 1:AI안내, 2:사진업로드(1~3장), 3:AI생성중, 4:결과, 5:완료
+  // 스텝: 0=사업자확인, 1=STEP1사진(간판외관), 2=STEP2사진(내부전시장), 3=STEP3사진(대표차량), 4=AI생성중, 5=AI결과, 6=등록완료
   int _step = 0;
 
   final TextEditingController _bizNumCtrl = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  // 선택된 이미지 파일 목록 (최대 3장)
-  final List<File> _photos = [];
+  // 각 단계별 사진 목록 (최대 3장씩)
+  final List<File> _photos1 = []; // STEP 1: 간판·외관 (필수)
+  final List<File> _photos2 = []; // STEP 2: 내부·전시장 (선택)
+  final List<File> _photos3 = []; // STEP 3: 대표차량·서비스 (선택)
+
+  // 현재 스텝의 사진 목록 참조
+  List<File> get _currentPhotos {
+    if (_step == 1) return _photos1;
+    if (_step == 2) return _photos2;
+    if (_step == 3) return _photos3;
+    return [];
+  }
 
   // 품질 검사 상태
   String? _qualityError;
   bool _isCheckingQuality = false;
 
-  // AI 애니메이션 컨트롤러
+  // AI 애니메이션
   late AnimationController _aiAnimCtrl;
   late Animation<double> _aiProgress;
-  String _aiStatus = '이미지 분석 중...';
+  String _aiStatus = '';
   int _aiPhase = 0;
   static const _aiPhases = [
-    '이미지 분석 중...',
-    '점포 정보 추출 중...',
-    '태그라인 생성 중...',
-    '페이지 완성! ✨',
+    '📷  업로드된 사진 분석 중...',
+    '🏪  점포 정보 및 업종 추출 중...',
+    '✍️  AI 소개글·태그라인 생성 중...',
+    '📋  업종별 맞춤 페이지 구성 중...',
+    '✅  점포 페이지 완성!',
   ];
 
-  // 다크테마 색상
+  // 다크 테마 색상
   static const _bg = Color(0xFF020810);
   static const _card = Color(0xFF0D1B2A);
   static const _accent = Color(0xFF4FC3F7);
-  static const _accentBtn = Color(0xFF0D47A1);
   static const _textPrimary = Colors.white;
   static const _textSecondary = Color(0xFFB0BEC5);
   static const _borderCol = Color(0xFF1E3A5F);
@@ -791,8 +801,7 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen>
   @override
   void initState() {
     super.initState();
-    _aiAnimCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 4));
+    _aiAnimCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 5));
     _aiProgress = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _aiAnimCtrl, curve: Curves.easeInOut),
     );
@@ -805,94 +814,65 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen>
     super.dispose();
   }
 
-  void _next() => setState(() => _step++);
   void _prev() {
-    if (_step == 0) {
-      Navigator.pop(context);
-      return;
-    }
+    if (_step == 0) { Navigator.pop(context); return; }
     setState(() => _step--);
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? picked = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-        maxWidth: 1280,
+    final cur = _currentPhotos;
+    if (cur.length >= 3) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이 단계에서 사진은 최대 3장까지 등록할 수 있습니다'), backgroundColor: Color(0xFF1565C0)),
       );
+      return;
+    }
+    try {
+      final XFile? picked = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 1280);
       if (picked == null) return;
-
-      if (_photos.length >= 3) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('사진은 최대 3장까지 등록할 수 있습니다'),
-              backgroundColor: Color(0xFF1565C0),
-            ),
-          );
-        }
-        return;
-      }
-
-      setState(() {
-        _isCheckingQuality = true;
-        _qualityError = null;
-      });
-
+      setState(() { _isCheckingQuality = true; _qualityError = null; });
       final file = File(picked.path);
       final size = await file.length();
-
       if (size < 5 * 1024) {
-        // 5KB 미만 차단
-        setState(() {
-          _isCheckingQuality = false;
-          _qualityError = '사진 용량이 너무 작습니다. 더 선명한 사진을 선택해 주세요.';
-        });
+        setState(() { _isCheckingQuality = false; _qualityError = '사진 용량이 너무 작습니다. 더 선명한 사진을 선택해 주세요.'; });
         return;
       }
-
-      setState(() {
-        _photos.add(file);
-        _isCheckingQuality = false;
-        _qualityError = null;
-      });
+      setState(() { cur.add(file); _isCheckingQuality = false; _qualityError = null; });
     } catch (e) {
       setState(() => _isCheckingQuality = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('사진을 가져올 수 없습니다: $e'),
-            backgroundColor: Colors.red[700],
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사진을 가져올 수 없습니다: $e'), backgroundColor: Colors.red[700]),
+      );
     }
   }
 
-  void _removePhoto(int idx) => setState(() => _photos.removeAt(idx));
+  void _removePhoto(int idx) => setState(() => _currentPhotos.removeAt(idx));
+
+  void _goNextStep() {
+    if (_step == 1 && _photos1.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('간판·외관 사진을 최소 1장 등록해 주세요 (필수)'), backgroundColor: Color(0xFFD32F2F)),
+      );
+      return;
+    }
+    setState(() => _step++);
+  }
 
   void _startAiGeneration() {
-    setState(() {
-      _step = 3;
-      _aiPhase = 0;
-      _aiStatus = _aiPhases[0];
-    });
+    setState(() { _step = 4; _aiPhase = 0; _aiStatus = _aiPhases[0]; });
     _aiAnimCtrl.reset();
     _aiAnimCtrl.forward();
-
     for (int i = 1; i < _aiPhases.length; i++) {
-      Future.delayed(Duration(milliseconds: 900 * i), () {
-        if (mounted) setState(() {
-          _aiPhase = i;
-          _aiStatus = _aiPhases[i];
-        });
+      Future.delayed(Duration(milliseconds: 1000 * i), () {
+        if (mounted) setState(() { _aiPhase = i; _aiStatus = _aiPhases[i]; });
       });
     }
-    Future.delayed(const Duration(milliseconds: 4300), () {
-      if (mounted) setState(() => _step = 4);
+    Future.delayed(const Duration(milliseconds: 5500), () {
+      if (mounted) setState(() => _step = 5);
     });
   }
+
+  List<File> get _allPhotos => [..._photos1, ..._photos2, ..._photos3];
 
   @override
   Widget build(BuildContext context) {
@@ -902,7 +882,7 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen>
         child: Column(
           children: [
             _buildTopNav(),
-            if (_step == 2) _buildPhotoStepIndicator(),
+            if (_step >= 1 && _step <= 3) _buildPhotoStepTabs(),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -910,1207 +890,577 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen>
     );
   }
 
-  // ── 상단 네비 ────────────────────────────────────────────────
   Widget _buildTopNav() {
-    final titles = [
-      '사업자 확인',
-      'AI 점포 페이지',
-      '사진 등록 (1~3장)',
-      'AI 생성 중',
-      'AI 결과 확인',
-      '등록 완료',
+    const titles = [
+      '사업자 확인', 'STEP 1 · 간판·외관 사진', 'STEP 2 · 내부·전시장 사진',
+      'STEP 3 · 대표차량·서비스', 'AI 점포 페이지 생성 중', 'AI 결과 확인', '등록 완료',
     ];
     final title = _step < titles.length ? titles[_step] : '점포 등록';
     final progress = (_step + 1) / titles.length;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: _prev,
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: _card,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _borderCol),
-                  ),
-                  child: const Icon(Icons.arrow_back_ios_new,
-                      size: 16, color: _textPrimary),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _textPrimary),
-                ),
-              ),
-              const SizedBox(width: 36),
-            ],
-          ),
-        ),
-        // 진행 바
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 3,
-              backgroundColor: _borderCol,
-              valueColor: const AlwaysStoppedAnimation<Color>(_accent),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-      ],
-    );
-  }
-
-  // ── 사진 단계 표시 (step 2용) ────────────────────────────────
-  Widget _buildPhotoStepIndicator() {
-    final count = _photos.length;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-      child: Row(
-        children: List.generate(3, (i) {
-          final filled = i < count;
-          return Expanded(
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+        child: Row(children: [
+          GestureDetector(
+            onTap: _prev,
             child: Container(
-              margin: EdgeInsets.only(right: i < 2 ? 6 : 0),
-              height: 4,
-              decoration: BoxDecoration(
-                color: filled ? _accent : _borderCol,
-                borderRadius: BorderRadius.circular(2),
+              width: 36, height: 36,
+              decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _borderCol)),
+              child: const Icon(Icons.arrow_back_ios_new, size: 16, color: _textPrimary),
+            ),
+          ),
+          Expanded(child: Text(title, textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _textPrimary))),
+          const SizedBox(width: 36),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: progress, minHeight: 3, backgroundColor: _borderCol,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accent)),
+        ),
+      ),
+      const SizedBox(height: 4),
+    ]);
+  }
+
+  Widget _buildPhotoStepTabs() {
+    final steps = [
+      {'label': 'STEP 1\n간판·외관', 'count': _photos1.length, 'required': true},
+      {'label': 'STEP 2\n내부·전시장', 'count': _photos2.length, 'required': false},
+      {'label': 'STEP 3\n대표차량', 'count': _photos3.length, 'required': false},
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(children: List.generate(3, (i) {
+        final isActive = _step == i + 1;
+        final count = steps[i]['count'] as int;
+        final isRequired = steps[i]['required'] as bool;
+        final isDone = count > 0;
+        return Expanded(child: GestureDetector(
+          onTap: () { if (i + 1 <= _step) setState(() => _step = i + 1); },
+          child: Container(
+            margin: EdgeInsets.only(right: i < 2 ? 6 : 0),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isActive ? _accent.withOpacity(0.15) : _card,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isActive ? _accent : (isDone ? const Color(0xFF4CAF50) : _borderCol),
+                width: isActive ? 1.5 : 1,
               ),
             ),
-          );
-        }),
-      ),
+            child: Column(children: [
+              Text(steps[i]['label'] as String,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, height: 1.3,
+                  color: isActive ? _accent : (isDone ? const Color(0xFF81C784) : _textSecondary)),
+              ),
+              const SizedBox(height: 4),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(isDone ? Icons.check_circle : Icons.circle_outlined, size: 12,
+                  color: isDone ? const Color(0xFF4CAF50) : (isRequired ? const Color(0xFFEF5350) : const Color(0xFF607D8B))),
+                const SizedBox(width: 3),
+                Text(count > 0 ? '${count}장' : (isRequired ? '필수' : '선택'),
+                  style: TextStyle(fontSize: 10,
+                    color: isDone ? const Color(0xFF81C784) : (isRequired ? const Color(0xFFEF5350) : _textSecondary))),
+              ]),
+            ]),
+          ),
+        ));
+      })),
     );
   }
 
-  // ── 본문 라우팅 ──────────────────────────────────────────────
   Widget _buildBody() {
     switch (_step) {
-      case 0:
-        return _buildBizCheck();
-      case 1:
-        return _buildAiIntro();
-      case 2:
-        return _buildPhotoUpload();
-      case 3:
-        return _buildAiGenerating();
-      case 4:
-        return _buildAiResult();
-      case 5:
-        return _buildComplete();
-      default:
-        return const SizedBox();
+      case 0: return _buildBizCheck();
+      case 1: return _buildPhotoStep(stepNum: 1, title: '간판·외관 사진', subtitle: '점포 간판과 출입구가 보이는 정면 사진을 등록하세요.\n최소 1장 필수 · 최대 3장까지 등록 가능합니다.', icon: '🏪', accentColor: const Color(0xFF1565C0), isRequired: true, emptyHint: '간판·출입구가 보이는 정면 사진 (필수)', photos: _photos1, labels: const ['정면 외관 (필수)', '간판 클로즈업 (선택)', '야간·측면 외관 (선택)']);
+      case 2: return _buildPhotoStep(stepNum: 2, title: '내부·전시장 사진', subtitle: '점포 내부, 상담 공간, 전시 차량 등을 촬영해 주세요.\n선택 사항이지만 등록 시 AI 품질이 높아집니다.', icon: '🏢', accentColor: const Color(0xFF00897B), isRequired: false, emptyHint: '내부 공간·전시장 사진 (선택)', photos: _photos2, labels: const ['내부 전경 (선택)', '전시 차량 (선택)', '상담 공간 (선택)']);
+      case 3: return _buildPhotoStep(stepNum: 3, title: '대표차량·서비스 사진', subtitle: '주력 서비스 차량이나 정비 장면을 등록하세요.\n선택 사항이지만 등록 시 AI 품질이 높아집니다.', icon: '🚗', accentColor: const Color(0xFFE65100), isRequired: false, emptyHint: '대표 차량·서비스 사진 (선택)', photos: _photos3, labels: const ['대표 차량 (선택)', '서비스 장면 (선택)', '정비 환경 (선택)']);
+      case 4: return _buildAiGenerating();
+      case 5: return _buildAiResult();
+      case 6: return _buildComplete();
+      default: return const SizedBox();
     }
   }
 
-  // ── STEP 0: 사업자 확인 ──────────────────────────────────────
   Widget _buildBizCheck() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0D2A4A), Color(0xFF1565C0)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('🏪', style: TextStyle(fontSize: 38)),
-                const SizedBox(height: 14),
-                const Text(
-                  '점포 등록 시작',
-                  style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '사업자 정보를 확인하고\nAI가 자동으로 점포 페이지를 만들어 드립니다',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.85),
-                      height: 1.5),
-                ),
-              ],
-            ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity, padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0D2A4A), Color(0xFF1565C0)]),
+            borderRadius: BorderRadius.circular(20),
           ),
-          const SizedBox(height: 32),
-          const Text(
-            '사업자등록번호',
-            style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _textSecondary),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('🏪', style: TextStyle(fontSize: 38)),
+            const SizedBox(height: 14),
+            const Text('점포 등록 시작', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+            const SizedBox(height: 8),
+            Text('3단계로 사진을 촬영하면\nAI가 자동으로 업종별 점포 페이지를 만들어 드립니다',
+              style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.85), height: 1.5)),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        _bizStepCard('01', '간판·외관 사진', '점포 전면 (필수 1~3장)', '🏪', const Color(0xFF1565C0)),
+        const SizedBox(height: 8),
+        _bizStepCard('02', '내부·전시장 사진', '내부 공간 (선택 0~3장)', '🏢', const Color(0xFF00897B)),
+        const SizedBox(height: 8),
+        _bizStepCard('03', '대표차량·서비스', '주력 서비스 (선택 0~3장)', '🚗', const Color(0xFFE65100)),
+        const SizedBox(height: 20),
+        const Text('사업자등록번호', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textSecondary)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _bizNumCtrl, keyboardType: TextInputType.number,
+          style: const TextStyle(color: _textPrimary),
+          decoration: InputDecoration(
+            hintText: '000-00-00000', hintStyle: const TextStyle(color: Color(0xFF607D8B)),
+            prefixIcon: const Icon(Icons.business_outlined, color: _accent, size: 20),
+            filled: true, fillColor: _card,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _borderCol)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _borderCol)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _accent, width: 1.5)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _bizNumCtrl,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: _textPrimary),
-            decoration: InputDecoration(
-              hintText: '000-00-00000',
-              hintStyle: const TextStyle(color: Color(0xFF607D8B)),
-              prefixIcon: const Icon(Icons.business_outlined,
-                  color: _accent, size: 20),
-              filled: true,
-              fillColor: _card,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _borderCol)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _borderCol)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _accent, width: 1.5)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _borderCol)),
+          child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('💡', style: TextStyle(fontSize: 14)), SizedBox(width: 8),
+            Expanded(child: Text('사업자등록번호 10자리를 입력하면 국세청 DB에서 점포 정보를 자동으로 불러옵니다.',
+              style: TextStyle(fontSize: 12, color: _textSecondary, height: 1.5))),
+          ]),
+        ),
+        const SizedBox(height: 28),
+        SizedBox(
+          width: double.infinity, height: 54,
+          child: ElevatedButton(
+            onPressed: () => setState(() => _step = 1),
+            style: ElevatedButton.styleFrom(backgroundColor: _accent, foregroundColor: _bg, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+            child: const Text('사업자 조회 후 사진 등록 시작', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF020810))),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _borderCol),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('💡', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    '사업자등록번호 10자리를 입력하면 국세청 데이터베이스에서 자동으로 점포 정보를 불러옵니다.',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: _textSecondary,
-                        height: 1.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _next,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                foregroundColor: _bg,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: const Text(
-                '사업자 조회하기',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF020810)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+        const SizedBox(height: 40),
+      ]),
     );
   }
 
-  // ── STEP 1: AI 안내 ──────────────────────────────────────────
-  Widget _buildAiIntro() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          const Text(
-            '🤖 AI 점포 페이지 자동 생성',
-            style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: _textPrimary),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '사진 1~3장만 올리면 AI가 자동으로 점포 소개 페이지를 만들어 드립니다. 완전 무료!',
-            style:
-                TextStyle(fontSize: 14, color: _textSecondary, height: 1.6),
-          ),
-          const SizedBox(height: 28),
-          _buildIntroCard(
-              num: '01',
-              title: '간판·외관 사진',
-              sub: '점포 전면 사진 (필수)',
-              icon: '🏪',
-              color: const Color(0xFF1565C0)),
-          const SizedBox(height: 12),
-          _buildIntroCard(
-              num: '02',
-              title: '전시장·내부 사진',
-              sub: '내부 공간 사진 (선택)',
-              icon: '🏢',
-              color: const Color(0xFF00897B)),
-          const SizedBox(height: 12),
-          _buildIntroCard(
-              num: '03',
-              title: '대표차량·서비스',
-              sub: '주력 서비스 사진 (선택)',
-              icon: '🚗',
-              color: const Color(0xFFE65100)),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _borderCol),
-            ),
-            child: const Column(
-              children: [
-                _AiFeatureRow(icon: '✨', text: 'AI 태그라인·소개 자동 작성'),
-                SizedBox(height: 8),
-                _AiFeatureRow(icon: '📍', text: '주소·영업시간·전화번호 자동 설정'),
-                SizedBox(height: 8),
-                _AiFeatureRow(icon: '🆓', text: '완전 무료 — 추가 비용 없음'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _next,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '사진 등록 시작하기',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF020810)),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward,
-                      color: Color(0xFF020810), size: 18),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIntroCard(
-      {required String num,
-      required String title,
-      required String sub,
-      required String icon,
-      required Color color}) {
+  Widget _bizStepCard(String num, String title, String sub, String icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderCol),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-                child: Text(icon, style: const TextStyle(fontSize: 22))),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'STEP $num  $title',
-                  style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(sub,
-                    style: const TextStyle(
-                        fontSize: 12, color: _textSecondary)),
-              ],
-            ),
-          ),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-                num == '01' ? '필수' : '선택',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color)),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12), border: Border.all(color: _borderCol)),
+      child: Row(children: [
+        Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withOpacity(0.18), borderRadius: BorderRadius.circular(10)),
+          child: Center(child: Text(icon, style: const TextStyle(fontSize: 18)))),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('STEP $num  $title', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _textPrimary)),
+          Text(sub, style: const TextStyle(fontSize: 11, color: _textSecondary)),
+        ])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(color: color.withOpacity(0.18), borderRadius: BorderRadius.circular(8)),
+          child: Text(num == '01' ? '필수' : '선택', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+        ),
+      ]),
     );
   }
 
-  // ── STEP 2: 사진 업로드 (1~3장, 한 화면) ──────────────────────
-  Widget _buildPhotoUpload() {
+  Widget _buildPhotoStep({
+    required int stepNum, required String title, required String subtitle,
+    required String icon, required Color accentColor, required bool isRequired,
+    required String emptyHint, required List<File> photos, required List<String> labels,
+  }) {
+    final totalPhotos = _photos1.length + _photos2.length + _photos3.length;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          const Text(
-            '점포 사진 등록',
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: _textPrimary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '간판·외관 사진은 필수입니다. 최대 3장까지 등록할 수 있습니다.',
-            style: const TextStyle(
-                fontSize: 13, color: _textSecondary, height: 1.5),
-          ),
-          const SizedBox(height: 20),
-
-          // 사진 그리드
-          if (_photos.isEmpty)
-            _buildEmptyPhotoSlot(0)
-          else ...[
-            // 등록된 사진 목록
-            ...List.generate(_photos.length, (i) => _buildPhotoItem(i)),
-            // 추가 슬롯 (3장 미만인 경우)
-            if (_photos.length < 3) ...[
-              const SizedBox(height: 10),
-              _buildAddPhotoButton(),
-            ],
-          ],
-
-          // 품질 오류 메시지
-          if (_qualityError != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.withOpacity(0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.redAccent, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _qualityError!,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.redAccent),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // 품질 검사 로딩
-          if (_isCheckingQuality) ...[
-            const SizedBox(height: 12),
-            const Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: _accent)),
-                  SizedBox(width: 10),
-                  Text('사진 품질 확인 중...',
-                      style:
-                          TextStyle(fontSize: 13, color: _textSecondary)),
-                ],
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 24),
-
-          // 사진 업로드 안내
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _borderCol),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('📸 사진 등록 가이드',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: _accent)),
-                SizedBox(height: 8),
-                _GuideRow(text: '간판과 출입구가 잘 보이는 정면 사진을 먼저 올려주세요'),
-                _GuideRow(text: '밝고 선명한 사진일수록 AI 결과가 좋아집니다'),
-                _GuideRow(text: '사진은 세로·가로 모두 가능합니다'),
-                _GuideRow(text: '5KB 미만의 저품질 사진은 자동으로 차단됩니다'),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _photos.isEmpty ? null : _startAiGeneration,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                disabledBackgroundColor: _borderCol,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'AI 점포 페이지 생성 (${_photos.length}장)',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: _photos.isEmpty
-                            ? _textSecondary
-                            : const Color(0xFF020810)),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.auto_awesome,
-                      color: _photos.isEmpty
-                          ? _textSecondary
-                          : const Color(0xFF020810),
-                      size: 18),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: accentColor.withOpacity(0.1), borderRadius: BorderRadius.circular(14), border: Border.all(color: accentColor.withOpacity(0.3))),
+          child: Row(children: [
+            Text(icon, style: const TextStyle(fontSize: 26)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPrimary)),
+              const SizedBox(height: 4),
+              Text(subtitle, style: const TextStyle(fontSize: 11, color: _textSecondary, height: 1.4)),
+            ])),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        if (photos.isEmpty)
+          _buildEmptySlot(emptyHint, accentColor)
+        else ...[
+          ...List.generate(photos.length, (i) => _buildPhotoItem(photos, i, i < labels.length ? labels[i] : '추가 사진', accentColor)),
+          if (photos.length < 3) ...[const SizedBox(height: 10), _buildAddBtn(accentColor)],
         ],
-      ),
+        if (_qualityError != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.red.withOpacity(0.12), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.red.withOpacity(0.4))),
+            child: Row(children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 18), const SizedBox(width: 8),
+              Expanded(child: Text(_qualityError!, style: const TextStyle(fontSize: 12, color: Colors.redAccent))),
+            ]),
+          ),
+        ],
+        if (_isCheckingQuality) ...[
+          const SizedBox(height: 12),
+          const Center(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: _accent)),
+            SizedBox(width: 10),
+            Text('사진 품질 확인 중...', style: TextStyle(fontSize: 13, color: _textSecondary)),
+          ])),
+        ],
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12), border: Border.all(color: _borderCol)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('📸 STEP $stepNum 사진 가이드', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: accentColor)),
+            const SizedBox(height: 8),
+            _GuideRow(text: stepNum == 1 ? '간판과 출입구가 잘 보이는 정면 사진을 먼저 올려주세요' : stepNum == 2 ? '내부 전경, 전시 차량, 상담 공간 등을 촬영해 주세요' : '주력 차량이나 정비 서비스 장면을 촬영해 주세요'),
+            const _GuideRow(text: '밝고 선명한 사진일수록 AI 소개글 품질이 높아집니다'),
+            const _GuideRow(text: '최대 3장까지 등록 가능 · 5KB 미만 저품질 사진 자동 차단'),
+          ]),
+        ),
+        const SizedBox(height: 18),
+        if (stepNum < 3) ...[
+          SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
+            onPressed: _goNextStep,
+            style: ElevatedButton.styleFrom(backgroundColor: accentColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text(stepNum == 1 ? 'STEP 2로 이동 (${photos.length}장 완료)' : 'STEP 3으로 이동 (${photos.length}장 완료)',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              const SizedBox(width: 8), const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+            ]),
+          )),
+          if (isRequired && photos.isEmpty)
+            const Padding(padding: EdgeInsets.only(top: 8), child: Center(child: Text('⚠ 최소 1장 등록 필요 (필수)', style: TextStyle(fontSize: 12, color: Color(0xFFEF5350))))),
+        ] else ...[
+          SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
+            onPressed: totalPhotos > 0 ? _startAiGeneration : null,
+            style: ElevatedButton.styleFrom(backgroundColor: totalPhotos > 0 ? _accent : _borderCol, disabledBackgroundColor: _borderCol, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Text('AI 점포 페이지 생성하기 (총 ${totalPhotos}장)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: totalPhotos > 0 ? const Color(0xFF020810) : _textSecondary)),
+              const SizedBox(width: 8),
+              Icon(Icons.auto_awesome, color: totalPhotos > 0 ? const Color(0xFF020810) : _textSecondary, size: 18),
+            ]),
+          )),
+          if (totalPhotos == 0)
+            const Padding(padding: EdgeInsets.only(top: 8), child: Center(child: Text('⚠ STEP 1 사진을 최소 1장 등록해 주세요', style: TextStyle(fontSize: 12, color: Color(0xFFEF5350))))),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, height: 44, child: OutlinedButton(
+            onPressed: () => setState(() => _step = 2),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: _borderCol), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: const Text('← STEP 2로 돌아가기', style: TextStyle(fontSize: 13, color: _textSecondary)),
+          )),
+        ],
+        const SizedBox(height: 40),
+      ]),
     );
   }
 
-  Widget _buildEmptyPhotoSlot(int idx) {
+  Widget _buildEmptySlot(String hint, Color accentColor) {
     return GestureDetector(
-      onTap: () => _showPickerDialog(),
+      onTap: _showPickerDialog,
       child: Container(
-        width: double.infinity,
-        height: 180,
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: _accent.withOpacity(0.5),
-              width: 1.5,
-              style: BorderStyle.solid),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: _accent.withOpacity(0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add_a_photo_outlined,
-                  color: _accent, size: 28),
-            ),
-            const SizedBox(height: 12),
-            const Text('간판·외관 사진 추가 (필수)',
-                style: TextStyle(
-                    color: _accent,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            const Text('탭하여 카메라 또는 갤러리에서 선택',
-                style: TextStyle(color: _textSecondary, fontSize: 12)),
-          ],
-        ),
+        width: double.infinity, height: 150,
+        decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: accentColor.withOpacity(0.5), width: 1.5)),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(width: 54, height: 54, decoration: BoxDecoration(color: accentColor.withOpacity(0.12), shape: BoxShape.circle),
+            child: Icon(Icons.add_a_photo_outlined, color: accentColor, size: 24)),
+          const SizedBox(height: 10),
+          Text(hint, style: TextStyle(color: accentColor, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          const Text('탭하여 카메라 또는 갤러리에서 선택', style: TextStyle(color: _textSecondary, fontSize: 11)),
+        ]),
       ),
     );
   }
 
-  Widget _buildPhotoItem(int idx) {
-    final labels = ['간판·외관 (필수)', '내부·전시장 (선택)', '대표차량·서비스 (선택)'];
-    final label = idx < labels.length ? labels[idx] : '추가 사진';
+  Widget _buildPhotoItem(List<File> photos, int idx, String label, Color accentColor) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _borderCol),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius:
-                const BorderRadius.horizontal(left: Radius.circular(14)),
-            child: Image.file(
-              _photos[idx],
-              width: 90,
-              height: 90,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'STEP ${idx + 1}  $label',
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _textPrimary),
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.check_circle,
-                        color: Color(0xFF4CAF50), size: 14),
-                    SizedBox(width: 4),
-                    Text('등록 완료',
-                        style: TextStyle(
-                            fontSize: 12, color: Color(0xFF4CAF50))),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _removePhoto(idx),
-            child: Container(
-              width: 32,
-              height: 32,
-              margin: const EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.15),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close,
-                  color: Colors.redAccent, size: 16),
-            ),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(14), border: Border.all(color: _borderCol)),
+      child: Row(children: [
+        ClipRRect(borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+          child: Image.file(photos[idx], width: 88, height: 88, fit: BoxFit.cover)),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPrimary)),
+          const SizedBox(height: 4),
+          const Row(children: [
+            Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 13), SizedBox(width: 4),
+            Text('등록 완료', style: TextStyle(fontSize: 11, color: Color(0xFF4CAF50))),
+          ]),
+        ])),
+        GestureDetector(
+          onTap: () => _removePhoto(idx),
+          child: Container(width: 30, height: 30, margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), shape: BoxShape.circle),
+            child: const Icon(Icons.close, color: Colors.redAccent, size: 15)),
+        ),
+      ]),
     );
   }
 
-  Widget _buildAddPhotoButton() {
+  Widget _buildAddBtn(Color accentColor) {
     return GestureDetector(
-      onTap: () => _showPickerDialog(),
-      child: Container(
-        width: double.infinity,
-        height: 56,
-        decoration: BoxDecoration(
-          color: _card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _borderCol, style: BorderStyle.solid),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_photo_alternate_outlined,
-                color: _accent, size: 20),
-            SizedBox(width: 8),
-            Text('사진 추가하기 (+)',
-                style: TextStyle(
-                    color: _accent,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500)),
-          ],
-        ),
+      onTap: _showPickerDialog,
+      child: Container(width: double.infinity, height: 50,
+        decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12), border: Border.all(color: _borderCol)),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.add_photo_alternate_outlined, color: accentColor, size: 18), const SizedBox(width: 8),
+          Text('사진 추가하기 (+)', style: TextStyle(color: accentColor, fontSize: 13, fontWeight: FontWeight.w500)),
+        ]),
       ),
     );
   }
 
   void _showPickerDialog() {
     showModalBottomSheet(
-      context: context,
-      backgroundColor: _card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _borderCol,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text('사진 선택',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: _textPrimary)),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _PickerOption(
-                      icon: Icons.camera_alt_outlined,
-                      label: '카메라 촬영',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.camera);
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _PickerOption(
-                      icon: Icons.photo_library_outlined,
-                      label: '앨범에서 선택',
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImage(ImageSource.gallery);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── STEP 3: AI 생성 중 (타이핑 애니메이션) ───────────────────
-  Widget _buildAiGenerating() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // AI 아이콘 + 맥동 효과
-            AnimatedBuilder(
-              animation: _aiAnimCtrl,
-              builder: (_, __) {
-                return Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0D47A1), Color(0xFF4FC3F7)],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _accent
-                            .withOpacity(0.2 + 0.2 * _aiProgress.value),
-                        blurRadius: 20 + 12 * _aiProgress.value,
-                        spreadRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text('🤖', style: TextStyle(fontSize: 44)),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'AI가 점포 페이지를\n생성하고 있습니다',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _textPrimary),
-            ),
-            const SizedBox(height: 16),
-            // 타이핑 애니메이션 텍스트
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: Text(
-                _aiStatus,
-                key: ValueKey(_aiStatus),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 14, color: _accent, height: 1.6),
-              ),
-            ),
-            const SizedBox(height: 32),
-            // 진행률 바
-            AnimatedBuilder(
-              animation: _aiProgress,
-              builder: (_, __) => Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: _aiProgress.value,
-                      minHeight: 6,
-                      backgroundColor: _borderCol,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(_accent),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${(_aiProgress.value * 100).toInt()}%',
-                    style: const TextStyle(
-                        fontSize: 13,
-                        color: _accent,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // 단계 뱃지
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (i) {
-                final done = i <= _aiPhase;
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: done ? _accent : _borderCol,
-                    shape: BoxShape.circle,
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── STEP 4: AI 결과 ──────────────────────────────────────────
-  Widget _buildAiResult() {
-    final mainPhoto =
-        _photos.isNotEmpty ? _photos[0] : null;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1B5E20).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text('✅ AI 생성 완료',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF81C784))),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            '점포 페이지 미리보기',
-            style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: _textPrimary),
-          ),
+      context: context, backgroundColor: _card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 4, decoration: BoxDecoration(color: _borderCol, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 20),
-
-          Container(
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _borderCol),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 대표 사진
-                ClipRRect(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: mainPhoto != null
-                      ? Image.file(mainPhoto,
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover)
-                      : Image.network(
-                          'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=400&q=80',
-                          height: 160,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                              height: 160, color: const Color(0xFF1E3A5F))),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: _accent.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                  color: _accent.withOpacity(0.4)),
-                            ),
-                            child: const Text('MOINCAR 인증',
-                                style: TextStyle(
-                                    color: _accent,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'MOINCAR 인증 점포',
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: _textPrimary),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'AI가 분석한 점포 정보',
-                        style: TextStyle(
-                            fontSize: 13, color: _textSecondary),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: _bg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _borderCol),
-                        ),
-                        child: const Text(
-                          '"고객 신뢰를 최우선으로, MOINCAR 공인 인증 자동차 전문점"',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: _accent,
-                              fontStyle: FontStyle.italic,
-                              height: 1.4),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const _DarkResultRow(
-                          icon: Icons.location_on_outlined,
-                          text: '서울특별시 강남구 테헤란로 123'),
-                      const _DarkResultRow(
-                          icon: Icons.phone_outlined,
-                          text: '010-1234-5678'),
-                      const _DarkResultRow(
-                          icon: Icons.access_time,
-                          text: '월~토 09:00~18:00 / 일 휴무'),
-                    ],
-                  ),
-                ),
-                // 등록된 사진 썸네일
-                if (_photos.isNotEmpty)
-                  Padding(
-                    padding:
-                        const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                    child: Row(
-                      children: List.generate(
-                        _photos.length,
-                        (i) => Expanded(
-                          child: Container(
-                            margin: EdgeInsets.only(right: i < _photos.length - 1 ? 6 : 0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(_photos[i],
-                                  height: 60, fit: BoxFit.cover),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: _next,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accent,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
-              child: const Text(
-                '이 페이지로 등록하기',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF020810)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 46,
-            child: OutlinedButton(
-              onPressed: () => setState(() => _step = 2),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _borderCol),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text('사진 다시 등록하기',
-                  style:
-                      TextStyle(fontSize: 14, color: _textSecondary)),
-            ),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+          const Text('사진 선택', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _textPrimary)),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: _PickerOption(icon: Icons.camera_alt_outlined, label: '카메라 촬영', onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); })),
+            const SizedBox(width: 12),
+            Expanded(child: _PickerOption(icon: Icons.photo_library_outlined, label: '앨범에서 선택', onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); })),
+          ]),
+          const SizedBox(height: 8),
+        ]),
+      )),
     );
   }
 
-  // ── STEP 5: 등록 완료 ─────────────────────────────────────────
+  Widget _buildAiGenerating() {
+    return Center(child: Padding(padding: const EdgeInsets.all(40), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      AnimatedBuilder(animation: _aiAnimCtrl, builder: (_, __) => Container(
+        width: 100, height: 100,
+        decoration: BoxDecoration(shape: BoxShape.circle,
+          gradient: const LinearGradient(colors: [Color(0xFF0D47A1), Color(0xFF4FC3F7)]),
+          boxShadow: [BoxShadow(color: _accent.withOpacity(0.2 + 0.2 * _aiProgress.value), blurRadius: 20 + 12 * _aiProgress.value, spreadRadius: 4)]),
+        child: const Center(child: Text('🤖', style: TextStyle(fontSize: 44))),
+      )),
+      const SizedBox(height: 28),
+      const Text('AI가 점포 페이지를\n생성하고 있습니다', textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _textPrimary)),
+      const SizedBox(height: 16),
+      AnimatedSwitcher(duration: const Duration(milliseconds: 400), child: Text(_aiStatus, key: ValueKey(_aiStatus),
+        textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: _accent, height: 1.6))),
+      const SizedBox(height: 28),
+      AnimatedBuilder(animation: _aiProgress, builder: (_, __) => Column(children: [
+        ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: _aiProgress.value, minHeight: 6, backgroundColor: _borderCol, valueColor: const AlwaysStoppedAnimation<Color>(_accent))),
+        const SizedBox(height: 8),
+        Text('${(_aiProgress.value * 100).toInt()}%', style: const TextStyle(fontSize: 13, color: _accent, fontWeight: FontWeight.w600)),
+      ])),
+      const SizedBox(height: 24),
+      Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(_aiPhases.length, (i) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3), width: 8, height: 8,
+        decoration: BoxDecoration(color: i <= _aiPhase ? _accent : _borderCol, shape: BoxShape.circle),
+      ))),
+      const SizedBox(height: 20),
+      Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(10), border: Border.all(color: _borderCol)),
+        child: Text('총 ${_allPhotos.length}장 분석 중  ·  S1:${_photos1.length}장  S2:${_photos2.length}장  S3:${_photos3.length}장',
+          textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: _textSecondary))),
+    ])));
+  }
+
+  Widget _buildAiResult() {
+    final mainPhoto = _photos1.isNotEmpty ? _photos1[0] : (_photos2.isNotEmpty ? _photos2[0] : null);
+    return SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 16),
+      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: const Color(0xFF1B5E20).withOpacity(0.6), borderRadius: BorderRadius.circular(8)),
+        child: const Text('✅ AI 생성 완료', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF81C784)))),
+      const SizedBox(height: 10),
+      const Text('점포 페이지 미리보기', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _textPrimary)),
+      const SizedBox(height: 4),
+      const Text('마이페이지에 저장되어 언제든 수정할 수 있습니다', style: TextStyle(fontSize: 12, color: _textSecondary)),
+      const SizedBox(height: 16),
+      Container(decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(16), border: Border.all(color: _borderCol)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          child: mainPhoto != null ? Image.file(mainPhoto, height: 160, width: double.infinity, fit: BoxFit.cover)
+            : Image.network('https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=400&q=80', height: 160, width: double.infinity, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(height: 160, color: const Color(0xFF1E3A5F)))),
+        Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(6), border: Border.all(color: _accent.withOpacity(0.4))),
+              child: const Text('MOINCAR 인증', style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700))),
+            const SizedBox(width: 8),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: const Color(0xFF00897B).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+              child: const Text('자동차 판매', style: TextStyle(color: Color(0xFF4DB6AC), fontSize: 11, fontWeight: FontWeight.w600))),
+          ]),
+          const SizedBox(height: 10),
+          const Text('MOINCAR 인증 자동차 전문점', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _textPrimary)),
+          const SizedBox(height: 4),
+          const Text('AI가 분석한 업종별 맞춤 페이지', style: TextStyle(fontSize: 12, color: _textSecondary)),
+          const SizedBox(height: 10),
+          Container(padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: _borderCol)),
+            child: const Text('"고객 신뢰를 최우선으로, MOINCAR 공인 인증 자동차 전문점.\n투명한 가격과 검증된 품질로 최고의 자동차 거래 경험을 제공합니다."',
+              style: TextStyle(fontSize: 12, color: _accent, fontStyle: FontStyle.italic, height: 1.5))),
+          const SizedBox(height: 12),
+          const _DarkResultRow(icon: Icons.location_on_outlined, text: '서울특별시 강남구 테헤란로 123'),
+          const _DarkResultRow(icon: Icons.phone_outlined, text: '010-1234-5678'),
+          const _DarkResultRow(icon: Icons.access_time, text: '월~토 09:00~18:00 / 일 휴무'),
+        ])),
+        if (_allPhotos.isNotEmpty)
+          Padding(padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('등록된 사진', style: TextStyle(fontSize: 11, color: _textSecondary)),
+            const SizedBox(height: 6),
+            Row(children: _allPhotos.take(5).toList().asMap().entries.map((e) => Expanded(child: Container(
+              margin: EdgeInsets.only(right: e.key < _allPhotos.length - 1 ? 5 : 0),
+              child: ClipRRect(borderRadius: BorderRadius.circular(6), child: Image.file(e.value, height: 52, fit: BoxFit.cover)),
+            ))).toList()),
+          ])),
+      ])),
+      const SizedBox(height: 14),
+      Container(padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: const Color(0xFF1B5E20).withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3))),
+        child: const Row(children: [
+          Icon(Icons.person_pin_circle_outlined, color: Color(0xFF81C784), size: 22), SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('마이페이지에 자동 저장됩니다', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF81C784))),
+            SizedBox(height: 2),
+            Text('등록 후 마이페이지에서 점포 정보를 언제든 수정할 수 있습니다', style: TextStyle(fontSize: 11, color: Color(0xFF4CAF50), height: 1.4)),
+          ])),
+        ])),
+      const SizedBox(height: 18),
+      SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
+        onPressed: () => setState(() => _step = 6),
+        style: ElevatedButton.styleFrom(backgroundColor: _accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+        child: const Text('이 페이지로 등록하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF020810))),
+      )),
+      const SizedBox(height: 10),
+      SizedBox(width: double.infinity, height: 44, child: OutlinedButton(
+        onPressed: () => setState(() => _step = 1),
+        style: OutlinedButton.styleFrom(side: const BorderSide(color: _borderCol), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        child: const Text('사진 다시 등록하기', style: TextStyle(fontSize: 13, color: _textSecondary)),
+      )),
+      const SizedBox(height: 40),
+    ]));
+  }
+
   Widget _buildComplete() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF020810), Color(0xFF0D2A3E)],
-        ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _accent, width: 2),
-                  color: _accent.withOpacity(0.12),
-                ),
-                child: const Icon(Icons.check, size: 44, color: _accent),
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                '점포 등록 완료!',
-                style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: _textPrimary),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'MOINCAR 인증 점포',
-                style:
-                    TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'AI 점포 페이지가 성공적으로 생성되었습니다.\n검토 후 24시간 내 공개될 예정입니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.55),
-                    height: 1.6),
-              ),
-              const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                      context, '/home', (_) => false),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _accent,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    '홈으로 돌아가기',
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF020810)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF020810), Color(0xFF0D2A3E)])),
+      child: SafeArea(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(width: 88, height: 88,
+          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: _accent, width: 2), color: _accent.withOpacity(0.12)),
+          child: const Icon(Icons.check, size: 44, color: _accent)),
+        const SizedBox(height: 28),
+        const Text('점포 등록 완료!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: _textPrimary)),
+        const SizedBox(height: 10),
+        Text('MOINCAR 인증 점포', style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8))),
+        const SizedBox(height: 10),
+        Text('AI 점포 페이지가 성공적으로 생성되었습니다.\n검토 후 24시간 내 공개될 예정입니다.',
+          textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.55), height: 1.6)),
+        const SizedBox(height: 24),
+        Container(padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12), border: Border.all(color: _borderCol)),
+          child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              _CompletionStat(label: 'STEP 1\n간판·외관', count: _photos1.length),
+              _CompletionStat(label: 'STEP 2\n내부·전시장', count: _photos2.length),
+              _CompletionStat(label: 'STEP 3\n대표차량', count: _photos3.length),
+            ]),
+            const SizedBox(height: 10),
+            const Text('마이페이지 > 내 점포에서 정보를 수정할 수 있습니다',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: _textSecondary)),
+          ])),
+        const SizedBox(height: 32),
+        SizedBox(width: double.infinity, height: 54, child: ElevatedButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/my', (_) => false),
+          style: ElevatedButton.styleFrom(backgroundColor: _accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
+          child: const Text('마이페이지에서 점포 확인하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF020810))),
+        )),
+        const SizedBox(height: 10),
+        SizedBox(width: double.infinity, height: 44, child: OutlinedButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
+          style: OutlinedButton.styleFrom(side: const BorderSide(color: _borderCol), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          child: const Text('홈으로 돌아가기', style: TextStyle(fontSize: 13, color: _textSecondary)),
+        )),
+      ]))),
     );
   }
 }
 
-class _AiFeatureRow extends StatelessWidget {
-  final String icon;
-  final String text;
-  const _AiFeatureRow({required this.icon, required this.text});
-
+class _CompletionStat extends StatelessWidget {
+  final String label;
+  final int count;
+  const _CompletionStat({required this.label, required this.count});
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 16)),
-        const SizedBox(width: 10),
-        Text(text,
-            style: const TextStyle(
-                fontSize: 13,
-                color: Color(0xFFB0BEC5))),
-      ],
-    );
+    return Column(children: [
+      Text('${count}장', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: count > 0 ? const Color(0xFF4FC3F7) : const Color(0xFF607D8B))),
+      const SizedBox(height: 4),
+      Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5), height: 1.3)),
+    ]);
   }
 }
 
+// ── _GuideRow ───────────────────────────────────────────────────
 class _GuideRow extends StatelessWidget {
   final String text;
   const _GuideRow({required this.text});
-
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('· ',
-              style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 13)),
-          Expanded(
-            child: Text(text,
-                style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFB0BEC5),
-                    height: 1.4)),
-          ),
-        ],
-      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('· ', style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 13)),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5), height: 1.4))),
+      ]),
     );
   }
 }
 
+// ── _DarkResultRow ──────────────────────────────────────────────
 class _DarkResultRow extends StatelessWidget {
   final IconData icon;
   final String text;
   const _DarkResultRow({required this.icon, required this.text});
-
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: const Color(0xFF607D8B)),
-          const SizedBox(width: 6),
-          Expanded(
-              child: Text(text,
-                  style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFB0BEC5)))),
-        ],
-      ),
+      child: Row(children: [
+        Icon(icon, size: 15, color: const Color(0xFF607D8B)),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5)))),
+      ]),
     );
   }
 }
 
+// ── _PickerOption ───────────────────────────────────────────────
 class _PickerOption extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _PickerOption(
-      {required this.icon, required this.label, required this.onTap});
-
+  const _PickerOption({required this.icon, required this.label, required this.onTap});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -2122,22 +1472,15 @@ class _PickerOption extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFF1E3A5F)),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: const Color(0xFF4FC3F7), size: 28),
-            const SizedBox(height: 8),
-            Text(label,
-                style: const TextStyle(
-                    color: Color(0xFFB0BEC5),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500)),
-          ],
-        ),
+        child: Column(children: [
+          Icon(icon, color: const Color(0xFF4FC3F7), size: 28),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13, fontWeight: FontWeight.w500)),
+        ]),
       ),
     );
   }
 }
-
 
 // ==================== 뉴스 ====================
 class NewsScreen extends StatelessWidget {
