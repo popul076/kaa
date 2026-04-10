@@ -14,9 +14,11 @@ void main() {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  // 상태바: 검정 배경 + 흰색 아이콘 (앱 내용이 뒤로 안 겹침)
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
+    statusBarColor: Color(0xFF000000),
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
   ));
   runApp(const KaaApp());
 }
