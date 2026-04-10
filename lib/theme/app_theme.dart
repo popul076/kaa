@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppColors {
   // Primary
@@ -54,6 +55,12 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 1,
         centerTitle: true,
+        // 상태바를 항상 검정 배경 + 흰색 아이콘으로 고정
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF000000),
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
           fontSize: 16,

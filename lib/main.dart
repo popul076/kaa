@@ -8,18 +8,23 @@ import 'screens/store_screens.dart';
 import 'screens/other_screens.dart';
 import 'theme/app_theme.dart';
 
+// 앱 전체 상태바 스타일 상수
+const kStatusBarStyle = SystemUiOverlayStyle(
+  statusBarColor: Color(0xFF000000),           // 상태바 배경: 검정
+  statusBarIconBrightness: Brightness.light,   // Android: 아이콘/시계 흰색
+  statusBarBrightness: Brightness.dark,        // iOS: 아이콘/시계 흰색
+  systemNavigationBarColor: Color(0xFF000000),
+  systemNavigationBarIconBrightness: Brightness.light,
+);
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  // 상태바: 검정 배경 + 흰색 아이콘 (앱 내용이 뒤로 안 겹침)
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Color(0xFF000000),
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
-  ));
+  // 앱 시작 시점에 상태바 설정 (화면 전환 전에도 적용)
+  SystemChrome.setSystemUIOverlayStyle(kStatusBarStyle);
   runApp(const KaaApp());
 }
 
@@ -28,35 +33,39 @@ class KaaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'KAA Mobility Platform',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
-      initialRoute: '/intro',
-      routes: {
-        '/intro': (_) => const IntroScreen(),
-        '/login': (_) => const LoginScreen(),
-        '/signup-terms': (_) => const SignupTermsScreen(),
-        '/signup-profile': (_) => const SignupProfileScreen(),
-        '/signup-interest': (_) => const SignupInterestScreen(),
-        '/signup-done': (_) => const SignupDoneScreen(),
-        '/home': (_) => const HomeScreen(),
-        '/store-list': (_) => const StoreListScreen(),
-        '/store-detail': (_) => const StoreDetailScreen(),
-        '/store-register': (_) => const StoreRegisterScreen(),
-        '/coupon': (_) => const CouponScreen(),
-        '/cert': (_) => const CertScreen(),
-        '/used-car': (_) => const UsedCarScreen(),
-        '/my': (_) => const MyScreen(),
-        '/notification': (_) => const NotificationScreen(),
-        '/quote-request': (_) => const QuoteRequestScreen(),
-        '/news': (_) => const NewsScreen(),
-        '/emergency': (_) => const EmergencyScreen(),
-        '/car-price': (_) => const CarPriceScreen(),
-      },
-      onUnknownRoute: (settings) => MaterialPageRoute(
-        builder: (_) => const HomeScreen(),
-      ),
-    );
+    // AnnotatedRegion: 화면 전환 후에도 상태바를 검정+흰글씨로 유지
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: kStatusBarStyle,
+      child: MaterialApp(
+        title: 'MOINCAR 모빌리티 플랫폼',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme,
+        initialRoute: '/intro',
+        routes: {
+          '/intro': (_) => const IntroScreen(),
+          '/login': (_) => const LoginScreen(),
+          '/signup-terms': (_) => const SignupTermsScreen(),
+          '/signup-profile': (_) => const SignupProfileScreen(),
+          '/signup-interest': (_) => const SignupInterestScreen(),
+          '/signup-done': (_) => const SignupDoneScreen(),
+          '/home': (_) => const HomeScreen(),
+          '/store-list': (_) => const StoreListScreen(),
+          '/store-detail': (_) => const StoreDetailScreen(),
+          '/store-register': (_) => const StoreRegisterScreen(),
+          '/coupon': (_) => const CouponScreen(),
+          '/cert': (_) => const CertScreen(),
+          '/used-car': (_) => const UsedCarScreen(),
+          '/my': (_) => const MyScreen(),
+          '/notification': (_) => const NotificationScreen(),
+          '/quote-request': (_) => const QuoteRequestScreen(),
+          '/news': (_) => const NewsScreen(),
+          '/emergency': (_) => const EmergencyScreen(),
+          '/car-price': (_) => const CarPriceScreen(),
+        },
+        onUnknownRoute: (settings) => MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+        ),
+      ), // MaterialApp
+    ); // AnnotatedRegion
   }
 }
