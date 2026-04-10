@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../models/app_state.dart';
@@ -374,170 +375,424 @@ class UsedCarScreen extends StatelessWidget {
   }
 }
 
-// ==================== 마이 페이지 ====================
-class MyScreen extends StatelessWidget {
+// ==================== 마이 페이지 (MOINCAR 다크 테마) ====================
+class MyScreen extends StatefulWidget {
   const MyScreen({super.key});
+
+  @override
+  State<MyScreen> createState() => _MyScreenState();
+}
+
+class _MyScreenState extends State<MyScreen> {
+  // MOINCAR 다크 컬러
+  static const Color _bg      = Color(0xFF020810);
+  static const Color _card    = Color(0xFF0D1B2A);
+  static const Color _accent  = Color(0xFF4FC3F7);
+  static const Color _orange  = Color(0xFFFF6B35);
+  static const Color _green   = Color(0xFF10B981);
+  static const Color _textPri = Colors.white;
+  static const Color _textSec = Color(0xFFB0BEC5);
+  static const Color _border  = Color(0xFF1E3A5F);
+
+  // 점포 등록 여부 (실제는 AppState에서 관리)
+  bool get _hasStore => AppState().isLoggedIn; // 로그인 = 점포 있다고 가정 (실제 구현 시 별도 필드)
 
   @override
   Widget build(BuildContext context) {
     final user = AppState().user;
     final isLoggedIn = AppState().isLoggedIn;
 
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(title: '마이', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF020810),
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        backgroundColor: _bg,
+        body: Column(
+          children: [
+            // ── 상단바 ──
+            Container(
+              color: _card,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                MediaQuery.of(context).padding.top + 10,
+                16,
+                14,
+              ),
+              child: Row(
                 children: [
-                  // 프로필 카드
-                  Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
+                  // MOINCAR 로고 텍스트
+                  RichText(
+                    text: const TextSpan(
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary,
-                          ),
-                          child: Center(
-                            child: Text(
-                              isLoggedIn ? (user?.name.substring(0, 1) ?? 'K') : 'K',
-                              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: isLoggedIn
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(user?.name ?? '',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                                  ),
-                                  const Text('일반 이용자',
-                                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('로그인 해주세요',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pushNamed(context, '/login'),
-                                    child: const Text('로그인 / 회원가입',
-                                      style: TextStyle(fontSize: 12, color: AppColors.primary),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                        ),
-                        if (isLoggedIn)
-                          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                        TextSpan(text: 'MOIN',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
+                        TextSpan(text: 'CAR',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFFFF6B35))),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 8),
-
-                  // 메뉴 섹션들
-                  _buildSection('내 활동', [
-                    _MenuItem(icon: Icons.receipt_long_outlined, label: '견적 내역', onTap: () {}),
-                    _MenuItem(icon: Icons.favorite_border, label: '즐겨찾기 점포', onTap: () {}),
-                    _MenuItem(icon: Icons.confirmation_number_outlined, label: '내 쿠폰', onTap: () => Navigator.pushNamed(context, '/coupon')),
-                    _MenuItem(icon: Icons.card_giftcard, label: '리워드 포인트', onTap: () {}),
-                  ]),
-
-                  const SizedBox(height: 8),
-
-                  _buildSection('차량 관리', [
-                    _MenuItem(icon: Icons.directions_car_outlined, label: '내 차량 등록', onTap: () {}),
-                    _MenuItem(icon: Icons.history, label: '정비 이력', onTap: () {}),
-                    _MenuItem(icon: Icons.monetization_on_outlined, label: '내차 시세 조회', onTap: () {}),
-                  ]),
-
-                  const SizedBox(height: 8),
-
-                  _buildSection('점포 관리', [
-                    _MenuItem(icon: Icons.store_outlined, label: '점포 등록', onTap: () => Navigator.pushNamed(context, '/store-register')),
-                    _MenuItem(icon: Icons.manage_accounts_outlined, label: '점포 관리자', onTap: () => Navigator.pushNamed(context, '/store-mgr')),
-                    _MenuItem(icon: Icons.verified_outlined, label: '협회 인증 신청', onTap: () => Navigator.pushNamed(context, '/cert')),
-                  ]),
-
-                  const SizedBox(height: 8),
-
-                  _buildSection('설정', [
-                    _MenuItem(icon: Icons.notifications_outlined, label: '알림 설정', onTap: () {}),
-                    _MenuItem(icon: Icons.lock_outline, label: '개인정보 설정', onTap: () {}),
-                    if (isLoggedIn)
-                      _MenuItem(
-                        icon: Icons.logout,
-                        label: '로그아웃',
-                        color: AppColors.danger,
-                        onTap: () {
-                          AppState().logout();
-                          Navigator.pushNamedAndRemoveUntil(context, '/intro', (_) => false);
-                        },
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: _accent.withOpacity(0.3)),
+                    ),
+                    child: const Text('마이페이지',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w600)),
+                  ),
+                  const Spacer(),
+                  Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pushNamed(context, '/notification'),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                  ]),
-
-                  const SizedBox(height: 30),
+                      if (AppState().notificationCount > 0)
+                        Positioned(
+                          right: 0, top: 0,
+                          child: Container(
+                            width: 14, height: 14,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFF6B35),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${AppState().notificationCount}',
+                                style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // ── 본문 ──
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // 프로필 카드
+                    Container(
+                      color: _card,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF4FC3F7), Color(0xFF1E88E5)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              border: Border.all(color: _accent.withOpacity(0.5), width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                isLoggedIn ? (user?.name.isNotEmpty == true
+                                  ? user!.name.substring(0, 1) : 'M') : 'M',
+                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: isLoggedIn
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(user?.name ?? '',
+                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: _hasStore
+                                              ? _green.withOpacity(0.2)
+                                              : _accent.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: _hasStore
+                                                ? _green.withOpacity(0.5)
+                                                : _accent.withOpacity(0.3)),
+                                          ),
+                                          child: Text(
+                                            _hasStore ? '🏪 점포 관리자' : '👤 일반 이용자',
+                                            style: TextStyle(
+                                              fontSize: 10, fontWeight: FontWeight.w700,
+                                              color: _hasStore ? _green : _accent)),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('로그인이 필요합니다',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                                    const SizedBox(height: 4),
+                                    GestureDetector(
+                                      onTap: () => Navigator.pushNamed(context, '/login'),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: _accent.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: _accent.withOpacity(0.4)),
+                                        ),
+                                        child: const Text('로그인 / 회원가입',
+                                          style: TextStyle(fontSize: 12, color: Color(0xFF4FC3F7),
+                                            fontWeight: FontWeight.w700)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                          ),
+                          if (isLoggedIn)
+                            Icon(Icons.chevron_right, color: _textSec),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 1),
+
+                    // ── 내 활동 ──
+                    _buildSection('내 활동', [
+                      _DarkMenuItem(icon: Icons.receipt_long_outlined, label: '견적 내역',
+                        color: _accent, onTap: () {}),
+                      _DarkMenuItem(icon: Icons.favorite_border, label: '즐겨찾기 점포',
+                        color: _accent, onTap: () {}),
+                      _DarkMenuItem(icon: Icons.confirmation_number_outlined, label: '내 쿠폰',
+                        color: _accent,
+                        onTap: () => Navigator.pushNamed(context, '/coupon')),
+                      _DarkMenuItem(icon: Icons.card_giftcard, label: '리워드 포인트',
+                        color: _accent, onTap: () {}),
+                    ]),
+
+                    const SizedBox(height: 1),
+
+                    // ── 차량 관리 ──
+                    _buildSection('차량 관리', [
+                      _DarkMenuItem(icon: Icons.directions_car_outlined, label: '내 차량 등록',
+                        color: _orange, onTap: () {}),
+                      _DarkMenuItem(icon: Icons.history, label: '정비 이력',
+                        color: _orange, onTap: () {}),
+                      _DarkMenuItem(icon: Icons.monetization_on_outlined, label: '내차 시세 조회',
+                        color: _orange,
+                        onTap: () => Navigator.pushNamed(context, '/car-price')),
+                    ]),
+
+                    const SizedBox(height: 1),
+
+                    // ── 점포 관리 (사용자 유형별 표시) ──
+                    _buildSection('점포 관리', [
+                      // 점포 등록: 항상 표시 (미등록 사용자 활성화)
+                      _DarkMenuItem(
+                        icon: Icons.store_outlined,
+                        label: '점포 등록',
+                        color: _hasStore ? _textSec : _green,
+                        badge: _hasStore ? '등록완료' : null,
+                        badgeColor: _hasStore ? _green : null,
+                        onTap: _hasStore
+                          ? () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('이미 점포가 등록되어 있습니다')))
+                          : () => Navigator.pushNamed(context, '/store-register'),
+                      ),
+                      // 점포 관리자: 점포 등록 후에만 활성화
+                      _DarkMenuItem(
+                        icon: Icons.manage_accounts_outlined,
+                        label: '점포 관리자',
+                        color: _hasStore ? _accent : _textSec.withOpacity(0.4),
+                        disabled: !_hasStore,
+                        onTap: _hasStore
+                          ? () => Navigator.pushNamed(context, '/store-mgr')
+                          : () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('점포 등록 후 이용 가능합니다'))),
+                      ),
+                      // 협회 인증 신청: 점포 관리자만 활성화
+                      _DarkMenuItem(
+                        icon: Icons.verified_outlined,
+                        label: '협회 인증 신청',
+                        color: _hasStore ? const Color(0xFF8B5CF6) : _textSec.withOpacity(0.4),
+                        disabled: !_hasStore,
+                        onTap: _hasStore
+                          ? () => Navigator.pushNamed(context, '/cert')
+                          : () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('점포 등록 후 이용 가능합니다'))),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 1),
+
+                    // ── 설정 ──
+                    _buildSection('설정', [
+                      _DarkMenuItem(icon: Icons.notifications_outlined, label: '알림 설정',
+                        color: _textSec, onTap: () {}),
+                      _DarkMenuItem(icon: Icons.lock_outline, label: '개인정보 설정',
+                        color: _textSec, onTap: () {}),
+                      if (isLoggedIn)
+                        _DarkMenuItem(
+                          icon: Icons.logout,
+                          label: '로그아웃',
+                          color: Colors.red.withOpacity(0.8),
+                          onTap: () {
+                            AppState().logout();
+                            Navigator.pushNamedAndRemoveUntil(context, '/intro', (_) => false);
+                          },
+                        ),
+                    ]),
+
+                    const SizedBox(height: 40),
+
+                    // MOINCAR 버전 정보
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Column(
+                        children: [
+                          RichText(
+                            text: const TextSpan(
+                              children: [
+                                TextSpan(text: 'MOIN',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900,
+                                    color: Colors.white38)),
+                                TextSpan(text: 'CAR',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900,
+                                    color: Color(0xFFFF6B35), letterSpacing: 1)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('v50.0.0 · MOINCAR 모빌리티 플랫폼',
+                            style: TextStyle(fontSize: 11, color: _textSec.withOpacity(0.5))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSection(String title, List<_MenuItem> items) {
+  Widget _buildSection(String title, List<_DarkMenuItem> items) {
     return Container(
-      color: Colors.white,
+      color: _card,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Text(title,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
-            ),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                color: _textSec.withOpacity(0.8), letterSpacing: 0.5)),
           ),
-          ...items.map((item) => ListTile(
-            leading: Icon(item.icon, size: 20, color: item.color ?? AppColors.textSecondary),
-            title: Text(item.label,
-              style: TextStyle(fontSize: 14, color: item.color ?? AppColors.textPrimary),
-            ),
-            trailing: const Icon(Icons.chevron_right, size: 18, color: AppColors.textMuted),
-            onTap: item.onTap,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-            dense: true,
-          )),
+          const Divider(color: Color(0xFF1E3A5F), height: 1, indent: 16, endIndent: 16),
+          ...items.map((item) => _buildMenuTile(item)),
+          const SizedBox(height: 4),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMenuTile(_DarkMenuItem item) {
+    return InkWell(
+      onTap: item.onTap,
+      splashColor: _accent.withOpacity(0.1),
+      child: Opacity(
+        opacity: item.disabled ? 0.45 : 1.0,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                  color: item.color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(item.icon, size: 18, color: item.color),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(item.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: item.disabled ? _textSec.withOpacity(0.4) : _textPri,
+                    fontWeight: FontWeight.w500,
+                  )),
+              ),
+              if (item.badge != null)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: (item.badgeColor ?? _accent).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: (item.badgeColor ?? _accent).withOpacity(0.4)),
+                  ),
+                  child: Text(item.badge!,
+                    style: TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.w700,
+                      color: item.badgeColor ?? _accent)),
+                ),
+              if (item.disabled)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _border.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('점포 등록 후',
+                    style: TextStyle(fontSize: 9, color: _textSec.withOpacity(0.5))),
+                )
+              else
+                Icon(Icons.chevron_right, size: 16, color: _textSec.withOpacity(0.4)),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _MenuItem {
+class _DarkMenuItem {
   final IconData icon;
   final String label;
-  final Color? color;
+  final Color color;
+  final bool disabled;
+  final String? badge;
+  final Color? badgeColor;
   final VoidCallback onTap;
-  _MenuItem({required this.icon, required this.label, this.color, required this.onTap});
+  _DarkMenuItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.disabled = false,
+    this.badge,
+    this.badgeColor,
+    required this.onTap,
+  });
 }
+
+// _MenuItem 제거됨 (미사용)
 
 // ==================== 알림 ====================
 class NotificationScreen extends StatelessWidget {

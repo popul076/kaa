@@ -802,10 +802,7 @@ class StoreMgrScreen extends StatefulWidget {
   State<StoreMgrScreen> createState() => _StoreMgrScreenState();
 }
 
-class _StoreMgrScreenState extends State<StoreMgrScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabCtrl;
-
+class _StoreMgrScreenState extends State<StoreMgrScreen> {
   // MOINCAR dark theme
   static const Color _bg      = Color(0xFF020810);
   static const Color _card    = Color(0xFF0D1B2A);
@@ -820,13 +817,22 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
   // 점포 정보 편집 상태
   bool _isEditing = false;
   final _nameCtrl     = TextEditingController(text: 'MOINCAR 추천 프리미엄 정비소');
-  final _subCtrl      = TextEditingController(text: '바삭한 치킨의 정석, 가산동 대표 치킨집');
+  final _subCtrl      = TextEditingController(text: '전문 기술과 정성으로 고객 차량을 책임집니다');
   final _typeCtrl     = TextEditingController(text: '자동차 정비');
   final _bizNumCtrl   = TextEditingController(text: '123-45-67890');
   final _phoneCtrl    = TextEditingController(text: '053-123-4567');
   final _addrCtrl     = TextEditingController(text: '대구시 수성구 범어동 123-4');
-  final _hoursCtrl    = TextEditingController(text: '09:00 ~ 19:00');
   String _status      = '🟢 영업중';
+  // 영업시간: 요일별
+  final Map<String, Map<String, String>> _hours = {
+    '월': {'open': '09:00', 'close': '19:00', 'closed': 'false'},
+    '화': {'open': '09:00', 'close': '19:00', 'closed': 'false'},
+    '수': {'open': '09:00', 'close': '19:00', 'closed': 'false'},
+    '목': {'open': '09:00', 'close': '19:00', 'closed': 'false'},
+    '금': {'open': '09:00', 'close': '19:00', 'closed': 'false'},
+    '토': {'open': '10:00', 'close': '17:00', 'closed': 'false'},
+    '일': {'open': '00:00', 'close': '00:00', 'closed': 'true'},
+  };
 
   // 분석 날짜 필터
   String _dateFilter = '오늘';
@@ -834,18 +840,61 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
   // 이미지 탭 인덱스
   int _imgIdx = 0;
 
+  // 서비스 상품 목록 (업종별 기본값)
+  List<Map<String, dynamic>> _services = [];
+  String _currentCategory = '자동차 정비';
+
+  // 업종별 기본 서비스 상품
+  static const Map<String, List<Map<String, dynamic>>> _defaultServices = {
+    '자동차 정비': [
+      {'name': '엔진오일 교환',       'price': '89,000', 'unit': '원', 'active': true,  'type': '공임비'},
+      {'name': '브레이크 패드 교환',   'price': '150,000','unit': '원', 'active': true,  'type': '부품비'},
+      {'name': '타이어 교체 (1개)',    'price': '20,000', 'unit': '원', 'active': true,  'type': '공임비'},
+      {'name': '에어필터 교환',        'price': '25,000', 'unit': '원', 'active': true,  'type': '부품비'},
+      {'name': '냉각수 교환',          'price': '45,000', 'unit': '원', 'active': false, 'type': '서비스비용'},
+      {'name': '종합 점검',            'price': '35,000', 'unit': '원', 'active': false, 'type': '서비스비용'},
+    ],
+    '세차/디테일링': [
+      {'name': '기본 세차',            'price': '15,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '실내 청소',            'price': '30,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '유리막 코팅',          'price': '150,000','unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '광택 (소형)',           'price': '80,000', 'unit': '원', 'active': false, 'type': '서비스비용'},
+      {'name': '흠집 제거',            'price': '50,000', 'unit': '원', 'active': false, 'type': '부품비'},
+    ],
+    '타이어': [
+      {'name': '타이어 교체 (1개)',    'price': '20,000', 'unit': '원', 'active': true,  'type': '공임비'},
+      {'name': '휠 얼라인먼트',        'price': '40,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '타이어 밸런스',        'price': '15,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '타이어 수리 (펑크)',   'price': '10,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '질소 충전',            'price': '5,000',  'unit': '원', 'active': false, 'type': '서비스비용'},
+    ],
+    '중고차': [
+      {'name': '차량 진단/검사',       'price': '50,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '매매 수수료',          'price': '100,000','unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '명의 이전 대행',       'price': '80,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+      {'name': '차량 탁송',            'price': '150,000','unit': '원', 'active': false, 'type': '서비스비용'},
+    ],
+    '기타': [
+      {'name': '기본 서비스',          'price': '30,000', 'unit': '원', 'active': true,  'type': '서비스비용'},
+    ],
+  };
+
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _loadDefaultServices(_currentCategory);
+  }
+
+  void _loadDefaultServices(String category) {
+    final defaults = _defaultServices[category] ?? _defaultServices['기타']!;
+    _services = defaults.map((s) => Map<String, dynamic>.from(s)).toList();
   }
 
   @override
   void dispose() {
-    _tabCtrl.dispose();
     _nameCtrl.dispose(); _subCtrl.dispose(); _typeCtrl.dispose();
     _bizNumCtrl.dispose(); _phoneCtrl.dispose();
-    _addrCtrl.dispose(); _hoursCtrl.dispose();
+    _addrCtrl.dispose();
     super.dispose();
   }
 
@@ -863,33 +912,9 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
             // ─── 상단바 ───
             _buildTopBar(context),
 
-            // ─── 탭바 ───
-            Container(
-              color: _card,
-              child: TabBar(
-                controller: _tabCtrl,
-                labelColor: _accent,
-                unselectedLabelColor: _textSec,
-                indicatorColor: _accent,
-                indicatorWeight: 2,
-                tabs: const [
-                  Tab(text: '🏪 점포관리'),
-                  Tab(text: '📱 SNS 연동'),
-                ],
-                onTap: (_) => setState(() {}),
-              ),
-            ),
-
-            // ─── 탭 컨텐츠 ───
+            // ─── 탭 컨텐츠 (SNS 탭 제거) ───
             Expanded(
-              child: TabBarView(
-                controller: _tabCtrl,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildMgrTab(),
-                  _buildSnsTab(),
-                ],
-              ),
+              child: _buildMgrTab(),
             ),
           ],
         ),
@@ -1266,85 +1291,129 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
           _InfoField(label: '업종',      ctrl: _typeCtrl,   enabled: _isEditing),
           _InfoField(label: '사업자번호', ctrl: _bizNumCtrl,  enabled: false),
 
-          // 영업상태 + 영업시간
-          Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _bg,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _border),
+          // 영업상태 + 영업시간 → 다이얼로그 방식
+          GestureDetector(
+            onTap: _isEditing ? () => _showStatusDialog() : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _isEditing ? _accent.withOpacity(0.5) : _border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('영업상태',
+                          style: TextStyle(fontSize: 10, color: _isEditing ? _accent : _textSec,
+                            fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text(_status,
+                          style: const TextStyle(fontSize: 14, color: _textPri, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  if (_isEditing)
+                    Icon(Icons.arrow_forward_ios, color: _accent, size: 14),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('영업상태',
-                  style: TextStyle(fontSize: 11, color: _textSec, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                if (_isEditing)
-                  Row(
-                    children: ['🟢 영업중', '🔴 영업종료', '🟡 준비중'].map((s) =>
-                      GestureDetector(
-                        onTap: () => setState(() => _status = s),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _status == s ? _accent.withOpacity(0.2) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _status == s ? _accent : _border),
-                          ),
-                          child: Text(s,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _status == s ? _accent : _textSec,
-                              fontWeight: _status == s ? FontWeight.w700 : FontWeight.normal,
-                            )),
-                        ),
-                      )
-                    ).toList(),
-                  )
-                else
-                  Text(_status,
-                    style: const TextStyle(fontSize: 14, color: _textPri, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                const Divider(color: Color(0xFF1E3A5F), height: 1),
-                const SizedBox(height: 8),
-                const Text('영업시간',
-                  style: TextStyle(fontSize: 11, color: _textSec, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: _hoursCtrl,
-                  enabled: _isEditing,
-                  style: const TextStyle(color: _textPri, fontSize: 13),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '예: 09:00 ~ 18:00',
-                    hintStyle: TextStyle(color: _textSec.withOpacity(0.5)),
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
+          ),
+
+          // 영업시간 키 → 다이얼로그
+          GestureDetector(
+            onTap: _isEditing ? () => _showHoursDialog() : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _isEditing ? _accent.withOpacity(0.5) : _border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('영업시간',
+                          style: TextStyle(fontSize: 10, color: _isEditing ? _accent : _textSec,
+                            fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        ...(_hours.entries.map((e) {
+                          final closed = e.value['closed'] == 'true';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  child: Text(e.key,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: closed ? _textSec.withOpacity(0.4) : _textSec,
+                                      fontWeight: FontWeight.w600,
+                                    )),
+                                ),
+                                Text(
+                                  closed ? '휴무' : '${e.value['open']} ~ ${e.value['close']}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: closed ? _textSec.withOpacity(0.4) : _textPri,
+                                  )),
+                              ],
+                            ),
+                          );
+                        })).toList(),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: _orange.withOpacity(0.3)),
-                  ),
-                  child: const Text(
-                    '영업시간 설정으로 매일 수동 변경이 필요 없습니다!',
-                    style: TextStyle(fontSize: 10, color: _orange, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
+                  if (_isEditing)
+                    Icon(Icons.access_time, color: _accent, size: 16),
+                ],
+              ),
             ),
           ),
 
           _InfoField(label: '전화번호', ctrl: _phoneCtrl, enabled: _isEditing),
-          _InfoField(label: '주소',    ctrl: _addrCtrl,  enabled: _isEditing),
+
+          // 주소 → 주소검색 다이얼로그
+          GestureDetector(
+            onTap: _isEditing ? () => _showAddressSearchDialog() : null,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _isEditing ? _accent.withOpacity(0.5) : _border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('주소',
+                          style: TextStyle(fontSize: 10, color: _isEditing ? _accent : _textSec,
+                            fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 4),
+                        Text(_addrCtrl.text,
+                          style: const TextStyle(fontSize: 13, color: _textPri)),
+                      ],
+                    ),
+                  ),
+                  if (_isEditing)
+                    Icon(Icons.search, color: _accent, size: 16),
+                ],
+              ),
+            ),
+          ),
 
           if (_isEditing)
             SizedBox(
@@ -1602,19 +1671,18 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
     );
   }
 
-  // ── ⑥ 메뉴/상품 관리 ──
+  // ── ⑥ 서비스 · 상품 관리 (업종별 기본 + 직접 입력) ──
   Widget _buildMenuSection() {
-    final menus = [
-      {'name': '엔진오일 교환',      'price': '89,000원', 'active': true},
-      {'name': '브레이크 점검 패키지','price': '59,000원', 'active': true},
-      {'name': '하체 소음 진단',     'price': '35,000원', 'active': false},
-    ];
+    final typeColors = <String, Color>{
+      '공임비': const Color(0xFF4FC3F7),
+      '부품비': const Color(0xFFFF6B35),
+      '서비스비용': const Color(0xFF10B981),
+    };
 
     return _MgrSection(
-      title: '🍽️ 서비스 · 상품 관리',
+      title: '🔧 서비스 · 상품 관리',
       trailing: GestureDetector(
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('서비스 추가 기능 준비중'))),
+        onTap: () => _showAddServiceDialog(),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
@@ -1622,62 +1690,50 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _accent.withOpacity(0.4)),
           ),
-          child: const Text('+ 추가',
+          child: const Text('+ 직접 추가',
             style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
         ),
       ),
       child: Column(
-        children: menus.map((m) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: _bg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 8, height: 8,
-                decoration: BoxDecoration(
-                  color: (m['active'] as bool) ? _green : _border,
-                  shape: BoxShape.circle,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 업종 선택 탭
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _defaultServices.keys.map((cat) =>
+                GestureDetector(
+                  onTap: () => setState(() {
+                    _currentCategory = cat;
+                    _loadDefaultServices(cat);
+                  }),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 6, bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _currentCategory == cat
+                        ? _accent.withOpacity(0.2) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _currentCategory == cat ? _accent : _border),
+                    ),
+                    child: Text(cat,
+                      style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600,
+                        color: _currentCategory == cat ? _accent : _textSec)),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(m['name'] as String,
-                  style: const TextStyle(fontSize: 13, color: _textPri, fontWeight: FontWeight.w600)),
-              ),
-              Text(m['price'] as String,
-                style: const TextStyle(fontSize: 13, color: _accent, fontWeight: FontWeight.w700)),
-              const SizedBox(width: 10),
-              Icon(Icons.edit_outlined, size: 16, color: _textSec.withOpacity(0.5)),
-            ],
+              ).toList(),
+            ),
           ),
-        )).toList(),
-      ),
-    );
-  }
-
-  // ── SNS 탭 ──
-  Widget _buildSnsTab() {
-    final platforms = [
-      {'icon': Icons.facebook, 'name': '인스타그램', 'color': const Color(0xFFE1306C), 'connected': false},
-      {'icon': Icons.facebook, 'name': '페이스북',   'color': const Color(0xFF1877F2), 'connected': true},
-      {'icon': Icons.chat_bubble, 'name': '카카오채널', 'color': const Color(0xFFFEE500), 'connected': false},
-      {'icon': Icons.youtube_searched_for, 'name': '유튜브',  'color': const Color(0xFFFF0000), 'connected': false},
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _MgrSection(
-          title: '📱 SNS 채널 연동',
-          child: Column(
-            children: platforms.map((p) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
+          // 상품 목록
+          ..._services.asMap().entries.map((entry) {
+            final i = entry.key;
+            final s = entry.value;
+            final typeColor = typeColors[s['type']] ?? _textSec;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: _bg,
                 borderRadius: BorderRadius.circular(10),
@@ -1685,55 +1741,599 @@ class _StoreMgrScreenState extends State<StoreMgrScreen>
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: (p['color'] as Color).withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(p['icon'] as IconData,
-                      color: p['color'] as Color, size: 18),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(p['name'] as String,
-                      style: const TextStyle(fontSize: 13, color: _textPri, fontWeight: FontWeight.w600)),
-                  ),
+                  // 활성화 토글
                   GestureDetector(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${p['name']} 연동 기능 준비중'))),
+                    onTap: () => setState(() => s['active'] = !(s['active'] as bool)),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      width: 16, height: 16,
                       decoration: BoxDecoration(
-                        color: (p['connected'] as bool)
-                          ? _green.withOpacity(0.2)
-                          : _accent.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
+                        color: (s['active'] as bool) ? _green : Colors.transparent,
+                        shape: BoxShape.circle,
                         border: Border.all(
-                          color: (p['connected'] as bool)
-                            ? _green.withOpacity(0.5)
-                            : _accent.withOpacity(0.4)),
+                          color: (s['active'] as bool) ? _green : _border, width: 1.5),
                       ),
-                      child: Text(
-                        (p['connected'] as bool) ? '연동됨 ✓' : '연동하기',
-                        style: TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w700,
-                          color: (p['connected'] as bool) ? _green : _accent),
-                      ),
+                      child: (s['active'] as bool)
+                        ? const Icon(Icons.check, size: 10, color: Colors.white) : null,
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  // 타입 배지
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: typeColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(s['type'] as String,
+                      style: TextStyle(fontSize: 9, color: typeColor, fontWeight: FontWeight.w700)),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(s['name'] as String,
+                      style: const TextStyle(fontSize: 12, color: _textPri, fontWeight: FontWeight.w600)),
+                  ),
+                  Text('${s['price']}${s['unit']}',
+                    style: const TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w700)),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showEditServiceDialog(i),
+                    child: Icon(Icons.edit_outlined, size: 14, color: _textSec.withOpacity(0.6)),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => setState(() => _services.removeAt(i)),
+                    child: Icon(Icons.delete_outline, size: 14, color: Colors.red.withOpacity(0.6)),
                   ),
                 ],
               ),
-            )).toList(),
+            );
+          }),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _orange.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 12, color: _orange),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text('업종 선택 시 기본 상품이 자동 제공됩니다. + 직접 추가로 모든 업종 상품 발행 가능',
+                    style: TextStyle(fontSize: 10, color: Color(0xFFFF6B35))),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ── 다이얼로그: 영업상태 ──
+  void _showStatusDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('영업 상태 선택',
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ['🟢 영업중', '🔴 영업종료', '🟡 준비중', '⚫ 임시휴업'].map((s) =>
+            GestureDetector(
+              onTap: () {
+                setState(() => _status = s);
+                Navigator.pop(ctx);
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _status == s ? _accent.withOpacity(0.2) : _bg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _status == s ? _accent : _border,
+                    width: _status == s ? 2 : 1),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(s,
+                        style: TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w600,
+                          color: _status == s ? _accent : Colors.white)),
+                    ),
+                    if (_status == s)
+                      Icon(Icons.check_circle, color: _accent, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('취소', style: TextStyle(color: _textSec)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 다이얼로그: 영업시간 설정 ──
+  void _showHoursDialog() {
+    final days = _hours.keys.toList();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDlgState) => AlertDialog(
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('영업시간 설정',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: days.map((day) {
+                  final info = _hours[day]!;
+                  final isClosed = info['closed'] == 'true';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          child: Text(day,
+                            style: const TextStyle(color: Colors.white,
+                              fontSize: 13, fontWeight: FontWeight.w700)),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () {
+                            setDlgState(() => info['closed'] = isClosed ? 'false' : 'true');
+                            setState(() {});
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isClosed ? Colors.red.withOpacity(0.2) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isClosed ? Colors.red.withOpacity(0.5) : _border),
+                            ),
+                            child: Text('휴무',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isClosed ? Colors.red : _textSec,
+                                fontWeight: isClosed ? FontWeight.w700 : FontWeight.normal,
+                              )),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (!isClosed) ...[
+                          GestureDetector(
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                context: ctx2,
+                                initialTime: TimeOfDay(
+                                  hour: int.parse(info['open']!.split(':')[0]),
+                                  minute: int.parse(info['open']!.split(':')[1]),
+                                ),
+                                builder: (c, child) => Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: Color(0xFF4FC3F7)),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (t != null) {
+                                setDlgState(() => info['open'] =
+                                  '${t.hour.toString().padLeft(2,'0')}:${t.minute.toString().padLeft(2,'0')}');
+                                setState(() {});
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _accent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _accent.withOpacity(0.3)),
+                              ),
+                              child: Text(info['open']!,
+                                style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text('~', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                              final t = await showTimePicker(
+                                context: ctx2,
+                                initialTime: TimeOfDay(
+                                  hour: int.parse(info['close']!.split(':')[0]),
+                                  minute: int.parse(info['close']!.split(':')[1]),
+                                ),
+                                builder: (c, child) => Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: Color(0xFF4FC3F7)),
+                                  ),
+                                  child: child!,
+                                ),
+                              );
+                              if (t != null) {
+                                setDlgState(() => info['close'] =
+                                  '${t.hour.toString().padLeft(2,'0')}:${t.minute.toString().padLeft(2,'0')}');
+                                setState(() {});
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _accent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _accent.withOpacity(0.3)),
+                              ),
+                              child: Text(info['close']!,
+                                style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 12,
+                                  fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소', style: TextStyle(color: Color(0xFFB0BEC5))),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {});
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ 영업시간이 저장되었습니다!')));
+              },
+              child: const Text('저장', style: TextStyle(color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 다이얼로그: 주소 검색 ──
+  void _showAddressSearchDialog() {
+    final searchCtrl = TextEditingController();
+    final sampleAddresses = [
+      '서울시 강남구 테헤란로 123',
+      '서울시 삼성동 충무로 45',
+      '부산시 해운대구 해운대해변로 789',
+      '대구시 수성구 범어동 123-4',
+      '대구시 중구 동성로 56',
+      '인천시 남동구 소래로 22',
+      '광주시 서구 누시각로 88',
+    ];
+    List<String> filtered = [];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDlgState) => AlertDialog(
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.search, color: Color(0xFF4FC3F7), size: 20),
+              SizedBox(width: 8),
+              Text('주소 검색',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _accent.withOpacity(0.4)),
+                  ),
+                  child: TextField(
+                    controller: searchCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: '도로명 주소를 입력하세요',
+                      hintStyle: TextStyle(color: _textSec.withOpacity(0.5), fontSize: 12),
+                      prefixIcon: Icon(Icons.search, color: _textSec, size: 18),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                    ),
+                    onChanged: (v) {
+                      setDlgState(() {
+                        filtered = v.isEmpty ? [] :
+                          sampleAddresses.where((a) => a.contains(v)).toList();
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (searchCtrl.text.isNotEmpty && filtered.isEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _addrCtrl.text = searchCtrl.text);
+                      Navigator.pop(ctx);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: _orange.withOpacity(0.4)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_location_alt, color: _orange, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text('"${searchCtrl.text}" 직접 입력하기',
+                              style: const TextStyle(color: Color(0xFFFF6B35), fontSize: 12,
+                                fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ...filtered.map((addr) => GestureDetector(
+                  onTap: () {
+                    setState(() => _addrCtrl.text = addr);
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('주소 설정: $addr')));
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Color(0xFF4FC3F7), size: 14),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(addr,
+                            style: const TextStyle(color: Colors.white, fontSize: 12))),
+                      ],
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('취소', style: TextStyle(color: _textSec)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 다이얼로그: 서비스 추가 ──
+  void _showAddServiceDialog() {
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    String selectedType = '공임비';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDlgState) => AlertDialog(
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('서비스 추가',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _dialogField('서비스명', '예: 엔진오일 교환', nameCtrl),
+              const SizedBox(height: 10),
+              _dialogField('가격 (원)', '예: 89000', priceCtrl,
+                inputType: TextInputType.number),
+              const SizedBox(height: 12),
+              const Text('비용 구분',
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Row(
+                children: ['공임비', '부품비', '서비스비용'].map((t) =>
+                  GestureDetector(
+                    onTap: () => setDlgState(() => selectedType = t),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: selectedType == t ? _accent.withOpacity(0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: selectedType == t ? _accent : _border),
+                      ),
+                      child: Text(t,
+                        style: TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600,
+                          color: selectedType == t ? _accent : _textSec)),
+                    ),
+                  ),
+                ).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('취소', style: TextStyle(color: _textSec)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('서비스명과 가격을 입력하세요')));
+                  return;
+                }
+                setState(() => _services.add({
+                  'name': nameCtrl.text.trim(),
+                  'price': priceCtrl.text.trim(),
+                  'unit': '원',
+                  'active': true,
+                  'type': selectedType,
+                }));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ 서비스가 추가되었습니다!')));
+              },
+              child: const Text('추가', style: TextStyle(color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 다이얼로그: 서비스 수정 ──
+  void _showEditServiceDialog(int index) {
+    final s = _services[index];
+    final nameCtrl = TextEditingController(text: s['name'] as String);
+    final priceCtrl = TextEditingController(text: s['price'] as String);
+    String selectedType = s['type'] as String;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDlgState) => AlertDialog(
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('서비스 수정',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _dialogField('서비스명', '', nameCtrl),
+              const SizedBox(height: 10),
+              _dialogField('가격 (원)', '', priceCtrl,
+                inputType: TextInputType.number),
+              const SizedBox(height: 12),
+              const Text('비용 구분',
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Row(
+                children: ['공임비', '부품비', '서비스비용'].map((t) =>
+                  GestureDetector(
+                    onTap: () => setDlgState(() => selectedType = t),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: selectedType == t ? _accent.withOpacity(0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: selectedType == t ? _accent : _border),
+                      ),
+                      child: Text(t,
+                        style: TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600,
+                          color: selectedType == t ? _accent : _textSec)),
+                    ),
+                  ),
+                ).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('취소', style: TextStyle(color: _textSec)),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _services[index]['name'] = nameCtrl.text.trim();
+                  _services[index]['price'] = priceCtrl.text.trim();
+                  _services[index]['type'] = selectedType;
+                });
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('✅ 수정되었습니다!')));
+              },
+              child: const Text('저장', style: TextStyle(color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 헬퍼: 다이얼로그 입력 필드 ──
+  Widget _dialogField(String label, String hint, TextEditingController ctrl,
+    {TextInputType inputType = TextInputType.text}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: _bg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _accent.withOpacity(0.3)),
+          ),
+          child: TextField(
+            controller: ctrl,
+            keyboardType: inputType,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: _textSec.withOpacity(0.4), fontSize: 12),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
           ),
         ),
-        const SizedBox(height: 40),
       ],
     );
   }
 
-  // ── 구독 플랜 다이얼로그 ──
-  void _showPlanDialog() {
+    void _showPlanDialog() {
     showModalBottomSheet(
       context: context,
       backgroundColor: _card,
