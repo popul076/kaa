@@ -55,6 +55,10 @@ class _HomeScreenState extends State<HomeScreen>
   bool _navVisible = true;
   Timer? _navTimer;
 
+  // ── 상태바 높이 캐시 (첫 빌드 점프 방지) ──────────────────────
+  double _cachedTopPad = 0.0;  // didChangeDependencies에서 확정
+  bool _topPadReady = false;
+
   // ── 위치 ─────────────────────────────────────────────────────
   String _currentAddress = '서울특별시 금천구 가산동';
   double _currentLat = 37.4817;  // 가산동 좌표
@@ -201,8 +205,24 @@ class _HomeScreenState extends State<HomeScreen>
     _bannerController = PageController(initialPage: _initialPage);
     _currentBannerIndex = 0;
     _startBannerTimer();
-    _initLocation();
     _scrollController.addListener(_onScroll);
+    // 위치는 첫 프레임 이후에 시작 → 레이아웃 확정 뒤 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initLocation();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 상태바 높이를 한 번만 확정하여 이후 빌드에서 점프 방지
+    final pad = MediaQuery.of(context).padding.top;
+    if (!_topPadReady && pad > 0) {
+      _cachedTopPad = pad;
+      _topPadReady = true;
+    }
+    // 로고 이미지 프리캐시
+    precacheImage(const AssetImage('assets/images/moincar_logo.png'), context);
   }
 
   // ── 스크롤 리스너 ────────────────────────────────────────────
@@ -239,17 +259,22 @@ class _HomeScreenState extends State<HomeScreen>
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
-        if (mounted) setState(() => _currentAddress = '서울특별시 금천구 가산동');
+        // 기본값 유지 — setState 불필요 (이미 '서울특별시 금천구 가산동')
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.low,  // low: 빠른 응답, UI 점프 최소화
+            timeLimit: Duration(seconds: 5),
+          ));
       if (!mounted) return;
-      setState(() { _currentLat = pos.latitude; _currentLng = pos.longitude; });
+      // 좌표만 먼저 저장 (UI 변경 없음)
+      _currentLat = pos.latitude;
+      _currentLng = pos.longitude;
       await _updateAddress(pos.latitude, pos.longitude);
       _sortNearby();
     } catch (_) {
-      if (mounted) setState(() => _currentAddress = '서울특별시 금천구 가산동');
+      // 실패 시 기본값 유지 — setState 불필요
     }
   }
 
@@ -324,7 +349,10 @@ class _HomeScreenState extends State<HomeScreen>
   // ══════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
-    final topPad = MediaQuery.of(context).padding.top;
+    // 캐시된 topPad 사용 → 매 빌드마다 다른 값으로 점프하는 현상 방지
+    final topPad = _topPadReady
+        ? _cachedTopPad
+        : MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     // BottomNav 높이: 60px + SafeArea bottom
@@ -333,6 +361,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Scaffold(
       backgroundColor: _bg,
+      resizeToAvoidBottomInset: false,  // 키보드 등장 시 레이아웃 쉬프트 방지
       // bottomNavigationBar 제거 → Stack 내부로 이동하여 공백 원천 차단
       body: Stack(
         children: [
@@ -404,22 +433,26 @@ class _HomeScreenState extends State<HomeScreen>
       color: Colors.black,   // 완전 검정 #000000
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        // 로고 이미지만 (텍스트 삭제) - 크기 확대
-        Image.asset(
-          'assets/images/moincar_logo.png',
-          height: 40,  // 80 → 40 (상단바에 맞게 조정)
-          fit: BoxFit.contain,
-          errorBuilder: (c, e, s) => Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A3A8E), Color(0xFF0D1E5A)],
-              ),
-              borderRadius: BorderRadius.circular(10),
+        // 로고: 고정 크기 SizedBox로 감싸 로딩 전후 레이아웃 쉬프트 방지
+        SizedBox(
+          width: 120, height: 40,
+          child: Image.asset(
+            'assets/images/moincar_logo.png',
+            height: 40,
+            fit: BoxFit.contain,
+            // frameBuilder: 첫 프레임부터 공간 확보 → 깜빡임 없음
+            frameBuilder: (c, child, frame, _) => frame == null
+                ? SizedBox(width: 120, height: 40,
+                    child: Center(child: Text('MOINCAR',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900,
+                          color: _accent, letterSpacing: 1))))
+                : child,
+            errorBuilder: (c, e, s) => SizedBox(
+              width: 120, height: 40,
+              child: Center(child: Text('MOINCAR',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900,
+                    color: _accent, letterSpacing: 1))),
             ),
-            child: Center(child: Text('M',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900,
-                    color: _accent, fontFamily: 'sans-serif'))),
           ),
         ),
         const Spacer(),
