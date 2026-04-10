@@ -472,6 +472,7 @@ class MyScreen extends StatelessWidget {
 
                   _buildSection('점포 관리', [
                     _MenuItem(icon: Icons.store_outlined, label: '점포 등록', onTap: () => Navigator.pushNamed(context, '/store-register')),
+                    _MenuItem(icon: Icons.manage_accounts_outlined, label: '점포 관리자', onTap: () => Navigator.pushNamed(context, '/store-mgr')),
                     _MenuItem(icon: Icons.verified_outlined, label: '협회 인증 신청', onTap: () => Navigator.pushNamed(context, '/cert')),
                   ]),
 
