@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
@@ -755,16 +757,43 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
   int _step = 0; // 0:사업자확인, 1:AI안내, 2:사진STEP1, 3:사진STEP2, 4:사진STEP3, 5:AI생성중, 6:결과, 7:완료
 
   final TextEditingController _bizNumCtrl = TextEditingController();
-  final TextEditingController _img1Ctrl = TextEditingController(text: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=400&q=80');
-  final TextEditingController _img2Ctrl = TextEditingController(text: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400&q=80');
-  final TextEditingController _img3Ctrl = TextEditingController(text: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80');
+  final ImagePicker _picker = ImagePicker();
+
+  // 실제 선택된 이미지 파일
+  File? _img1;
+  File? _img2;
+  File? _img3;
+
+  // 미리보기용 fallback URL (사진 없을 때)
+  static const _fallback1 = 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=400&q=80';
+  static const _fallback2 = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400&q=80';
+  static const _fallback3 = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80';
+
+  Future<void> _pickImage(int idx, ImageSource source) async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1280,
+      );
+      if (picked == null) return;
+      setState(() {
+        if (idx == 1) _img1 = File(picked.path);
+        if (idx == 2) _img2 = File(picked.path);
+        if (idx == 3) _img3 = File(picked.path);
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사진을 가져올 수 없습니다: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
     _bizNumCtrl.dispose();
-    _img1Ctrl.dispose();
-    _img2Ctrl.dispose();
-    _img3Ctrl.dispose();
     super.dispose();
   }
 
@@ -854,9 +883,9 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
     switch (_step) {
       case 0: return _buildBizCheck(context);
       case 1: return _buildAiIntro(context);
-      case 2: return _buildPhotoStep(context, step: 1, ctrl: _img1Ctrl, title: 'STEP 1', subtitle: '간판·외관 사진', desc: '점포 간판과 출입구가 잘 보이는\n정면 사진을 업로드하세요', icon: '🏪');
-      case 3: return _buildPhotoStep(context, step: 2, ctrl: _img2Ctrl, title: 'STEP 2', subtitle: '전시장·내부 사진', desc: '전시장 내부 또는 작업 공간\n전체가 보이는 사진을 올려주세요', icon: '🏢');
-      case 4: return _buildPhotoStep(context, step: 3, ctrl: _img3Ctrl, title: 'STEP 3', subtitle: '대표차량·서비스 사진', desc: '주력 차량이나 서비스 장면이\n담긴 대표 사진을 올려주세요', icon: '🚗');
+      case 2: return _buildPhotoStep(context, step: 1, imgFile: _img1, fallback: _fallback1, title: 'STEP 1', subtitle: '간판·외관 사진', desc: '점포 간판과 출입구가 잘 보이는\n정면 사진을 업로드하세요', icon: '🏪');
+      case 3: return _buildPhotoStep(context, step: 2, imgFile: _img2, fallback: _fallback2, title: 'STEP 2', subtitle: '전시장·내부 사진', desc: '전시장 내부 또는 작업 공간\n전체가 보이는 사진을 올려주세요', icon: '🏢');
+      case 4: return _buildPhotoStep(context, step: 3, imgFile: _img3, fallback: _fallback3, title: 'STEP 3', subtitle: '대표차량·서비스 사진', desc: '주력 차량이나 서비스 장면이\n담긴 대표 사진을 올려주세요', icon: '🚗');
       case 5: return _buildAiGenerating(context);
       case 6: return _buildAiResult(context);
       case 7: return _buildComplete(context);
@@ -1069,10 +1098,11 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
     );
   }
 
-  // ── STEP 2~4: 사진 업로드 ────────────────────────────────────
+  // ── STEP 2~4: 사진 업로드 (실제 카메라/갤러리) ─────────────
   Widget _buildPhotoStep(BuildContext context, {
     required int step,
-    required TextEditingController ctrl,
+    required File? imgFile,
+    required String fallback,
     required String title,
     required String subtitle,
     required String desc,
@@ -1080,6 +1110,7 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
   }) {
     final colors = [const Color(0xFF1565C0), const Color(0xFF00897B), const Color(0xFFE65100)];
     final c = colors[step - 1];
+    final hasPhoto = imgFile != null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1102,78 +1133,98 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
           const SizedBox(height: 20),
 
           // 사진 미리보기
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ctrl.text.isNotEmpty
-                ? Image.network(ctrl.text, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFFF0F0F0),
-                      child: Center(child: Text(icon, style: const TextStyle(fontSize: 40))),
-                    ))
-                : Container(
-                    color: const Color(0xFFF5F5F5),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          GestureDetector(
+            onTap: () => _pickImage(step, ImageSource.gallery),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: hasPhoto
+                  ? Image.file(imgFile, fit: BoxFit.cover)
+                  : Stack(
                       children: [
-                        Text(icon, style: const TextStyle(fontSize: 40)),
-                        const SizedBox(height: 8),
-                        const Text('사진을 등록해 주세요', style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
+                        Image.network(fallback, fit: BoxFit.cover,
+                          width: double.infinity, height: double.infinity,
+                          errorBuilder: (_, __, ___) => Container(color: const Color(0xFFF0F0F0))),
+                        Container(color: Colors.black.withOpacity(0.45)),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 56, height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white54),
+                                ),
+                                child: const Icon(Icons.add_a_photo_outlined, color: Colors.white, size: 26),
+                              ),
+                              const SizedBox(height: 10),
+                              const Text('탭하여 사진 추가', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+              ),
             ),
           ),
+
+          // 사진 선택됨 표시
+          if (hasPhoto) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: c, size: 16),
+                const SizedBox(width: 6),
+                Text('사진이 선택되었습니다',
+                  style: TextStyle(fontSize: 13, color: c, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => setState(() {
+                    if (step == 1) _img1 = null;
+                    if (step == 2) _img2 = null;
+                    if (step == 3) _img3 = null;
+                  }),
+                  child: Text('다시 선택',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500], decoration: TextDecoration.underline)),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
 
-          // 업로드 버튼 2개
+          // 카메라 / 갤러리 버튼 (크게)
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.camera_alt_outlined, size: 16),
-                  label: const Text('사진 촬영'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFFDDDDDD)),
-                    foregroundColor: const Color(0xFF333333),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                child: ElevatedButton.icon(
+                  onPressed: () => _pickImage(step, ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                  label: const Text('사진 촬영', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: c,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.photo_library_outlined, size: 16),
-                  label: const Text('갤러리에서 찾기'),
+                  onPressed: () => _pickImage(step, ImageSource.gallery),
+                  icon: Icon(Icons.photo_library_outlined, size: 18, color: c),
+                  label: Text('앨범에서 선택', style: TextStyle(color: c, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFFDDDDDD)),
-                    foregroundColor: const Color(0xFF333333),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: c),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-
-          // URL 직접 입력
-          TextField(
-            controller: ctrl,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: '이미지 URL 직접 입력',
-              hintStyle: const TextStyle(color: Color(0xFFBBBBBB), fontSize: 13),
-              prefixIcon: const Icon(Icons.link, size: 18, color: Color(0xFF999999)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: c, width: 1.5)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
           ),
           const SizedBox(height: 28),
 
@@ -1183,7 +1234,7 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
             child: ElevatedButton(
               onPressed: () {
                 if (step == 3) {
-                  setState(() => _step = 5); // AI 생성 시작
+                  setState(() => _step = 5);
                   Future.delayed(const Duration(seconds: 2), () {
                     if (mounted) setState(() => _step = 6);
                   });
@@ -1288,11 +1339,10 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Image.network(
-                    _img1Ctrl.text,
-                    height: 160, width: double.infinity, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(height: 160, color: const Color(0xFFEEEEEE)),
-                  ),
+                  child: _img1 != null
+                    ? Image.file(_img1!, height: 160, width: double.infinity, fit: BoxFit.cover)
+                    : Image.network(_fallback1, height: 160, width: double.infinity, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(height: 160, color: const Color(0xFFEEEEEE))),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -1342,11 +1392,11 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen> {
                   padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
                   child: Row(
                     children: [
-                      _SmallPhoto(_img1Ctrl.text),
+                      _SmallPhoto(file: _img1, url: _fallback1),
                       const SizedBox(width: 6),
-                      _SmallPhoto(_img2Ctrl.text),
+                      _SmallPhoto(file: _img2, url: _fallback2),
                       const SizedBox(width: 6),
-                      _SmallPhoto(_img3Ctrl.text),
+                      _SmallPhoto(file: _img3, url: _fallback3),
                     ],
                   ),
                 ),
@@ -1489,17 +1539,19 @@ class _ResultRow extends StatelessWidget {
 }
 
 class _SmallPhoto extends StatelessWidget {
+  final File? file;
   final String url;
-  const _SmallPhoto(this.url);
+  const _SmallPhoto({required this.file, required this.url});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(url, height: 60, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(height: 60, color: const Color(0xFFEEEEEE)),
-        ),
+        child: file != null
+          ? Image.file(file!, height: 60, fit: BoxFit.cover)
+          : Image.network(url, height: 60, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(height: 60, color: const Color(0xFFEEEEEE))),
       ),
     );
   }

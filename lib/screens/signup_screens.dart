@@ -3,7 +3,23 @@ import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
 
-// ==================== 진행 표시 ====================
+// ═══════════════════════════════════════════════════════════════
+// 가입 화면 전체 — 군청색 다크 테마 통일 (홈/로그인과 동일)
+// bg:#020810  s1:#071428  s2:#0D1E3C  br:#1A3050
+// accent:#4FC3F7  t1:#E8F4FF  t2:#7AB0D4  t3:#3A6080
+// ═══════════════════════════════════════════════════════════════
+
+// ── 색상 상수 ────────────────────────────────────────────────
+const Color _bg      = Color(0xFF020810);
+const Color _s1      = Color(0xFF071428);
+const Color _s2      = Color(0xFF0D1E3C);
+const Color _br      = Color(0xFF1A3050);
+const Color _accent  = Color(0xFF4FC3F7);
+const Color _t1      = Color(0xFFE8F4FF);
+const Color _t2      = Color(0xFF7AB0D4);
+const Color _t3      = Color(0xFF3A6080);
+
+// ── 공통 다크 진행 표시 ──────────────────────────────────────
 class SignupProgress extends StatelessWidget {
   final int step;
   const SignupProgress({super.key, required this.step});
@@ -12,41 +28,41 @@ class SignupProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = ['약관동의', '프로필', '관심분야'];
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+      color: _bg,
       child: Row(
         children: List.generate(steps.length * 2 - 1, (i) {
           if (i.isOdd) {
             return Expanded(
               child: Container(
                 height: 2,
-                color: (i ~/ 2) < step - 1 ? AppColors.primary : AppColors.border,
+                color: (i ~/ 2) < step - 1 ? _accent : _br,
               ),
             );
           }
           final si = i ~/ 2;
           final isActive = si + 1 == step;
-          final isDone = si + 1 < step;
+          final isDone   = si + 1 < step;
           return Column(
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 28, height: 28,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isDone ? AppColors.primary : isActive ? AppColors.primary : Colors.white,
+                  color: (isDone || isActive) ? _accent : _s2,
                   border: Border.all(
-                    color: isDone || isActive ? AppColors.primary : AppColors.border,
+                    color: (isDone || isActive) ? _accent : _br,
                     width: 2,
                   ),
                 ),
                 child: Center(
                   child: isDone
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    ? const Icon(Icons.check, size: 14, color: Color(0xFF020810))
                     : Text('${si + 1}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isActive ? Colors.white : AppColors.textMuted,
+                          color: isActive ? _bg : _t3,
                         ),
                       ),
                 ),
@@ -55,7 +71,7 @@ class SignupProgress extends StatelessWidget {
               Text(steps[si],
                 style: TextStyle(
                   fontSize: 10,
-                  color: isActive ? AppColors.primary : AppColors.textMuted,
+                  color: isActive ? _accent : _t3,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -80,82 +96,72 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
   final List<String> reqIds = ['service', 'privacy', 'location', 'age'];
 
   final Map<String, String> termLabels = {
-    'service': '[필수] 서비스 이용약관',
-    'privacy': '[필수] 개인정보 수집 및 이용',
-    'location': '[필수] 위치기반 서비스 이용약관',
+    'service':   '[필수] 서비스 이용약관',
+    'privacy':   '[필수] 개인정보 수집 및 이용',
+    'location':  '[필수] 위치기반 서비스 이용약관',
     'marketing': '[선택] 마케팅 정보 수신 동의',
-    'age': '[필수] 만 14세 이상입니다',
+    'age':       '[필수] 만 14세 이상입니다',
   };
 
   bool get allAgreed => allIds.every((id) => state.signup.agreed.contains(id));
-  bool get reqDone => reqIds.every((id) => state.signup.agreed.contains(id));
+  bool get reqDone   => reqIds.every((id) => state.signup.agreed.contains(id));
 
-  void toggleAll() {
-    setState(() {
-      if (allAgreed) {
-        state.signup.agreed = [];
-      } else {
-        state.signup.agreed = [...allIds];
-      }
-    });
-  }
+  void toggleAll() => setState(() {
+    state.signup.agreed = allAgreed ? [] : [...allIds];
+  });
 
-  void toggleTerm(String id) {
-    setState(() {
-      if (state.signup.agreed.contains(id)) {
-        state.signup.agreed.remove(id);
-      } else {
-        state.signup.agreed.add(id);
-      }
-    });
-  }
+  void toggleTerm(String id) => setState(() {
+    state.signup.agreed.contains(id)
+      ? state.signup.agreed.remove(id)
+      : state.signup.agreed.add(id);
+  });
 
   @override
   Widget build(BuildContext context) {
     final provider = state.signup.provider ?? 'kakao';
-    final pvColors = {
-      'kakao': {'bg': AppColors.kakao, 'fg': AppColors.kakaoText, 'name': '카카오'},
-      'naver': {'bg': AppColors.naver, 'fg': Colors.white, 'name': '네이버'},
-      'google': {'bg': AppColors.google, 'fg': Colors.white, 'name': '구글'},
-    }[provider] ?? {'bg': AppColors.bgGray, 'fg': AppColors.textPrimary, 'name': '소셜'};
+    final pvData = {
+      'kakao':  {'bg': const Color(0xFFFEE500), 'fg': const Color(0xFF191919), 'name': '카카오'},
+      'naver':  {'bg': const Color(0xFF03C75A), 'fg': Colors.white,            'name': '네이버'},
+      'google': {'bg': const Color(0xFF4285F4), 'fg': Colors.white,            'name': '구글'},
+    }[provider] ?? {'bg': _s2, 'fg': _t1, 'name': '소셜'};
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       body: SafeArea(
         child: Column(
           children: [
-            // 네비게이션
-            _buildNav(context, '회원가입', () => Navigator.pushNamed(context, '/login')),
+            _DarkNav(title: '회원가입', onBack: () => Navigator.pushNamed(context, '/login')),
             SignupProgress(step: 1),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 4),
                     // 제공자 배지
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                       decoration: BoxDecoration(
-                        color: pvColors['bg'] as Color,
+                        color: (pvData['bg'] as Color).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: (pvData['bg'] as Color).withOpacity(0.4)),
                       ),
-                      child: Text('${pvColors['name']} 계정으로 가입 중',
+                      child: Text('${pvData['name']} 계정으로 가입 중',
                         style: TextStyle(
-                          color: pvColors['fg'] as Color,
+                          color: pvData['bg'] as Color,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text('서비스 이용약관에\n동의해 주세요',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    Text('서비스 이용약관에\n동의해 주세요',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _t1),
                     ),
                     const SizedBox(height: 8),
-                    const Text('KAA 모빌리티 플랫폼 서비스를 시작합니다.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    Text('KAA 모빌리티 플랫폼 서비스를 시작합니다.',
+                      style: TextStyle(fontSize: 13, color: _t2),
                     ),
                     const SizedBox(height: 24),
 
@@ -165,28 +171,28 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: allAgreed ? AppColors.primaryLight : AppColors.bgGray,
+                          color: allAgreed ? _accent.withOpacity(0.12) : _s1,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: allAgreed ? AppColors.primary : AppColors.border,
+                            color: allAgreed ? _accent : _br,
                           ),
                         ),
                         child: Row(
                           children: [
-                            _CheckBox(checked: allAgreed),
+                            _DarkCheckBox(checked: allAgreed),
                             const SizedBox(width: 12),
-                            const Text('전체 동의',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            Text('전체 동의',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _t1),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    const Divider(height: 24),
+                    Divider(height: 24, color: _br),
 
                     // 개별 약관
                     ...['service', 'privacy', 'location', 'marketing', 'age'].map((id) {
-                      return _TermItem(
+                      return _DarkTermItem(
                         id: id,
                         label: termLabels[id]!,
                         checked: state.signup.agreed.contains(id),
@@ -200,9 +206,8 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
                 ),
               ),
             ),
-
-            // 다음 버튼
-            _buildNextBtn(context, '다음으로', reqDone, () => Navigator.pushNamed(context, '/signup-profile')),
+            _DarkNextBtn(label: '다음으로', enabled: reqDone,
+              onTap: () => Navigator.pushNamed(context, '/signup-profile')),
           ],
         ),
       ),
@@ -211,16 +216,17 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
 
   void _showTermModal(BuildContext context, String id) {
     final content = {
-      'service': {'title': '서비스 이용약관', 'body': '제1조 (목적)\n이 약관은 KAA 모빌리티 플랫폼 서비스 이용에 관한 권리·의무를 규정합니다.\n\n제2조 (서비스 내용)\n자동차 관련 점포 검색, 중고차 정보 조회, 정비 견적 요청, 쿠폰 발급 등의 기능을 제공합니다.'},
-      'privacy': {'title': '개인정보 수집 및 이용', 'body': '수집 항목: 이름, 차량번호(선택), 위치 정보\n\n수집 목적: 회원 식별, 서비스 제공\n\n보유 기간: 회원 탈퇴 시까지'},
-      'location': {'title': '위치기반 서비스 이용약관', 'body': '위치기반서비스는 이용자의 현재 위치를 기반으로 주변 자동차 관련 점포를 검색하고 거리 정보를 제공합니다.'},
-      'marketing': {'title': '마케팅 정보 수신 동의', 'body': '수신 내용: 신규 서비스 안내, 이벤트·프로모션, 쿠폰 발급 알림, 점포 추천 정보\n\n수신 채널: 앱 푸시 알림'},
+      'service':   {'title': '서비스 이용약관',         'body': '제1조 (목적)\n이 약관은 KAA 모빌리티 플랫폼 서비스 이용에 관한 권리·의무를 규정합니다.\n\n제2조 (서비스 내용)\n자동차 관련 점포 검색, 중고차 정보 조회, 정비 견적 요청, 쿠폰 발급 등의 기능을 제공합니다.'},
+      'privacy':   {'title': '개인정보 수집 및 이용',   'body': '수집 항목: 이름, 차량번호(선택), 위치 정보\n\n수집 목적: 회원 식별, 서비스 제공\n\n보유 기간: 회원 탈퇴 시까지'},
+      'location':  {'title': '위치기반 서비스 이용약관', 'body': '위치기반서비스는 이용자의 현재 위치를 기반으로 주변 자동차 관련 점포를 검색하고 거리 정보를 제공합니다.'},
+      'marketing': {'title': '마케팅 정보 수신 동의',   'body': '수신 내용: 신규 서비스 안내, 이벤트·프로모션, 쿠폰 발급 알림, 점포 추천 정보\n\n수신 채널: 앱 푸시 알림'},
     };
     final item = content[id];
     if (item == null) return;
 
     showModalBottomSheet(
       context: context,
+      backgroundColor: _s1,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -232,32 +238,24 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
           children: [
             Center(
               child: Container(
-                width: 36,
-                height: 4,
+                width: 36, height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+                decoration: BoxDecoration(color: _br, borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            Text(item['title']!,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-            ),
+            Text(item['title']!, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _t1)),
             const SizedBox(height: 16),
-            Text(item['body']!,
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.6),
-            ),
+            Text(item['body']!, style: TextStyle(fontSize: 13, color: _t2, height: 1.6)),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: _accent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('확인', style: TextStyle(color: Colors.white)),
+                child: Text('확인', style: TextStyle(color: _bg, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -267,21 +265,15 @@ class _SignupTermsScreenState extends State<SignupTermsScreen> {
   }
 }
 
-class _TermItem extends StatelessWidget {
-  final String id;
-  final String label;
-  final bool checked;
-  final bool showDetail;
+class _DarkTermItem extends StatelessWidget {
+  final String id, label;
+  final bool checked, showDetail;
   final VoidCallback onTap;
   final VoidCallback? onDetail;
 
-  const _TermItem({
-    required this.id,
-    required this.label,
-    required this.checked,
-    required this.showDetail,
-    required this.onTap,
-    this.onDetail,
+  const _DarkTermItem({
+    required this.id, required this.label, required this.checked,
+    required this.showDetail, required this.onTap, this.onDetail,
   });
 
   @override
@@ -292,12 +284,10 @@ class _TermItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            _CheckBox(checked: checked),
+            _DarkCheckBox(checked: checked),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(label,
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-              ),
+              child: Text(label, style: TextStyle(fontSize: 14, color: _t1)),
             ),
             if (showDetail)
               GestureDetector(
@@ -305,12 +295,10 @@ class _TermItem extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.borderDark),
+                    border: Border.all(color: _br),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text('보기',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                  ),
+                  child: Text('보기', style: TextStyle(fontSize: 11, color: _t3)),
                 ),
               ),
           ],
@@ -320,25 +308,24 @@ class _TermItem extends StatelessWidget {
   }
 }
 
-class _CheckBox extends StatelessWidget {
+class _DarkCheckBox extends StatelessWidget {
   final bool checked;
-  const _CheckBox({required this.checked});
+  const _DarkCheckBox({required this.checked});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 22,
-      height: 22,
+      width: 22, height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: checked ? AppColors.primary : Colors.white,
+        color: checked ? _accent : _s2,
         border: Border.all(
-          color: checked ? AppColors.primary : AppColors.borderDark,
+          color: checked ? _accent : _br,
           width: 1.5,
         ),
       ),
       child: checked
-        ? const Icon(Icons.check, size: 13, color: Colors.white)
+        ? Icon(Icons.check, size: 13, color: _bg)
         : null,
     );
   }
@@ -362,19 +349,16 @@ class _SignupProfileScreenState extends State<SignupProfileScreen> {
   }
 
   @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       body: SafeArea(
         child: Column(
           children: [
-            _buildNav(context, '프로필 설정', () => Navigator.pop(context)),
+            _DarkNav(title: '프로필 설정', onBack: () => Navigator.pop(context)),
             SignupProgress(step: 2),
             Expanded(
               child: SingleChildScrollView(
@@ -382,73 +366,75 @@ class _SignupProfileScreenState extends State<SignupProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('닉네임을\n입력해 주세요',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    const SizedBox(height: 4),
+                    Text('닉네임을\n입력해 주세요',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _t1),
                     ),
                     const SizedBox(height: 8),
-                    const Text('KAA에서 사용할 이름을 알려주세요. 나중에 변경 가능합니다.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    Text('KAA에서 사용할 이름을 알려주세요. 나중에 변경 가능합니다.',
+                      style: TextStyle(fontSize: 13, color: _t2),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
-                    // 닉네임 입력
-                    const Text('닉네임 *',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                    ),
+                    Text('닉네임 *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _t1)),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _ctrl,
                       onChanged: (v) => state.signup.name = v,
                       maxLength: 10,
+                      style: TextStyle(color: _t1),
                       decoration: InputDecoration(
                         hintText: '닉네임을 입력해 주세요',
-                        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        hintStyle: TextStyle(color: _t3, fontSize: 14),
                         counterText: '',
+                        filled: true,
+                        fillColor: _s1,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.border),
+                          borderSide: BorderSide(color: _br),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.border),
+                          borderSide: BorderSide(color: _br),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          borderSide: BorderSide(color: _accent, width: 1.5),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text('한글/영문 2~10자 이내',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                    ),
+                    Text('한글/영문 2~10자 이내', style: TextStyle(fontSize: 11, color: _t3)),
                     const SizedBox(height: 24),
 
                     // 안내 박스
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.bgGray,
+                        color: _s1,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: _br),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('💡', style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 10),
+                          const Text('💡', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text.rich(
                               TextSpan(
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.6),
+                                style: TextStyle(fontSize: 12, color: _t2, height: 1.6),
                                 children: [
-                                  TextSpan(text: '모든 가입자는 일반 이용자로 시작합니다.\n', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                                  TextSpan(text: '점포가 있다면 가입 후 홈 화면에서 '),
-                                  TextSpan(text: '점포 등록', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
-                                  TextSpan(text: '을 진행하세요.\n차량 번호는 '),
-                                  TextSpan(text: '마이페이지', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
-                                  TextSpan(text: '에서 언제든 등록 가능합니다.'),
+                                  TextSpan(text: '모든 가입자는 일반 이용자로 시작합니다.\n',
+                                    style: TextStyle(fontWeight: FontWeight.w600, color: _t1)),
+                                  const TextSpan(text: '점포가 있다면 가입 후 홈 화면에서 '),
+                                  TextSpan(text: '점포 등록',
+                                    style: TextStyle(fontWeight: FontWeight.w600, color: _accent)),
+                                  const TextSpan(text: '을 진행하세요.\n차량 번호는 '),
+                                  TextSpan(text: '마이페이지',
+                                    style: TextStyle(fontWeight: FontWeight.w600, color: _accent)),
+                                  const TextSpan(text: '에서 언제든 등록 가능합니다.'),
                                 ],
                               ),
                             ),
@@ -461,10 +447,12 @@ class _SignupProfileScreenState extends State<SignupProfileScreen> {
                 ),
               ),
             ),
-            _buildNextBtn(context, '다음으로', true, () {
+            _DarkNextBtn(label: '다음으로', enabled: true, onTap: () {
               final name = _ctrl.text.trim();
               if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('닉네임을 입력해 주세요.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: const Text('닉네임을 입력해 주세요.'),
+                    backgroundColor: _s2));
                 return;
               }
               state.signup.name = name;
@@ -490,11 +478,11 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       body: SafeArea(
         child: Column(
           children: [
-            _buildNav(context, '관심 분야 선택', () => Navigator.pop(context)),
+            _DarkNav(title: '관심 분야 선택', onBack: () => Navigator.pop(context)),
             SignupProgress(step: 3),
             Expanded(
               child: SingleChildScrollView(
@@ -502,12 +490,13 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('관심 있는 분야를\n선택하세요',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    const SizedBox(height: 4),
+                    Text('관심 있는 분야를\n선택하세요',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _t1),
                     ),
                     const SizedBox(height: 8),
-                    const Text('맞춤 뉴스 큐레이션에 활용됩니다. 최소 1개 이상 선택해 주세요.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    Text('맞춤 뉴스 큐레이션에 활용됩니다. 최소 1개 이상 선택해 주세요.',
+                      style: TextStyle(fontSize: 13, color: _t2),
                     ),
                     const SizedBox(height: 20),
 
@@ -521,21 +510,17 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                       children: AppData.interests.map((item) {
                         final isSelected = state.signup.interests.contains(item['id']);
                         return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              if (isSelected) {
-                                state.signup.interests.remove(item['id']);
-                              } else {
-                                state.signup.interests.add(item['id']!);
-                              }
-                            });
-                          },
+                          onTap: () => setState(() {
+                            isSelected
+                              ? state.signup.interests.remove(item['id'])
+                              : state.signup.interests.add(item['id']!);
+                          }),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isSelected ? AppColors.primaryLight : AppColors.bgGray,
+                              color: isSelected ? _accent.withOpacity(0.15) : _s1,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isSelected ? AppColors.primary : AppColors.border,
+                                color: isSelected ? _accent : _br,
                                 width: isSelected ? 1.5 : 1,
                               ),
                             ),
@@ -549,7 +534,7 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                    color: isSelected ? _accent : _t2,
                                   ),
                                 ),
                               ],
@@ -567,7 +552,7 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                           : '${state.signup.interests.length}개 선택됨',
                         style: TextStyle(
                           fontSize: 13,
-                          color: state.signup.interests.isEmpty ? AppColors.textMuted : AppColors.primary,
+                          color: state.signup.interests.isEmpty ? _t3 : _accent,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -577,16 +562,14 @@ class _SignupInterestScreenState extends State<SignupInterestScreen> {
                 ),
               ),
             ),
-            _buildNextBtn(context, '가입 완료', state.signup.interests.isNotEmpty, () {
-              state.setLoggedIn(UserModel(
-                name: state.signup.name.isEmpty ? '이용자' : state.signup.name,
-                interests: state.signup.interests,
-              ));
-              Navigator.pushNamedAndRemoveUntil(context, '/signup-done', (_) => false);
-              Future.delayed(const Duration(milliseconds: 400), () {
-                if (context.mounted) _showOwnerPopup(context);
-              });
-            }),
+            _DarkNextBtn(label: '가입 완료', enabled: state.signup.interests.isNotEmpty,
+              onTap: () {
+                state.setLoggedIn(UserModel(
+                  name: state.signup.name.isEmpty ? '이용자' : state.signup.name,
+                  interests: state.signup.interests,
+                ));
+                Navigator.pushNamedAndRemoveUntil(context, '/signup-done', (_) => false);
+              }),
           ],
         ),
       ),
@@ -613,10 +596,11 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
   @override
   Widget build(BuildContext context) {
     final state = AppState();
-    final user = state.user;
+    final user  = state.user;
     final interestLabels = (user?.interests ?? [])
-        .map((id) => AppData.interests.firstWhere((i) => i['id'] == id, orElse: () => {'label': id})['label']!)
-        .toList();
+      .map((id) => AppData.interests
+        .firstWhere((i) => i['id'] == id, orElse: () => {'label': id})['label']!)
+      .toList();
 
     return Scaffold(
       body: Container(
@@ -624,7 +608,7 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B1120), Color(0xFF0D2A3E), Color(0xFF0F3D2E)],
+            colors: [_bg, _s1, Color(0xFF0A1A2A)],
           ),
         ),
         child: SafeArea(
@@ -635,28 +619,26 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
               children: [
                 // 성공 아이콘
                 Container(
-                  width: 72,
-                  height: 72,
+                  width: 72, height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.success, width: 2),
-                    color: AppColors.success.withOpacity(0.15),
+                    border: Border.all(color: _accent, width: 2),
+                    color: _accent.withOpacity(0.15),
                   ),
-                  child: const Icon(Icons.check, size: 36, color: AppColors.success),
+                  child: Icon(Icons.check, size: 36, color: _accent),
                 ),
                 const SizedBox(height: 24),
-
-                const Text('가입 완료!',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                Text('가입 완료!',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: _t1),
                 ),
                 const SizedBox(height: 8),
                 Text('${user?.name ?? ''}님, 환영합니다 🎉',
-                  style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.85)),
+                  style: TextStyle(fontSize: 16, color: _t2),
                 ),
                 const SizedBox(height: 8),
                 Text('KAA 모빌리티 플랫폼 회원이 되셨습니다.\n내 주변 자동차 서비스를 바로 이용해 보세요.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.6), height: 1.6),
+                  style: TextStyle(fontSize: 13, color: _t3, height: 1.6),
                 ),
                 const SizedBox(height: 32),
 
@@ -664,9 +646,9 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: _s1,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    border: Border.all(color: _br),
                   ),
                   child: Column(
                     children: [
@@ -686,18 +668,19 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // 시작하기 버튼
                 SizedBox(
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
+                    onPressed: () =>
+                      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: _accent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
                     ),
-                    child: const Text('KAA 시작하기 →',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+                    child: Text('KAA 시작하기 →',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _bg),
                     ),
                   ),
                 ),
@@ -711,9 +694,7 @@ class _SignupDoneScreenState extends State<SignupDoneScreen> {
 }
 
 class _DoneRow extends StatelessWidget {
-  final String icon;
-  final String label;
-  final String value;
+  final String icon, label, value;
   const _DoneRow({required this.icon, required this.label, required this.value});
 
   @override
@@ -722,13 +703,9 @@ class _DoneRow extends StatelessWidget {
       children: [
         Text(icon, style: const TextStyle(fontSize: 16)),
         const SizedBox(width: 10),
-        Text(label,
-          style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.6)),
-        ),
+        Text(label, style: TextStyle(fontSize: 13, color: _t3)),
         const Spacer(),
-        Text(value,
-          style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600),
-        ),
+        Text(value, style: TextStyle(fontSize: 13, color: _t1, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -739,8 +716,9 @@ void _showOwnerPopup(BuildContext context) {
   showDialog(
     context: context,
     barrierDismissible: false,
-    barrierColor: Colors.black.withOpacity(0.55),
+    barrierColor: Colors.black.withOpacity(0.65),
     builder: (ctx) => Dialog(
+      backgroundColor: _s1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -751,23 +729,23 @@ void _showOwnerPopup(BuildContext context) {
               width: 60, height: 60,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primaryLight,
-                border: Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5),
+                color: _accent.withOpacity(0.15),
+                border: Border.all(color: _accent.withOpacity(0.4), width: 1.5),
               ),
               child: const Center(child: Text('🏪', style: TextStyle(fontSize: 28))),
             ),
             const SizedBox(height: 16),
-            const Text('점포를 운영 중이신가요?',
+            Text('점포를 운영 중이신가요?',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _t1),
             ),
             const SizedBox(height: 8),
-            const Text('자동차 관련 사업자라면 무료 AI 점포 페이지를 만들어 드려요!',
+            Text('자동차 관련 사업자라면\n무료 AI 점포 페이지를 만들어 드려요!',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+              style: TextStyle(fontSize: 13, color: _t2, height: 1.5),
             ),
             const SizedBox(height: 28),
-            // 점포 등록 버튼 (위쪽, 강조)
+            // 점포 등록 (위, 강조)
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -777,32 +755,33 @@ void _showOwnerPopup(BuildContext context) {
                   Navigator.pushNamed(context, '/store-register');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: _accent,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('네, 점포 등록하기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-                    SizedBox(width: 6),
-                    Icon(Icons.arrow_forward, size: 16, color: Colors.white),
+                    Text('네, 점포 등록하기',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _bg)),
+                    const SizedBox(width: 6),
+                    Icon(Icons.arrow_forward, size: 16, color: _bg),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            // 나중에 버튼 (아래쪽, 약하게)
+            // 나중에 (아래, 약하게)
             SizedBox(
               width: double.infinity,
               height: 44,
               child: OutlinedButton(
                 onPressed: () => Navigator.pop(ctx),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.border),
+                  side: BorderSide(color: _br),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('아니요, 나중에', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                child: Text('아니요, 나중에', style: TextStyle(fontSize: 14, color: _t3)),
               ),
             ),
           ],
@@ -812,40 +791,62 @@ void _showOwnerPopup(BuildContext context) {
   );
 }
 
-// ==================== 공통 헬퍼 ====================
-Widget _buildNav(BuildContext context, String title, VoidCallback onBack) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    child: Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 16, color: AppColors.textPrimary),
-          onPressed: onBack,
-        ),
-        Expanded(
-          child: Text(title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+// ==================== 공통 다크 위젯 ====================
+class _DarkNav extends StatelessWidget {
+  final String title;
+  final VoidCallback onBack;
+  const _DarkNav({required this.title, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _bg,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onBack,
+            child: Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: _s1,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _br),
+              ),
+              child: Icon(Icons.arrow_back_ios_new, size: 15, color: _t2),
+            ),
           ),
-        ),
-        const SizedBox(width: 40),
-      ],
-    ),
-  );
+          Expanded(
+            child: Text(title,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _t1),
+            ),
+          ),
+          const SizedBox(width: 36),
+        ],
+      ),
+    );
+  }
 }
 
-Widget _buildNextBtn(BuildContext context, String label, bool enabled, VoidCallback onTap) {
-  return SafeArea(
-    top: false,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
+class _DarkNextBtn extends StatelessWidget {
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+  const _DarkNextBtn({required this.label, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: _bg,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
           onPressed: enabled ? onTap : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: enabled ? AppColors.primary : AppColors.border,
+            backgroundColor: enabled ? _accent : _s2,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             elevation: 0,
           ),
@@ -856,15 +857,15 @@ Widget _buildNextBtn(BuildContext context, String label, bool enabled, VoidCallb
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: enabled ? Colors.white : AppColors.textMuted,
+                  color: enabled ? _bg : _t3,
                 ),
               ),
               const SizedBox(width: 6),
-              Icon(Icons.arrow_forward, size: 16, color: enabled ? Colors.white : AppColors.textMuted),
+              Icon(Icons.arrow_forward, size: 16, color: enabled ? _bg : _t3),
             ],
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
