@@ -1,10 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // MOINCAR Login Screen — 군청색 다크 테마 (v22.0.0)
 // 배경: #020810  포인트: #4FC3F7 (아이스블루)
 // ═══════════════════════════════════════════════════════════════
+// 자동 로그인 유틸리티
+class AuthPrefs {
+  static const _keyLoginTime = 'last_login_time';
+  static const _keyLoggedIn  = 'is_logged_in';
+  static const _autoLoginDays = 30;
+
+  static Future<void> saveLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyLoggedIn, true);
+    await prefs.setInt(_keyLoginTime, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  static Future<bool> isAutoLoginValid() async {
+    final prefs = await SharedPreferences.getInstance();
+    final loggedIn = prefs.getBool(_keyLoggedIn) ?? false;
+    if (!loggedIn) return false;
+    final loginTime = prefs.getInt(_keyLoginTime) ?? 0;
+    final diff = DateTime.now().millisecondsSinceEpoch - loginTime;
+    final days = diff / (1000 * 60 * 60 * 24);
+    return days < _autoLoginDays;
+  }
+
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyLoggedIn);
+    await prefs.remove(_keyLoginTime);
+  }
+}
+
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -101,8 +131,9 @@ class LoginScreen extends StatelessWidget {
                     textColor: const Color(0xFF191919),
                     iconWidget: const _KakaoIcon(),
                     label: '카카오로 시작하기',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/signup-terms');
+                    onTap: () async {
+                      await AuthPrefs.saveLogin();
+                      if (context.mounted) Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 
@@ -114,8 +145,9 @@ class LoginScreen extends StatelessWidget {
                     textColor: Colors.white,
                     iconWidget: const _NaverIcon(),
                     label: '네이버로 시작하기',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/signup-terms');
+                    onTap: () async {
+                      await AuthPrefs.saveLogin();
+                      if (context.mounted) Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 
@@ -128,8 +160,9 @@ class LoginScreen extends StatelessWidget {
                     borderColor: _br,
                     iconWidget: const _GoogleIcon(),
                     label: 'Google로 시작하기',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/signup-terms');
+                    onTap: () async {
+                      await AuthPrefs.saveLogin();
+                      if (context.mounted) Navigator.pushNamed(context, '/signup-terms');
                     },
                   ),
 

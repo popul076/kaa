@@ -840,6 +840,17 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
   // 이미지 탭 인덱스
   int _imgIdx = 0;
 
+  // AI 소개문 펼치기/접기
+  bool _introExpanded = false;
+  final String _aiIntroText =
+      'MOINCAR 추천 프리미엄 정비소는 대구 수성구에 위치한 전문 자동차 정비 업체입니다. '
+      '10년 이상의 풍부한 경험을 보유한 전문 기술진이 고객님의 차량을 꼼꼼하게 점검하고 '
+      '수리합니다. 엔진오일 교환, 브레이크 정비, 타이어 교체 등 모든 서비스를 합리적인 '
+      '가격에 제공하며, KAA 협회 인증 점포로서 최고의 서비스 품질을 보장합니다. '
+      '예약 없이 방문 가능하며 당일 처리를 원칙으로 합니다. '
+      '고객 만족을 최우선으로 하는 MOINCAR 추천 정비소에서 내 차의 건강을 지켜보세요. '
+      '친절한 상담과 투명한 견적으로 신뢰를 드리겠습니다.';
+
   // 서비스 상품 목록 (업종별 기본값)
   List<Map<String, dynamic>> _services = [];
   String _currentCategory = '자동차 정비';
@@ -980,6 +991,8 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         _buildPhotoSection(),
+        const SizedBox(height: 16),
+        _buildAiIntroSection(),
         const SizedBox(height: 16),
         _buildQuickActions(),
         const SizedBox(height: 16),
@@ -1211,6 +1224,137 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                   style: TextStyle(fontSize: 11, color: _green)),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── ① AI 소개문 전체 표시 ──
+  Widget _buildAiIntroSection() {
+    return _MgrSection(
+      title: '🤖 AI 생성 소개글',
+      trailing: GestureDetector(
+        onTap: () => setState(() => _introExpanded = !_introExpanded),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: _accent.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _accent.withOpacity(0.4)),
+          ),
+          child: Text(_introExpanded ? '접기 ▲' : '전체보기 ▼',
+            style: const TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_accent.withOpacity(0.08), _purple.withOpacity(0.08)],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _accent.withOpacity(0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedCrossFade(
+                  firstChild: Text(
+                    _aiIntroText,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, color: _textSec, height: 1.7),
+                  ),
+                  secondChild: Text(
+                    _aiIntroText,
+                    style: const TextStyle(fontSize: 13, color: _textSec, height: 1.7),
+                  ),
+                  crossFadeState: _introExpanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  duration: const Duration(milliseconds: 250),
+                ),
+                if (!_introExpanded) ...
+                  [
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => _introExpanded = true),
+                      child: const Text('더 보기...',
+                        style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // 수정 버튼
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showEditIntroDialog(),
+              icon: const Icon(Icons.edit_note, size: 16, color: _accent),
+              label: const Text('AI 소개글 수정', style: TextStyle(color: _accent, fontSize: 13)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: _accent.withOpacity(0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditIntroDialog() {
+    final ctrl = TextEditingController(text: _aiIntroText);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('AI 소개글 수정', style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 8,
+          style: const TextStyle(color: _textPri, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: '점포 소개글을 입력하세요',
+            hintStyle: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 12),
+            filled: true,
+            fillColor: _bg,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: _border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: _border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: _accent),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('취소', style: TextStyle(color: _textSec)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {});
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('소개글이 저장되었습니다')));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _accent),
+            child: const Text('저장', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -1650,8 +1794,8 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
           _AnalysisCard(
             icon: '🎟️', title: '쿠폰 현황',
             btnLabel: '+ 쿠폰 발급',
-            onBtnTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('쿠폰 발급 기능 준비중'))),
+            onBtnTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const CouponIssuanceScreen())),
             child: Column(
               children: [
                 Row(
@@ -1659,10 +1803,26 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                     _AcItem(num: '38', label: '발급', color: _orange),
                     const SizedBox(width: 8),
                     _AcItem(num: '21', label: '사용', color: _accent),
+                    const SizedBox(width: 8),
+                    _AcItem(num: '17', label: '잔여', color: _green),
                   ],
                 ),
                 const SizedBox(height: 10),
                 _ProgressBar(label: '사용률', value: 0.55, valueText: '55%', color: _orange),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const CouponIssuanceScreen())),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text('발행 현황 보기',
+                        style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios, size: 10, color: _accent),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -2678,3 +2838,437 @@ class _ProgressBar extends StatelessWidget {
 }
 
 
+// ==================== 쿠폰 발행 현황 페이지 ====================
+class CouponIssuanceScreen extends StatefulWidget {
+  const CouponIssuanceScreen({super.key});
+  @override
+  State<CouponIssuanceScreen> createState() => _CouponIssuanceScreenState();
+}
+
+class _CouponIssuanceScreenState extends State<CouponIssuanceScreen> {
+  static const Color _bg     = Color(0xFF020810);
+  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _accent = Color(0xFF4FC3F7);
+  static const Color _orange = Color(0xFFFF6B35);
+  static const Color _green  = Color(0xFF10B981);
+  static const Color _red    = Color(0xFFEF5350);
+  static const Color _textPri = Colors.white;
+  static const Color _textSec = Color(0xFFB0BEC5);
+  static const Color _border  = Color(0xFF1E3A5F);
+
+  String _filterStatus = '전체';
+
+  final List<Map<String, dynamic>> _coupons = [
+    {'id': 'CP001', 'name': '엔진오일 20% 할인', 'discount': '20%', 'type': '할인율',
+     'issued': 12, 'used': 8, 'remaining': 4, 'expiry': '2025-05-31', 'status': '진행중', 'color': 0xFF10B981},
+    {'id': 'CP002', 'name': '브레이크 패드 5,000원 할인', 'discount': '5,000원', 'type': '정액',
+     'issued': 8, 'used': 6, 'remaining': 2, 'expiry': '2025-04-30', 'status': '마감임박', 'color': 0xFFFF6B35},
+    {'id': 'CP003', 'name': '타이어 교체 무료점검', 'discount': '무료', 'type': '무료서비스',
+     'issued': 15, 'used': 5, 'remaining': 10, 'expiry': '2025-06-30', 'status': '진행중', 'color': 0xFF4FC3F7},
+    {'id': 'CP004', 'name': '신규 고객 10% 할인', 'discount': '10%', 'type': '할인율',
+     'issued': 3, 'used': 3, 'remaining': 0, 'expiry': '2025-03-31', 'status': '소진', 'color': 0xFF78909C},
+  ];
+
+  List<Map<String, dynamic>> get _filtered {
+    if (_filterStatus == '전체') return _coupons;
+    return _coupons.where((c) => c['status'] == _filterStatus).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total = _coupons.fold(0, (s, c) => s + (c['issued'] as int));
+    final used  = _coupons.fold(0, (s, c) => s + (c['used'] as int));
+    final remaining = total - used;
+    final usageRate = total > 0 ? used / total : 0.0;
+
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Column(
+        children: [
+          // 상단바
+          Container(
+            color: _card,
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 14),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios_new, color: _textPri, size: 20),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('🎟️ 쿠폰 발행 현황',
+                    style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+                GestureDetector(
+                  onTap: () => _showCreateCouponDialog(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _orange.withOpacity(0.5)),
+                    ),
+                    child: const Text('+ 쿠폰 발급',
+                      style: TextStyle(color: _orange, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 요약 카드
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_accent.withOpacity(0.12), _orange.withOpacity(0.08)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _accent.withOpacity(0.25)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _StatBox(label: '총 발급', value: '$total', color: _textPri),
+                          _StatBox(label: '사용', value: '$used', color: _accent),
+                          _StatBox(label: '잔여', value: '$remaining', color: _green),
+                          _StatBox(label: '사용률', value: '${(usageRate * 100).toStringAsFixed(0)}%', color: _orange),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(children: [
+                        const Text('전체 사용률', style: TextStyle(color: _textSec, fontSize: 12)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: usageRate,
+                              backgroundColor: _border,
+                              valueColor: AlwaysStoppedAnimation<Color>(_orange),
+                              minHeight: 8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${(usageRate * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(color: _orange, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ]),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 상태 필터
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['전체', '진행중', '마감임박', '소진'].map((s) =>
+                      GestureDetector(
+                        onTap: () => setState(() => _filterStatus = s),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: _filterStatus == s ? _accent.withOpacity(0.2) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _filterStatus == s ? _accent : _border),
+                          ),
+                          child: Text(s,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _filterStatus == s ? _accent : _textSec,
+                              fontWeight: _filterStatus == s ? FontWeight.w700 : FontWeight.normal,
+                            )),
+                        ),
+                      )
+                    ).toList(),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // 쿠폰 목록
+                ..._filtered.map((c) => _buildCouponCard(c)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCouponCard(Map<String, dynamic> c) {
+    final color = Color(c['color'] as int);
+    final issued = c['issued'] as int;
+    final used = c['used'] as int;
+    final usageRate = issued > 0 ? used / issued : 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: color.withOpacity(0.4)),
+                ),
+                child: Text(c['status'] as String,
+                  style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _border.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(c['type'] as String,
+                  style: const TextStyle(color: _textSec, fontSize: 10)),
+              ),
+              const Spacer(),
+              Text(c['id'] as String,
+                style: const TextStyle(color: _textSec, fontSize: 10)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(c['name'] as String,
+                      style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text('할인: ${c['discount']}  ·  만료: ${c['expiry']}',
+                      style: const TextStyle(color: _textSec, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withOpacity(0.3)),
+                ),
+                child: Text(c['discount'] as String,
+                  style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _MiniStat(label: '발급', value: '${c['issued']}', color: _textPri),
+              const SizedBox(width: 16),
+              _MiniStat(label: '사용', value: '${c['used']}', color: _accent),
+              const SizedBox(width: 16),
+              _MiniStat(label: '잔여', value: '${c['remaining']}', color: _green),
+              const Spacer(),
+              Text('${(usageRate * 100).toStringAsFixed(0)}%',
+                style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: usageRate,
+              backgroundColor: _border,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: _border),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('수정', style: TextStyle(color: _textSec, fontSize: 12)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {},
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: _red.withOpacity(0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Text('종료', style: TextStyle(color: _red.withOpacity(0.8), fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateCouponDialog() {
+    final nameCtrl = TextEditingController();
+    final discountCtrl = TextEditingController();
+    String selectedType = '할인율';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20,
+            MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🎟️ 새 쿠폰 발급',
+                style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              _ModalField(ctrl: nameCtrl, label: '쿠폰명', hint: 'ex) 엔진오일 20% 할인'),
+              const SizedBox(height: 10),
+              _ModalField(ctrl: discountCtrl, label: '할인값', hint: 'ex) 20% 또는 5000원'),
+              const SizedBox(height: 10),
+              const Text('쿠폰 유형', style: TextStyle(color: _textSec, fontSize: 12)),
+              const SizedBox(height: 8),
+              Row(
+                children: ['할인율', '정액', '무료서비스'].map((t) =>
+                  GestureDetector(
+                    onTap: () => setModalState(() => selectedType = t),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: selectedType == t ? _accent.withOpacity(0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: selectedType == t ? _accent : _border),
+                      ),
+                      child: Text(t,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: selectedType == t ? _accent : _textSec,
+                          fontWeight: selectedType == t ? FontWeight.w700 : FontWeight.normal,
+                        )),
+                    ),
+                  )
+                ).toList(),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('✅ 쿠폰이 발급되었습니다')));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _orange,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('쿠폰 발급하기',
+                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatBox extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _StatBox({required this.label, required this.value, required this.color});
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(children: [
+      Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w800)),
+      const SizedBox(height: 2),
+      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+    ]),
+  );
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _MiniStat({required this.label, required this.value, required this.color});
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+      const SizedBox(width: 4),
+      Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+    ],
+  );
+}
+
+class _ModalField extends StatelessWidget {
+  final TextEditingController ctrl;
+  final String label, hint;
+  const _ModalField({required this.ctrl, required this.label, required this.hint});
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: ctrl,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF4A6080), fontSize: 13),
+          filled: true,
+          fillColor: const Color(0xFF020810),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF1E3A5F)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF1E3A5F)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF4FC3F7)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+      ),
+    ],
+  );
+}

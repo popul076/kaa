@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
+import 'login_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // MOINCAR Intro Screen — 시안 5 군청색 다크 스타일
 // ═══════════════════════════════════════════════════════════════
-class IntroScreen extends StatelessWidget {
+class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
+  @override
+  State<IntroScreen> createState() => _IntroScreenState();
+}
 
+class _IntroScreenState extends State<IntroScreen> {
   static const Color _bg     = Color(0xFF020810);
   static const Color _s1     = Color(0xFF071428);
   static const Color _s2     = Color(0xFF0D1E3C);
@@ -16,6 +21,21 @@ class IntroScreen extends StatelessWidget {
   static const Color _t1     = Color(0xFFE8F4FF);
   static const Color _t2     = Color(0xFF7AB0D4);
   static const Color _t3     = Color(0xFF3A6080);
+
+  @override
+  void initState() {
+    super.initState();
+    // 앱 시작 시 자동 로그인 체크
+    _checkAutoLogin();
+  }
+
+  Future<void> _checkAutoLogin() async {
+    final valid = await AuthPrefs.isAutoLoginValid();
+    if (valid && mounted) {
+      // 30일 이내 로그인 기록 있으면 홈으로 바로 이동
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

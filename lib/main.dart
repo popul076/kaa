@@ -17,14 +17,19 @@ const kStatusBarStyle = SystemUiOverlayStyle(
   systemNavigationBarIconBrightness: Brightness.light,
 );
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 방향 잠금 (비동기 완료 대기 없이 백그라운드 처리)
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  // 앱 시작 시점에 상태바 설정 (화면 전환 전에도 적용)
+
+  // 앱 시작 시점에 상태바 설정
   SystemChrome.setSystemUIOverlayStyle(kStatusBarStyle);
+
+  // 렌더링 최적화: 첫 프레임 이후 이미지 프리캐싱
   runApp(const KaaApp());
 }
 

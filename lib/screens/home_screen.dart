@@ -41,6 +41,12 @@ class _HomeScreenState extends State<HomeScreen>
   static const double _searchBarH = 52.0;   // 검색바 높이
   static const double _totalHeaderH = 152.0; // 전체 헤더 높이(56+44+52)
 
+  // ── 검색 ─────────────────────────────────────────────────────
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  bool _isSearchActive = false;
+  String _searchQuery = '';
+
   // ── 스크롤 ───────────────────────────────────────────────────
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
@@ -202,6 +208,10 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
+
+    // 스크롤 변화량이 1px 미만이면 setState 스킵 (불필요한 리빌드 방지)
+    if ((offset - _scrollOffset).abs() < 1.0) return;
+
     setState(() => _scrollOffset = offset);
 
     // BottomNav: 스크롤 중 숨김, 600ms 정지 후 복귀
@@ -304,6 +314,8 @@ class _HomeScreenState extends State<HomeScreen>
     _navTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -482,27 +494,217 @@ class _HomeScreenState extends State<HomeScreen>
       height: _searchBarH,
       color: const Color(0xFF030C1C),
       padding: const EdgeInsets.fromLTRB(14, 7, 14, 7),
-      child: GestureDetector(
-        onTap: () {},
-        child: Container(
-          decoration: BoxDecoration(
-            color: _s1,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _br),
-            boxShadow: [BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+      child: Container(
+        decoration: BoxDecoration(
+          color: _isSearchActive ? const Color(0xFF0D1E3C) : _s1,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isSearchActive ? _accent.withValues(alpha: 0.6) : _br),
+          boxShadow: [BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+        ),
+        child: Row(children: [
+          const SizedBox(width: 14),
+          GestureDetector(
+            onTap: () {
+              if (_searchQuery.isNotEmpty) {
+                _executeSearch(_searchQuery);
+              }
+            },
+            child: Icon(Icons.search_rounded,
+              color: _isSearchActive ? _accent : const Color(0xFF3A6080), size: 18),
           ),
-          child: Row(children: [
-            const SizedBox(width: 14),
-            const Icon(Icons.search_rounded, color: Color(0xFF3A6080), size: 18),
-            const SizedBox(width: 8),
-            Expanded(child: Text('정비소, 세차장, 중고차, 주유소 검색...',
-                style: GoogleFonts.notoSansKr(fontSize: 13, color: _t3))),
-            Container(
-              margin: const EdgeInsets.only(right: 10),
-              child: const Icon(Icons.mic_none_rounded, color: Color(0xFF3A6080), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              focusNode: _searchFocus,
+              onTap: () => setState(() => _isSearchActive = true),
+              onChanged: (v) => setState(() => _searchQuery = v),
+              onSubmitted: (v) => _executeSearch(v),
+              style: GoogleFonts.notoSansKr(fontSize: 13, color: _t1),
+              decoration: InputDecoration(
+                hintText: '정비소, 세차장, 중고차, 주유소 검색...',
+                hintStyle: GoogleFonts.notoSansKr(fontSize: 13, color: _t3),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
             ),
-          ]),
+          ),
+          // 검색어 있을 때 X 버튼
+          if (_searchQuery.isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                _searchCtrl.clear();
+                setState(() { _searchQuery = ''; _isSearchActive = false; });
+                _searchFocus.unfocus();
+              },
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: Icon(Icons.cancel, color: _t3, size: 16),
+              ),
+            ),
+          // 마이크 버튼 → AI 음성 채팅
+          GestureDetector(
+            onTap: () => _showVoiceAiDialog(),
+            child: Container(
+              margin: const EdgeInsets.only(right: 10),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: _isSearchActive ? _accent.withValues(alpha: 0.15) : Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(Icons.mic_rounded,
+                color: _isSearchActive ? _accent : const Color(0xFF3A6080), size: 18),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  void _executeSearch(String query) {
+    if (query.trim().isEmpty) return;
+    _searchFocus.unfocus();
+    // 검색 결과 → StoreListScreen으로 이동
+    Navigator.pushNamed(context, '/store-list');
+    setState(() => _isSearchActive = false);
+  }
+
+  void _showVoiceAiDialog() {
+    bool _isListening = false;
+    String _voiceText = '';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E3A5F),
+                  borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _accent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                    ),
+                    child: const Row(children: [
+                      Text('🤖', style: TextStyle(fontSize: 12)),
+                      SizedBox(width: 4),
+                      Text('MOINCAR AI 음성 어시스턴트',
+                        style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 11, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // 음성 인식 상태 표시
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF020810),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: _isListening
+                      ? const Color(0xFF4FC3F7).withValues(alpha: 0.6)
+                      : const Color(0xFF1E3A5F)),
+                ),
+                child: Center(
+                  child: _isListening
+                    ? Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.graphic_eq, color: Color(0xFF4FC3F7), size: 32),
+                        const SizedBox(height: 8),
+                        Text('듣고 있습니다...',
+                          style: GoogleFonts.notoSansKr(color: const Color(0xFF4FC3F7), fontSize: 13)),
+                      ])
+                    : Text(
+                        _voiceText.isEmpty ? '마이크 버튼을 눌러 말씀해 주세요\n예) "가까운 정비소 찾아줘"' : _voiceText,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.notoSansKr(
+                          color: _voiceText.isEmpty ? const Color(0xFF3A6080) : Colors.white,
+                          fontSize: 13, height: 1.5),
+                      ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // AI 빠른 질문 제안
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    '가까운 정비소', '엔진오일 교환', '타이어 점검', '세차장 추천', '중고차 시세'
+                  ].map((q) => GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _searchCtrl.text = q;
+                        _searchQuery = q;
+                      });
+                      _executeSearch(q);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A3A6E).withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF1E3A5F)),
+                      ),
+                      child: Text(q,
+                        style: GoogleFonts.notoSansKr(
+                          color: const Color(0xFF7AB0D4), fontSize: 12)),
+                    ),
+                  )).toList(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 마이크 버튼
+              GestureDetector(
+                onTap: () {
+                  setModalState(() => _isListening = !_isListening);
+                  if (!_isListening && _voiceText.isEmpty) {
+                    setModalState(() => _voiceText = '가까운 엔진오일 교환 정비소 찾아줘');
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 64, height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _isListening
+                      ? const Color(0xFF4FC3F7).withValues(alpha: 0.2)
+                      : const Color(0xFF1A3A6E),
+                    border: Border.all(
+                      color: _isListening
+                        ? const Color(0xFF4FC3F7)
+                        : const Color(0xFF1E3A5F),
+                      width: 2),
+                  ),
+                  child: Icon(
+                    _isListening ? Icons.mic : Icons.mic_none,
+                    color: _isListening ? const Color(0xFF4FC3F7) : const Color(0xFF7AB0D4),
+                    size: 28),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -524,11 +726,13 @@ class _HomeScreenState extends State<HomeScreen>
             onPageChanged: _onBannerPageChanged,
             itemBuilder: (_, rawIndex) {
               final b = _bannerData[rawIndex % _bannerData.length];
-              return Stack(fit: StackFit.expand, children: [
+              return RepaintBoundary(
+               child: Stack(fit: StackFit.expand, children: [
                 // 배경 사진 이미지 (네트워크)
                 Image.network(
                   b['image'] as String,
                   fit: BoxFit.cover,
+                  cacheWidth: 720,  // 메모리 최적화: 720px 이하로 캐시
                   errorBuilder: (c, e, s) => Container(color: b['color'] as Color),
                   loadingBuilder: (c, child, progress) =>
                       progress == null ? child : Container(color: b['color'] as Color),
@@ -577,7 +781,7 @@ class _HomeScreenState extends State<HomeScreen>
                             shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
                   ]),
                 ),
-              ]);
+              ])); // RepaintBoundary + Stack
             },
           ),
         ),

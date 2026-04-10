@@ -589,9 +589,11 @@ class _MyScreenState extends State<MyScreen> {
                     // ── 차량 관리 ──
                     _buildSection('차량 관리', [
                       _DarkMenuItem(icon: Icons.directions_car_outlined, label: '내 차량 등록',
-                        color: _orange, onTap: () {}),
-                      _DarkMenuItem(icon: Icons.history, label: '정비 이력',
-                        color: _orange, onTap: () {}),
+                        color: _orange, onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const VehicleRegisterScreen()))),
+                      _DarkMenuItem(icon: Icons.build_outlined, label: '차량 정비 이력',
+                        color: _orange, onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const VehicleMaintenanceScreen()))),
                       _DarkMenuItem(icon: Icons.monetization_on_outlined, label: '내차 시세 조회',
                         color: _orange,
                         onTap: () => Navigator.pushNamed(context, '/car-price')),
@@ -2013,4 +2015,562 @@ class CarPriceScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+// ==================== 차량 등록 화면 ====================
+class VehicleRegisterScreen extends StatefulWidget {
+  const VehicleRegisterScreen({super.key});
+  @override
+  State<VehicleRegisterScreen> createState() => _VehicleRegisterScreenState();
+}
+
+class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
+  static const Color _bg     = Color(0xFF020810);
+  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _accent = Color(0xFF4FC3F7);
+  static const Color _orange = Color(0xFFFF6B35);
+  static const Color _textPri = Colors.white;
+  static const Color _textSec = Color(0xFFB0BEC5);
+  static const Color _border  = Color(0xFF1E3A5F);
+
+  final _plateCtrl  = TextEditingController();
+  final _makerCtrl  = TextEditingController();
+  final _modelCtrl  = TextEditingController();
+  final _yearCtrl   = TextEditingController();
+  final _mileCtrl   = TextEditingController();
+  String _fuelType = '가솔린';
+  bool _isSaved = false;
+
+  final List<Map<String, dynamic>> _myVehicles = [
+    {'plate': '123가 4567', 'maker': '현대', 'model': '아반떼', 'year': '2021', 'fuel': '가솔린',
+     'mile': '45,200', 'lastService': '2024-12-10', 'color': 0xFF4FC3F7},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Column(
+        children: [
+          Container(
+            color: _card,
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 14),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios_new, color: _textPri, size: 20)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('🚗 내 차량 관리',
+                    style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w700))),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 등록된 차량 목록
+                if (_myVehicles.isNotEmpty) ...[
+                  const Text('등록된 차량',
+                    style: TextStyle(color: _textSec, fontSize: 12, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ..._myVehicles.map((v) => _buildVehicleCard(v)),
+                  const SizedBox(height: 20),
+                ],
+
+                // 새 차량 등록
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _accent.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text('+ 새 차량 등록',
+                              style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _VehicleField(ctrl: _plateCtrl, label: '차량 번호', hint: '예) 123가 4567'),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(child: _VehicleField(ctrl: _makerCtrl, label: '제조사', hint: '현대, 기아...')),
+                          const SizedBox(width: 10),
+                          Expanded(child: _VehicleField(ctrl: _modelCtrl, label: '모델명', hint: '아반떼, K5...')),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(child: _VehicleField(ctrl: _yearCtrl, label: '연식', hint: '2021', isNum: true)),
+                          const SizedBox(width: 10),
+                          Expanded(child: _VehicleField(ctrl: _mileCtrl, label: '현재 주행거리(km)', hint: '45000', isNum: true)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Text('연료 유형', style: TextStyle(color: _textSec, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: ['가솔린', '디젤', '하이브리드', 'EV', 'LPG'].map((f) =>
+                            GestureDetector(
+                              onTap: () => setState(() => _fuelType = f),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: _fuelType == f ? _accent.withOpacity(0.2) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: _fuelType == f ? _accent : _border),
+                                ),
+                                child: Text(f,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _fuelType == f ? _accent : _textSec,
+                                    fontWeight: _fuelType == f ? FontWeight.w700 : FontWeight.normal,
+                                  )),
+                              ),
+                            )
+                          ).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_plateCtrl.text.isNotEmpty) {
+                              setState(() {
+                                _myVehicles.add({
+                                  'plate': _plateCtrl.text,
+                                  'maker': _makerCtrl.text,
+                                  'model': _modelCtrl.text,
+                                  'year': _yearCtrl.text,
+                                  'fuel': _fuelType,
+                                  'mile': _mileCtrl.text,
+                                  'lastService': '-',
+                                  'color': 0xFFFF6B35,
+                                });
+                                _plateCtrl.clear(); _makerCtrl.clear();
+                                _modelCtrl.clear(); _yearCtrl.clear(); _mileCtrl.clear();
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('✅ 차량이 등록되었습니다')));
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('차량 번호를 입력해주세요')));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('차량 등록하기',
+                            style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVehicleCard(Map<String, dynamic> v) {
+    final color = Color(v['color'] as int);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(child: Text('🚗', style: TextStyle(fontSize: 22))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${v['maker']} ${v['model']} (${v['year']})',
+                  style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text('${v['plate']}  ·  ${v['fuel']}  ·  ${v['mile']}km',
+                  style: const TextStyle(color: _textSec, fontSize: 11)),
+                Text('최근 정비: ${v['lastService']}',
+                  style: TextStyle(color: color, fontSize: 11)),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const VehicleMaintenanceScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _orange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _orange.withOpacity(0.4)),
+              ),
+              child: const Text('정비이력',
+                style: TextStyle(color: _orange, fontSize: 11, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VehicleField extends StatelessWidget {
+  final TextEditingController ctrl;
+  final String label, hint;
+  final bool isNum;
+  const _VehicleField({required this.ctrl, required this.label, required this.hint, this.isNum = false});
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 12)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: ctrl,
+        keyboardType: isNum ? TextInputType.number : TextInputType.text,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF4A6080), fontSize: 12),
+          filled: true,
+          fillColor: const Color(0xFF020810),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF1E3A5F)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF1E3A5F)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF4FC3F7)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+    ],
+  );
+}
+
+// ==================== 차량 정비 이력 화면 ====================
+class VehicleMaintenanceScreen extends StatefulWidget {
+  const VehicleMaintenanceScreen({super.key});
+  @override
+  State<VehicleMaintenanceScreen> createState() => _VehicleMaintenanceScreenState();
+}
+
+class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
+  static const Color _bg     = Color(0xFF020810);
+  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _accent = Color(0xFF4FC3F7);
+  static const Color _orange = Color(0xFFFF6B35);
+  static const Color _green  = Color(0xFF10B981);
+  static const Color _purple = Color(0xFF8B5CF6);
+  static const Color _textPri = Colors.white;
+  static const Color _textSec = Color(0xFFB0BEC5);
+  static const Color _border  = Color(0xFF1E3A5F);
+
+  final List<Map<String, dynamic>> _history = [
+    {'date': '2024-12-10', 'type': '엔진오일 교환', 'shop': 'MOINCAR 추천 정비소',
+     'cost': '89,000원', 'mile': '44,100km', 'next': '45,100km', 'color': 0xFF4FC3F7, 'icon': '🛢️'},
+    {'date': '2024-09-05', 'type': '타이어 교체 (앞 2개)', 'shop': '타이어뱅크 수성점',
+     'cost': '280,000원', 'mile': '40,200km', 'next': '-', 'color': 0xFFFF6B35, 'icon': '🔄'},
+    {'date': '2024-06-22', 'type': '브레이크 패드 교환', 'shop': 'MOINCAR 추천 정비소',
+     'cost': '150,000원', 'mile': '37,500km', 'next': '57,500km', 'color': 0xFF10B981, 'icon': '🔧'},
+    {'date': '2024-03-11', 'type': '종합 점검 + 에어필터', 'shop': '현대 오토에버',
+     'cost': '65,000원', 'mile': '33,000km', 'next': '-', 'color': 0xFF8B5CF6, 'icon': '🔍'},
+  ];
+
+  int get _totalCost => _history.fold(0, (s, h) {
+    final val = (h['cost'] as String).replaceAll(RegExp(r'[^0-9]'), '');
+    return s + (int.tryParse(val) ?? 0);
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Column(
+        children: [
+          Container(
+            color: _card,
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 8, 16, 14),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios_new, color: _textPri, size: 20)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('🔧 차량 정비 이력',
+                        style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w700)),
+                      Text('123가 4567 · 현대 아반떼 2021',
+                        style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _showAddMaintenanceDialog(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _accent.withOpacity(0.5)),
+                    ),
+                    child: const Text('+ 기록 추가',
+                      style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 요약 카드
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_orange.withOpacity(0.12), _accent.withOpacity(0.08)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _orange.withOpacity(0.25)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: _SummaryItem(label: '총 정비 횟수', value: '${_history.length}회', color: _textPri)),
+                      Expanded(child: _SummaryItem(label: '총 비용', value: '${(_totalCost / 10000).toStringAsFixed(0)}만원', color: _orange)),
+                      Expanded(child: _SummaryItem(label: '현재 주행', value: '45,200km', color: _accent)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 다음 정비 알림
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _green.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _green.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Text('⏰', style: TextStyle(fontSize: 16)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('다음 엔진오일 교환 권장',
+                              style: TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.w700)),
+                            Text('45,100km 도달 시 (현재 900km 남음)',
+                              style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                const Text('정비 이력',
+                  style: TextStyle(color: _textSec, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+
+                // 타임라인
+                ..._history.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final h = entry.value;
+                  final color = Color(h['color'] as int);
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 타임라인 라인
+                      Column(
+                        children: [
+                          Container(
+                            width: 32, height: 32,
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: color.withOpacity(0.4)),
+                            ),
+                            child: Center(child: Text(h['icon'] as String,
+                              style: const TextStyle(fontSize: 14))),
+                          ),
+                          if (i < _history.length - 1)
+                            Container(width: 1, height: 80, color: _border),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(h['date'] as String,
+                                    style: const TextStyle(color: _textSec, fontSize: 10)),
+                                  const Spacer(),
+                                  Text(h['mile'] as String,
+                                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(h['type'] as String,
+                                style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 3),
+                              Text(h['shop'] as String,
+                                style: const TextStyle(color: _textSec, fontSize: 11)),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Text('비용: ',
+                                    style: const TextStyle(color: _textSec, fontSize: 11)),
+                                  Text(h['cost'] as String,
+                                    style: const TextStyle(color: _textPri, fontSize: 12, fontWeight: FontWeight.w700)),
+                                  const Spacer(),
+                                  if (h['next'] != '-') ...[
+                                    const Text('다음: ',
+                                      style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+                                    Text(h['next'] as String,
+                                      style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.w600)),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddMaintenanceDialog() {
+    final typeCtrl = TextEditingController();
+    final costCtrl = TextEditingController();
+    final shopCtrl = TextEditingController();
+    final mileCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20,
+          MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('🔧 정비 기록 추가',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            _VehicleField(ctrl: typeCtrl, label: '정비 항목', hint: '예) 엔진오일 교환'),
+            const SizedBox(height: 10),
+            Row(children: [
+              Expanded(child: _VehicleField(ctrl: costCtrl, label: '비용', hint: '89000', isNum: true)),
+              const SizedBox(width: 10),
+              Expanded(child: _VehicleField(ctrl: mileCtrl, label: '주행거리(km)', hint: '45000', isNum: true)),
+            ]),
+            const SizedBox(height: 10),
+            _VehicleField(ctrl: shopCtrl, label: '정비점', hint: '예) MOINCAR 추천 정비소'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ 정비 기록이 추가되었습니다')));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4FC3F7),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('기록 저장',
+                  style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryItem extends StatelessWidget {
+  final String label, value;
+  final Color color;
+  const _SummaryItem({required this.label, required this.value, required this.color});
+  @override
+  Widget build(BuildContext context) => Column(children: [
+    Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800)),
+    const SizedBox(height: 2),
+    Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+  ]);
 }
