@@ -5,12 +5,18 @@ class UserModel {
   final String userType;
   final List<String> interests;
   final String region;
+  final String phone;
+  final String email;
+  final String loginType; // 'normal' or 'social'
 
   UserModel({
     required this.name,
     this.userType = 'user',
     this.interests = const [],
     this.region = '대구 수성구',
+    this.phone = '',
+    this.email = '',
+    this.loginType = 'social',
   });
 }
 

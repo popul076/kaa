@@ -838,8 +838,9 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
     '일': {'open': '00:00', 'close': '00:00', 'closed': 'true'},
   };
 
-  // 분석 날짜 필터
-  String _dateFilter = '오늘';
+  // 분석 날짜/기간 필터
+  String _dateFilter = '일';
+  int _graphAnimFrame = 0;
 
   // 이미지 탭 인덱스
   int _imgIdx = 0;
@@ -1204,8 +1205,12 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _subCtrl,
-                  style: const TextStyle(color: _textPri, fontSize: 14),
+                  maxLines: 4,
+                  minLines: 3,
+                  style: const TextStyle(color: _textPri, fontSize: 14, height: 1.6),
                   decoration: InputDecoration(
+                    hintText: '잠금화면에 노출할 소개 문구를 2줄 이상 입력하세요\n(예: 대구 수성구 No.1 정비소\n엔진오일·브레이크·타이어 전문)',
+                    hintStyle: const TextStyle(color: _textSec, fontSize: 12, height: 1.6),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: _border),
@@ -1220,12 +1225,44 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                     ),
                     filled: true,
                     fillColor: const Color(0xFF0D1B2A),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text('✅ 이 문구가 잠금화면 이미지 위에 노출됩니다',
-                  style: TextStyle(fontSize: 11, color: _green)),
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: _green, size: 13),
+                    const SizedBox(width: 4),
+                    const Expanded(child: Text('이 문구가 잠금화면 이미지 위에 전체 노출됩니다 (최대 4줄)',
+                      style: TextStyle(fontSize: 11, color: _green))),
+                    Builder(builder: (ctx) => GestureDetector(
+                      onTap: () {
+                        final samples = [
+                          '🔧 대구 수성구 No.1 프리미엄 정비소\n엔진오일·브레이크·타이어 전문\n10년 이상 경력 전문 기술진 상주\n당일 처리 · 합리적인 가격',
+                          '🚗 MOINCAR 추천 공식 정비소\n전국 최저가 보장 · 예약 우선 처리\n친환경 정비 시스템 도입\n방문 시 쿠폰 즉시 사용 가능',
+                          '✅ 지역 1등 자동차 정비 전문점\n수입차 · 국산차 모두 가능\n주행거리 무관 정밀 점검 무료\n재방문 고객 10% 추가 할인',
+                        ];
+                        final idx = (DateTime.now().millisecond % 3);
+                        setState(() => _subCtrl.text = samples[idx]);
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          const SnackBar(content: Text('AI 소개문 재생성 완료 ✨'), duration: Duration(seconds: 2)));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _purple.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _purple.withOpacity(0.4)),
+                        ),
+                        child: const Row(children: [
+                          Text('🔄', style: TextStyle(fontSize: 11)),
+                          SizedBox(width: 3),
+                          Text('AI 재생성', style: TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    )),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1636,45 +1673,136 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
 
   // ── ⑤ 점포 분석 ──
   Widget _buildAnalyticsSection() {
-    final kpis = [
-      {'icon': '📱', 'num': '1,247', 'label': '잠금화면 노출', 'trend': '▲ 12%', 'up': true,  'color': _orange},
-      {'icon': '👆', 'num': '93',    'label': '점포 클릭',     'trend': '▲ 8%',  'up': true,  'color': _accent},
-      {'icon': '📍', 'num': '14',    'label': '방문 확인',     'trend': '▼ 2%',  'up': false, 'color': _green},
-    ];
+    // 기간별 KPI 데이터
+    final kpiData = {
+      '일': [
+        {'icon': '📱', 'num': '127',   'label': '잠금화면 노출', 'trend': '▲ 5%',  'up': true,  'color': _orange},
+        {'icon': '👆', 'num': '11',    'label': '점포 클릭',     'trend': '▲ 3%',  'up': true,  'color': _accent},
+        {'icon': '📍', 'num': '2',     'label': '방문 확인',     'trend': '▼ 1%',  'up': false, 'color': _green},
+      ],
+      '주': [
+        {'icon': '📱', 'num': '890',   'label': '잠금화면 노출', 'trend': '▲ 8%',  'up': true,  'color': _orange},
+        {'icon': '👆', 'num': '67',    'label': '점포 클릭',     'trend': '▲ 12%', 'up': true,  'color': _accent},
+        {'icon': '📍', 'num': '9',     'label': '방문 확인',     'trend': '▲ 2%',  'up': true,  'color': _green},
+      ],
+      '월': [
+        {'icon': '📱', 'num': '3,841', 'label': '잠금화면 노출', 'trend': '▲ 12%', 'up': true,  'color': _orange},
+        {'icon': '👆', 'num': '293',   'label': '점포 클릭',     'trend': '▲ 8%',  'up': true,  'color': _accent},
+        {'icon': '📍', 'num': '41',    'label': '방문 확인',     'trend': '▼ 2%',  'up': false, 'color': _green},
+      ],
+      '년': [
+        {'icon': '📱', 'num': '46,120','label': '잠금화면 노출', 'trend': '▲ 31%', 'up': true,  'color': _orange},
+        {'icon': '👆', 'num': '3,521', 'label': '점포 클릭',     'trend': '▲ 22%', 'up': true,  'color': _accent},
+        {'icon': '📍', 'num': '502',   'label': '방문 확인',     'trend': '▲ 15%', 'up': true,  'color': _green},
+      ],
+    };
+
+    // 기간별 그래프 데이터 (노출·클릭·방문)
+    final graphData = {
+      '일': {
+        'labels': ['08시', '10시', '12시', '14시', '16시', '18시', '20시'],
+        'exposure': [12.0, 28.0, 35.0, 42.0, 38.0, 21.0, 14.0],
+        'click':    [1.0,  3.0,  4.0,  6.0,  5.0,  2.0,  1.0],
+        'visit':    [0.0,  0.0,  1.0,  1.0,  0.0,  0.0,  0.0],
+      },
+      '주': {
+        'labels': ['월', '화', '수', '목', '금', '토', '일'],
+        'exposure': [80.0, 110.0, 130.0, 145.0, 160.0, 120.0, 55.0],
+        'click':    [6.0,  9.0,  11.0, 13.0, 14.0, 10.0, 4.0],
+        'visit':    [1.0,  1.0,  2.0,  1.0,  2.0,  1.0,  0.0],
+      },
+      '월': {
+        'labels': ['1주', '2주', '3주', '4주'],
+        'exposure': [820.0, 1050.0, 1120.0, 851.0],
+        'click':    [62.0,  80.0,   88.0,   63.0],
+        'visit':    [8.0,   12.0,   14.0,   7.0],
+      },
+      '년': {
+        'labels': ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
+        'exposure': [2800.0, 3100.0, 3800.0, 4200.0, 5100.0, 4800.0, 4300.0, 4600.0, 3900.0, 3600.0, 3200.0, 2820.0],
+        'click':    [210.0, 235.0, 290.0, 320.0, 390.0, 365.0, 328.0, 350.0, 298.0, 275.0, 244.0, 216.0],
+        'visit':    [28.0,  32.0,  41.0,  45.0,  55.0,  52.0,  47.0,  50.0,  43.0,  40.0,  35.0,  32.0],
+      },
+    };
+
+    final kpis = kpiData[_dateFilter] ?? kpiData['일']!;
+    final gData = graphData[_dateFilter] ?? graphData['일']!;
+    final labels   = gData['labels']   as List<String>;
+    final exposure = gData['exposure'] as List<double>;
+    final click    = gData['click']    as List<double>;
+    final visit    = gData['visit']    as List<double>;
 
     final funnelSteps = [
-      {'label': '잠금화면 노출', 'num': '1,247', 'rate': '100%', 'w': 1.0, 'color': _orange},
-      {'label': '점포 클릭',    'num': '93',    'rate': '7.5%', 'w': 0.74,'color': const Color(0xFFFB923C)},
-      {'label': '실제 방문',    'num': '14',    'rate': '1.1%', 'w': 0.5, 'color': _green},
+      {'label': '잠금화면 노출', 'num': kpis[0]['num'] as String, 'rate': '100%', 'w': 1.0, 'color': _orange},
+      {'label': '점포 클릭',    'num': kpis[1]['num'] as String, 'rate': '7.5%', 'w': 0.74,'color': const Color(0xFFFB923C)},
+      {'label': '실제 방문',    'num': kpis[2]['num'] as String, 'rate': '1.1%', 'w': 0.5, 'color': _green},
     ];
 
     return _MgrSection(
       title: '📊 점포 분석',
       child: Column(
         children: [
-          // 날짜 필터
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: ['오늘', '7일', '30일', '전체'].map((d) => GestureDetector(
+          // 기간 탭 필터 (일/주/월/년)
+          Row(
+            children: ['일', '주', '월', '년'].map((d) => Expanded(
+              child: GestureDetector(
                 onTap: () => setState(() => _dateFilter = d),
                 child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  margin: const EdgeInsets.only(right: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   decoration: BoxDecoration(
-                    color: _dateFilter == d ? _accent.withOpacity(0.2) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+                    color: _dateFilter == d ? _accent.withOpacity(0.2) : _bg,
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _dateFilter == d ? _accent : _border),
+                      color: _dateFilter == d ? _accent : _border, width: 1.2),
                   ),
-                  child: Text(d,
+                  child: Center(child: Text(d,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       color: _dateFilter == d ? _accent : _textSec,
-                      fontWeight: _dateFilter == d ? FontWeight.w700 : FontWeight.normal,
-                    )),
+                      fontWeight: _dateFilter == d ? FontWeight.w800 : FontWeight.normal,
+                    ))),
                 ),
-              )).toList(),
+              ),
+            )).toList(),
+          ),
+          const SizedBox(height: 14),
+
+          // 라인+에리어 트렌드 그래프
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+            decoration: BoxDecoration(
+              color: _bg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('📈 트렌드 차트',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _textPri)),
+                  const Spacer(),
+                  _legendDot(_orange, '노출'), const SizedBox(width: 8),
+                  _legendDot(_accent, '클릭'),  const SizedBox(width: 8),
+                  _legendDot(_green, '방문'),
+                ]),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 140,
+                  child: CustomPaint(
+                    painter: _LineAreaChartPainter(
+                      labels: labels,
+                      series: [
+                        _ChartSeries(data: exposure, color: _orange, label: '노출'),
+                        _ChartSeries(data: click,    color: _accent,  label: '클릭'),
+                        _ChartSeries(data: visit,    color: _green,   label: '방문'),
+                      ],
+                    ),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
@@ -2185,6 +2313,16 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
         ),
       ),
     );
+  }
+
+  // ── 범례 도트 ──
+  Widget _legendDot(Color color, String label) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 10, height: 10,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      const SizedBox(width: 3),
+      Text(label, style: TextStyle(fontSize: 10, color: color)),
+    ]);
   }
 
   // ── 다이얼로그: 주소 검색 ──
@@ -3275,4 +3413,114 @@ class _ModalField extends StatelessWidget {
       ),
     ],
   );
+}
+
+// ══════════════════════════════════════════════════════════
+// 라인+에리어 차트 페인터
+// ══════════════════════════════════════════════════════════
+class _ChartSeries {
+  final List<double> data;
+  final Color color;
+  final String label;
+  const _ChartSeries({required this.data, required this.color, required this.label});
+}
+
+class _LineAreaChartPainter extends CustomPainter {
+  final List<String> labels;
+  final List<_ChartSeries> series;
+
+  const _LineAreaChartPainter({required this.labels, required this.series});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (series.isEmpty || labels.isEmpty) return;
+
+    const double padLeft   = 10;
+    const double padRight  = 6;
+    const double padTop    = 8;
+    const double padBottom = 22;
+
+    final chartW = size.width  - padLeft - padRight;
+    final chartH = size.height - padTop  - padBottom;
+    final n = labels.length;
+
+    // 최대값 계산
+    double maxVal = 1;
+    for (final s in series) {
+      for (final v in s.data) {
+        if (v > maxVal) maxVal = v;
+      }
+    }
+    maxVal = maxVal * 1.15;
+
+    // 그리드 라인 (수평 3개)
+    final gridPaint = Paint()
+      ..color = const Color(0xFF1E3A5F).withOpacity(0.5)
+      ..strokeWidth = 0.6;
+    for (int i = 0; i <= 3; i++) {
+      final y = padTop + chartH - (chartH * i / 3);
+      canvas.drawLine(Offset(padLeft, y), Offset(padLeft + chartW, y), gridPaint);
+    }
+
+    // 각 시리즈 렌더
+    for (final s in series) {
+      if (s.data.length != n) continue;
+
+      final pts = List.generate(n, (i) {
+        final x = padLeft + (i / (n - 1).clamp(1, 9999)) * chartW;
+        final y = padTop + chartH - (s.data[i] / maxVal * chartH);
+        return Offset(x, y);
+      });
+
+      // 에리어 (반투명 채우기)
+      final areaPaint = Paint()
+        ..color = s.color.withOpacity(0.12)
+        ..style = PaintingStyle.fill;
+      final areaPath = Path()..moveTo(padLeft, padTop + chartH);
+      for (final p in pts) areaPath.lineTo(p.dx, p.dy);
+      areaPath
+        ..lineTo(padLeft + chartW, padTop + chartH)
+        ..close();
+      canvas.drawPath(areaPath, areaPaint);
+
+      // 라인
+      final linePaint = Paint()
+        ..color = s.color
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round;
+      final linePath = Path()..moveTo(pts[0].dx, pts[0].dy);
+      for (int i = 1; i < pts.length; i++) {
+        // 부드러운 커브
+        final cp1x = pts[i - 1].dx + (pts[i].dx - pts[i - 1].dx) / 2;
+        linePath.cubicTo(cp1x, pts[i - 1].dy, cp1x, pts[i].dy, pts[i].dx, pts[i].dy);
+      }
+      canvas.drawPath(linePath, linePaint);
+
+      // 도트
+      final dotPaint = Paint()..color = s.color;
+      for (final p in pts) {
+        canvas.drawCircle(p, 2.8, dotPaint);
+        canvas.drawCircle(p, 1.4,
+          Paint()..color = const Color(0xFF020810));
+      }
+    }
+
+    // X축 라벨
+    final tp = TextPainter(textDirection: TextDirection.ltr);
+    for (int i = 0; i < n; i++) {
+      final x = padLeft + (i / (n - 1).clamp(1, 9999)) * chartW;
+      tp.text = TextSpan(
+        text: labels[i],
+        style: const TextStyle(fontSize: 9, color: Color(0xFF7AB0D4)),
+      );
+      tp.layout();
+      tp.paint(canvas, Offset(x - tp.width / 2, size.height - padBottom + 5));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineAreaChartPainter old) =>
+    old.labels != labels || old.series != series;
 }

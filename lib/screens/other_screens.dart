@@ -2351,59 +2351,125 @@ class CarPriceScreen extends StatefulWidget {
 }
 
 class _CarPriceScreenState extends State<CarPriceScreen> {
-  // 단계: 0=입력, 1=결과
+  // 단계: 0=입력, 1=결과, 2=신청완료
   int _step = 0;
   bool _loading = false;
+  bool _applying = false;
 
-  final _plateCtrl    = TextEditingController();
-  final _makerCtrl    = TextEditingController();
-  final _modelCtrl    = TextEditingController();
-  final _yearCtrl     = TextEditingController();
-  final _kmCtrl       = TextEditingController();
-  final _gradeCtrl    = TextEditingController();
+  final _plateCtrl = TextEditingController();
+  final _kmCtrl    = TextEditingController();
 
-  // 시세 결과 (더미 데이터 - 실제 API 연동 가능)
+  // 팝업 선택 값
+  String? _selectedMaker;
+  String? _selectedModel;
+  String? _selectedYear;
+  String? _selectedMonth;
+  String? _selectedGrade;
+
+  // 시세 결과
   Map<String, dynamic>? _priceResult;
 
-  void _lookup() async {
-    final plate = _plateCtrl.text.trim();
-    final maker = _makerCtrl.text.trim();
-    final model = _modelCtrl.text.trim();
-    final year  = _yearCtrl.text.trim();
-    final km    = _kmCtrl.text.trim();
+  // 차량 데이터
+  static const Map<String, List<String>> _makerModels = {
+    '현대': ['아반떼', '쏘나타', '그랜저', '투싼', '싼타페', '코나', '팰리세이드', '아이오닉6'],
+    '기아': ['K3', 'K5', 'K8', 'K9', '스포티지', '쏘렌토', '카니발', 'EV6'],
+    '제네시스': ['G70', 'G80', 'G90', 'GV70', 'GV80', 'GV60'],
+    'BMW': ['3시리즈', '5시리즈', '7시리즈', 'X3', 'X5', 'X7', 'i4', 'iX'],
+    '벤츠': ['C클래스', 'E클래스', 'S클래스', 'GLC', 'GLE', 'EQS'],
+    '아우디': ['A4', 'A6', 'Q3', 'Q5', 'Q7', 'e-tron'],
+    '토요타': ['캠리', '코롤라', 'RAV4', '프리우스', 'bZ4X'],
+    '테슬라': ['Model 3', 'Model Y', 'Model S', 'Model X'],
+    '르노': ['SM6', '마스터', 'QM6', 'XM3'],
+    '쉐보레': ['말리부', '트레일블레이저', '이쿼녹스', '타호'],
+  };
 
-    if (maker.isEmpty || model.isEmpty || year.isEmpty || km.isEmpty) {
+  static const List<String> _years = ['2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015'];
+  static const List<String> _months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+  static const List<String> _grades = ['무사고', '단순교환', '침수이력없음', '사고수리이력'];
+
+  void _showPickerDialog(String title, List<String> items, String? current, Function(String) onSelect) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: _mCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 12),
+              child: Row(children: [
+                Text(title, style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, color: _mTextSec, size: 20),
+                  onPressed: () => Navigator.pop(ctx)),
+              ]),
+            ),
+            const Divider(color: _mBorder, height: 1),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (_, i) {
+                  final item = items[i];
+                  final isSelected = item == current;
+                  return ListTile(
+                    dense: true,
+                    title: Text(item, style: TextStyle(
+                      fontSize: 14, color: isSelected ? _mAccent : Colors.white,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal)),
+                    trailing: isSelected
+                      ? const Icon(Icons.check, color: _mAccent, size: 18) : null,
+                    onTap: () { onSelect(item); Navigator.pop(ctx); },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _lookup() async {
+    final km = _kmCtrl.text.trim();
+    if (_selectedMaker == null || _selectedModel == null || _selectedYear == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('제조사, 모델명, 연식, 주행거리를 입력해주세요')));
+        const SnackBar(content: Text('제조사, 모델, 연식을 선택해주세요')));
       return;
     }
-
+    if (km.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('주행거리를 입력해주세요')));
+      return;
+    }
     setState(() => _loading = true);
     await Future.delayed(const Duration(milliseconds: 1200));
-
-    // 더미 시세 계산 로직
-    final yearNum = int.tryParse(year) ?? 2020;
+    final yearNum = int.tryParse(_selectedYear!) ?? 2020;
     final kmNum = int.tryParse(km.replaceAll(RegExp(r'[^0-9]'), '')) ?? 50000;
-    final base = maker.contains('BMW') || maker.contains('벤츠') || maker.contains('아우디')
-      ? 45000000 : 20000000;
+    final isImport = ['BMW', '벤츠', '아우디', '토요타', '테슬라'].contains(_selectedMaker);
+    final base = isImport ? 45000000 : 20000000;
     final ageFactor = (2026 - yearNum) * 0.07;
     final kmFactor = (kmNum / 100000) * 0.15;
     final est = (base * (1 - ageFactor - kmFactor)).toInt();
     final low = (est * 0.90).toInt();
     final high = (est * 1.10).toInt();
-
     setState(() {
       _loading = false;
       _priceResult = {
-        'maker': maker,
-        'model': model,
-        'year': year,
+        'maker': _selectedMaker,
+        'model': _selectedModel,
+        'year': _selectedYear,
+        'month': _selectedMonth ?? '1월',
         'km': km,
-        'plate': plate,
-        'low': low,
-        'mid': est,
-        'high': high,
-        'grade': _grade(yearNum, kmNum),
+        'plate': _plateCtrl.text,
+        'grade': _selectedGrade ?? '무사고',
+        'low': low, 'mid': est, 'high': high,
+        'carGrade': _grade(yearNum, kmNum),
       };
       _step = 1;
     });
@@ -2475,7 +2541,40 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
     );
   }
 
+  Widget _pickerTile(String label, String? value, String hint, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: _mCard,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: value != null ? _mAccent.withOpacity(0.5) : _mBorder),
+        ),
+        child: Row(children: [
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: _mTextSec)),
+              const SizedBox(height: 2),
+              Text(value ?? hint, style: TextStyle(
+                fontSize: 14,
+                color: value != null ? Colors.white : _mTextSec.withOpacity(0.5),
+                fontWeight: value != null ? FontWeight.w600 : FontWeight.normal)),
+            ],
+          )),
+          Icon(Icons.keyboard_arrow_down_rounded,
+            color: value != null ? _mAccent : _mTextSec, size: 22),
+        ]),
+      ),
+    );
+  }
+
   Widget _buildInputPage() {
+    final models = _selectedMaker != null
+      ? (_makerModels[_selectedMaker] ?? <String>[])
+      : <String>[];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -2491,39 +2590,68 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: _mOrange.withOpacity(0.3)),
             ),
-            child: Row(
-              children: [
-                const Text('💰', style: TextStyle(fontSize: 32)),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('AI 기반 내차 시세 조회',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-                      SizedBox(height: 4),
-                      Text('차량 정보 입력 후 즉시 시세 범위를 확인하세요',
-                        style: TextStyle(fontSize: 11, color: _mTextSec)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: Row(children: [
+              const Text('💰', style: TextStyle(fontSize: 32)),
+              const SizedBox(width: 12),
+              const Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('AI 기반 내차 시세 조회',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                  SizedBox(height: 4),
+                  Text('팝업에서 선택 후 즉시 시세 범위 확인',
+                    style: TextStyle(fontSize: 11, color: _mTextSec)),
+                ],
+              )),
+            ]),
           ),
           const SizedBox(height: 20),
+
+          // 차량번호 (텍스트 입력)
           _darkField('🚗 차량 번호 (선택)', '123가 4567', _plateCtrl),
           const SizedBox(height: 14),
-          _darkField('🏭 제조사 *', '현대, 기아, BMW, 벤츠 등', _makerCtrl),
-          const SizedBox(height: 14),
-          _darkField('🚙 모델명 *', '아반떼, K5, 320i 등', _modelCtrl),
-          const SizedBox(height: 14),
-          _darkField('📅 연식 *', '2020, 2021, 2022 등', _yearCtrl,
+
+          // 제조사 팝업
+          _pickerTile('🏭 제조사 *', _selectedMaker, '제조사를 선택하세요', () =>
+            _showPickerDialog('제조사 선택', _makerModels.keys.toList(), _selectedMaker, (v) {
+              setState(() { _selectedMaker = v; _selectedModel = null; });
+            })
+          ),
+          const SizedBox(height: 10),
+
+          // 모델 팝업
+          _pickerTile('🚙 모델 *', _selectedModel,
+            _selectedMaker == null ? '제조사를 먼저 선택하세요' : '모델을 선택하세요',
+            _selectedMaker == null ? () {} : () =>
+              _showPickerDialog('모델 선택', models, _selectedModel, (v) =>
+                setState(() => _selectedModel = v))
+          ),
+          const SizedBox(height: 10),
+
+          // 연식 + 월 (두 칸)
+          Row(children: [
+            Expanded(child: _pickerTile('📅 연식 *', _selectedYear, '연식 선택', () =>
+              _showPickerDialog('연식 선택', _years, _selectedYear, (v) =>
+                setState(() => _selectedYear = v))
+            )),
+            const SizedBox(width: 10),
+            Expanded(child: _pickerTile('📆 월 (선택)', _selectedMonth, '월 선택', () =>
+              _showPickerDialog('월 선택', _months, _selectedMonth, (v) =>
+                setState(() => _selectedMonth = v))
+            )),
+          ]),
+          const SizedBox(height: 10),
+
+          // 주행거리 (텍스트 입력)
+          _darkField('📏 주행거리 * (km)', '예: 50000', _kmCtrl,
             keyboardType: TextInputType.number),
-          const SizedBox(height: 14),
-          _darkField('📏 주행거리 *', '50000 (km 단위)', _kmCtrl,
-            keyboardType: TextInputType.number),
-          const SizedBox(height: 14),
-          _darkField('⭐ 등급 (선택)', '무사고, 단순교환 등', _gradeCtrl),
+          const SizedBox(height: 10),
+
+          // 차량 상태
+          _pickerTile('⭐ 차량 상태 (선택)', _selectedGrade, '무사고/사고이력 선택', () =>
+            _showPickerDialog('차량 상태', _grades, _selectedGrade, (v) =>
+              setState(() => _selectedGrade = v))
+          ),
           const SizedBox(height: 24),
           // 조회 버튼
           SizedBox(
@@ -2622,7 +2750,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                       Text('${r['year']} ${r['maker']} ${r['model']}',
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                       const SizedBox(height: 4),
-                      Text('주행거리 ${r['km']}km · 등급 ${r['grade']}',
+                      Text('주행거리 ${r['km']}km · ${r['carGrade']} · ${r['grade']}',
                         style: TextStyle(fontSize: 12, color: _mTextSec)),
                       if ((r['plate'] as String).isNotEmpty)
                         Text('차량번호: ${r['plate']}',
@@ -2733,7 +2861,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                 ...[
                   ['연식', '${r['year']}년식', _mAccent, 0.7],
                   ['주행거리', '${r['km']}km', _mOrange, 0.5],
-                  ['차량 등급', '${r['grade']}', _mGreen, 0.85],
+                  ['차량 등급', '${r["carGrade"]}', _mGreen, 0.85],
                   ['시장 수요', '보통', const Color(0xFF8B5CF6), 0.6],
                 ].map((item) {
                   final pct = item[3] as double;
@@ -2773,19 +2901,108 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 내차 팔기 버튼
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('MOINCAR 내차 팔기 서비스 준비중입니다'))),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _mGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text('🚗 내 차 팔기 신청',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+          // 인증 매장 신청 섹션
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _mGreen.withOpacity(0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('🏪', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('내 차 팔기 신청',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white))),
+                ]),
+                const SizedBox(height: 8),
+                Text('신청 시 인근 MOINCAR 인증 중고차 매장 3곳에\n신청서가 자동 전달됩니다.',
+                  style: TextStyle(fontSize: 12, color: _mTextSec, height: 1.5)),
+                const SizedBox(height: 12),
+                // 인증 매장 3곳
+                ...['🔵 대구모터스 (0.8km) | 평점 ★4.8',
+                    '🟢 수성카딜러 (1.2km) | 평점 ★4.6',
+                    '🟡 범어중고차 (1.9km) | 평점 ★4.5'].map((s) =>
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(children: [
+                      Text(s, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                      const Spacer(),
+                      const Icon(Icons.check_circle_outline, color: _mGreen, size: 14),
+                    ]),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _applying ? null : () async {
+                      setState(() => _applying = true);
+                      await Future.delayed(const Duration(milliseconds: 1500));
+                      setState(() => _applying = false);
+                      if (mounted) {
+                        // 알림 추가 시뮬레이션
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => Dialog(
+                            backgroundColor: _mCard,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                const Text('🎉', style: TextStyle(fontSize: 48)),
+                                const SizedBox(height: 12),
+                                const Text('신청서 전달 완료!',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                                const SizedBox(height: 8),
+                                Text('인근 MOINCAR 인증 중고차 매장 3곳에\n신청서가 전달되었습니다.\n\n매장에서 검토 후 앱 채팅·전화로 연락드립니다.',
+                                  style: TextStyle(fontSize: 13, color: _mTextSec, height: 1.6),
+                                  textAlign: TextAlign.center),
+                                const SizedBox(height: 20),
+                                // 매장별 알림 표시
+                                ...['대구모터스', '수성카딜러', '범어중고차'].map((shop) =>
+                                  Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: _mGreen.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: _mGreen.withOpacity(0.3)),
+                                    ),
+                                    child: Row(children: [
+                                      Icon(Icons.send, color: _mGreen, size: 14),
+                                      const SizedBox(width: 8),
+                                      Text('$shop 에게 신청서 전달됨',
+                                        style: const TextStyle(fontSize: 12, color: Colors.white)),
+                                    ]),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: Text('확인', style: TextStyle(color: _mAccent, fontWeight: FontWeight.w700))),
+                              ]),
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _mGreen,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _applying
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('🚗 인증 매장 3곳에 신청하기',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -2831,11 +3048,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
   @override
   void dispose() {
     _plateCtrl.dispose();
-    _makerCtrl.dispose();
-    _modelCtrl.dispose();
-    _yearCtrl.dispose();
     _kmCtrl.dispose();
-    _gradeCtrl.dispose();
     super.dispose();
   }
 }
@@ -3467,22 +3680,30 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                       (v) => setState(() => _vibrationOn = v)),
                   ]),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('✅ 알림 설정이 저장되었습니다')));
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _mAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('✅ 알림 설정이 저장되었습니다')));
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.save_rounded, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('알림 설정 저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ]),
                       ),
-                      child: const Text('저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
                     ),
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -3540,8 +3761,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: _mAccent,
-            activeTrackColor: _mAccent.withOpacity(0.3),
+            activeColor: Colors.red,
+            activeTrackColor: Colors.red.withOpacity(0.35),
             inactiveThumbColor: _mTextSec,
             inactiveTrackColor: _mBorder,
           ),
@@ -3563,6 +3784,10 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
   bool _marketingConsent = false;
   bool _analyticsConsent = true;
   bool _thirdPartyConsent = false;
+
+  // 로그인 타입 감지 (실제 앱에서는 AppState에서 가져옴)
+  String get _loginType => AppState().user?.loginType ?? 'social'; // 'normal' or 'social'
+  bool get _isSocialLogin => _loginType != 'normal';
 
   @override
   Widget build(BuildContext context) {
@@ -3632,12 +3857,45 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                   ]),
                   const SizedBox(height: 12),
 
+                  // 로그인 타입 안내 배너
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _isSocialLogin
+                        ? const Color(0xFFFEE500).withOpacity(0.1)
+                        : _mAccent.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _isSocialLogin
+                        ? const Color(0xFFFEE500).withOpacity(0.4)
+                        : _mAccent.withOpacity(0.3)),
+                    ),
+                    child: Row(children: [
+                      Text(_isSocialLogin ? '🔑' : '👤', style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 10),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(
+                          _isSocialLogin ? '간편 로그인 (SNS) 사용자' : '일반 회원 (ID·비밀번호)',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                        Text(
+                          _isSocialLogin
+                            ? '비밀번호·이메일 변경은 SNS 계정에서 직접 변경하세요'
+                            : '아이디·비밀번호·이메일 변경이 가능합니다',
+                          style: TextStyle(fontSize: 11, color: _mTextSec)),
+                      ])),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
+
                   _privacySection('계정 관리', [
-                    _actionTile('비밀번호 변경', Icons.lock_outline, _mAccent,
-                      () => ScaffoldMessenger.of(context).showSnackBar(
+                    _actionTileWithDisable('비밀번호 변경', Icons.lock_outline, _mAccent,
+                      disabled: _isSocialLogin,
+                      disabledMsg: 'SNS 간편 로그인 사용자는\nSNS 계정에서 비밀번호를 변경하세요',
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('비밀번호 변경 기능 준비중')))),
-                    _actionTile('이메일 변경', Icons.email_outlined, _mAccent,
-                      () => ScaffoldMessenger.of(context).showSnackBar(
+                    _actionTileWithDisable('이메일 변경', Icons.email_outlined, _mAccent,
+                      disabled: _isSocialLogin,
+                      disabledMsg: 'SNS 간편 로그인 사용자는\n이메일 변경이 제한됩니다',
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('이메일 변경 기능 준비중')))),
                     _actionTile('계정 삭제', Icons.delete_outline, Colors.red,
                       () => _showDeleteAccountDialog(context)),
@@ -3651,22 +3909,30 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                   ]),
                   const SizedBox(height: 20),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('✅ 개인정보 설정이 저장되었습니다')));
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _mAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  SafeArea(
+                    top: false,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('✅ 개인정보 설정이 저장되었습니다')));
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _mAccent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.save_rounded, color: Color(0xFF020810), size: 18),
+                          SizedBox(width: 8),
+                          Text('개인정보 설정 저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF020810))),
+                        ]),
                       ),
-                      child: const Text('저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
                     ),
                   ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -3721,6 +3987,36 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
             inactiveTrackColor: _mBorder,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _actionTileWithDisable(String title, IconData icon, Color color,
+    {required bool disabled, String disabledMsg = '', required VoidCallback onTap}) {
+    return InkWell(
+      onTap: disabled
+        ? () => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(disabledMsg), duration: const Duration(seconds: 3)))
+        : onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: disabled ? _mTextSec : color),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: TextStyle(
+                fontSize: 14, color: disabled ? _mTextSec : Colors.white,
+                fontWeight: FontWeight.w500)),
+              if (disabled)
+                Text('SNS 계정 설정에서 변경하세요',
+                  style: TextStyle(fontSize: 10, color: Colors.orange.shade300)),
+            ])),
+            Icon(disabled ? Icons.lock_rounded : Icons.arrow_forward_ios,
+              size: disabled ? 16 : 14,
+              color: disabled ? Colors.orange.shade300 : _mTextSec),
+          ],
+        ),
       ),
     );
   }
@@ -3881,6 +4177,414 @@ class LogoutScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 차량 상담 화면 (가격 조정 + 1:1 채팅)
+// ══════════════════════════════════════════════════════════════════════════════
+class CarConsultScreen extends StatefulWidget {
+  final String shopName;
+  final String carInfo;
+  final int estimatedPrice;
+  const CarConsultScreen({
+    super.key,
+    this.shopName = '대구모터스',
+    this.carInfo = '2022 현대 아반떼',
+    this.estimatedPrice = 18000000,
+  });
+
+  @override
+  State<CarConsultScreen> createState() => _CarConsultScreenState();
+}
+
+class _CarConsultScreenState extends State<CarConsultScreen>
+    with SingleTickerProviderStateMixin {
+  static const Color _bg     = Color(0xFF020810);
+  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _br     = Color(0xFF1E3A5F);
+  static const Color _accent = Color(0xFF4FC3F7);
+  static const Color _orange = Color(0xFFFF6B35);
+  static const Color _green  = Color(0xFF10B981);
+  static const Color _tPri   = Colors.white;
+  static const Color _tSec   = Color(0xFFB0BEC5);
+
+  late TabController _tab;
+  late int _offeredPrice;
+  double _sliderVal = 0.0;
+  bool _agreed = false;
+  final _chatCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
+
+  final List<Map<String, dynamic>> _messages = [
+    {'from': 'shop', 'text': '안녕하세요! 신청서 잘 받았습니다 😊\n차량 상태 사진 몇 장 더 보내주실 수 있을까요?', 'time': '14:02'},
+    {'from': 'me',   'text': '네, 사진 보내드릴게요!', 'time': '14:05'},
+    {'from': 'shop', 'text': '감사합니다. 내부 상태도 함께 보내주시면 더 정확한 견적을 드릴 수 있어요.', 'time': '14:06'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+    _offeredPrice = (widget.estimatedPrice * 0.92).toInt();
+    _sliderVal = 0.0;
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    _chatCtrl.dispose();
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
+
+  String _fmt(int v) {
+    final man = v ~/ 10000;
+    final rest = v % 10000;
+    return rest == 0 ? '$man만원' : '$man만${rest ~/ 1000}천원';
+  }
+
+  void _sendMsg() {
+    final text = _chatCtrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _messages.add({'from': 'me', 'text': text, 'time': '지금'});
+      _chatCtrl.clear();
+    });
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() {
+        _messages.add({'from': 'shop', 'text': '확인했습니다! 잠시 후 연락드리겠습니다. 😊', 'time': '지금'});
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final adjustedPrice = (_offeredPrice + (_sliderVal * 2000000)).toInt();
+
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Column(
+        children: [
+          // 상단바
+          Container(
+            color: _card,
+            padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20)),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.shopName,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                      Text(widget.carInfo,
+                        style: const TextStyle(fontSize: 11, color: _tSec)),
+                    ],
+                  )),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _green.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _green.withOpacity(0.4)),
+                    ),
+                    child: const Text('● 상담중', style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                TabBar(
+                  controller: _tab,
+                  tabs: const [Tab(text: '💰 가격 조정'), Tab(text: '💬 1:1 채팅')],
+                  labelColor: _accent,
+                  unselectedLabelColor: _tSec,
+                  indicatorColor: _accent,
+                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tab,
+              children: [
+                // ── 탭 1: 가격 조정 ──
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // 차량 정보 카드
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: _br),
+                        ),
+                        child: Row(children: [
+                          Container(
+                            width: 50, height: 50,
+                            decoration: BoxDecoration(
+                              color: _accent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Center(child: Text('🚗', style: TextStyle(fontSize: 24))),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(widget.carInfo,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: _tPri)),
+                            Text('${widget.shopName} 제시 견적',
+                              style: const TextStyle(fontSize: 11, color: _tSec)),
+                          ])),
+                        ]),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 가격 제안 카드
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [_orange.withOpacity(0.15), _accent.withOpacity(0.08)]),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _orange.withOpacity(0.4)),
+                        ),
+                        child: Column(children: [
+                          const Text('매장 제시 가격', style: TextStyle(fontSize: 12, color: _tSec)),
+                          const SizedBox(height: 8),
+                          Text(_fmt(adjustedPrice),
+                            style: const TextStyle(
+                              fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
+                          const SizedBox(height: 4),
+                          Text('AI 시세 ${_fmt(widget.estimatedPrice)} 대비 ${(((adjustedPrice - widget.estimatedPrice) / widget.estimatedPrice) * 100).toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: adjustedPrice >= widget.estimatedPrice ? _green : _orange)),
+
+                          const SizedBox(height: 20),
+                          // 가격 조정 슬라이더
+                          const Text('가격 협상 요청', style: TextStyle(fontSize: 12, color: _tSec)),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Text('-100만', style: TextStyle(fontSize: 10, color: _orange)),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderThemeData(
+                                  trackHeight: 4,
+                                  activeTrackColor: _accent,
+                                  inactiveTrackColor: _br,
+                                  thumbColor: _accent,
+                                  overlayColor: _accent.withOpacity(0.2),
+                                ),
+                                child: Slider(
+                                  value: _sliderVal,
+                                  min: -1.0, max: 1.0,
+                                  onChanged: (v) => setState(() => _sliderVal = v),
+                                ),
+                              ),
+                            ),
+                            Text('+100만', style: TextStyle(fontSize: 10, color: _green)),
+                          ]),
+                          Text('요청 조정액: ${_sliderVal >= 0 ? '+' : ''}${(_sliderVal * 100).round()}만원',
+                            style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700,
+                              color: _sliderVal >= 0 ? _green : _orange)),
+                        ]),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 합의 체크박스
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _card,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _br),
+                        ),
+                        child: Row(children: [
+                          Checkbox(
+                            value: _agreed,
+                            onChanged: (v) => setState(() => _agreed = v!),
+                            activeColor: _green,
+                            checkColor: _bg,
+                            side: BorderSide(color: _br),
+                          ),
+                          Expanded(child: Text(
+                            '${_fmt(adjustedPrice)} 가격에 매매 진행에 동의합니다',
+                            style: const TextStyle(fontSize: 13, color: _tPri))),
+                        ]),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 가격 협상 요청 / 동의 버튼
+                      Row(children: [
+                        Expanded(child: OutlinedButton(
+                          onPressed: () {
+                            _tab.animateTo(1);
+                            Future.delayed(const Duration(milliseconds: 400), () {
+                              if (mounted) setState(() {
+                                _messages.add({
+                                  'from': 'me',
+                                  'text': '가격 ${_fmt(adjustedPrice)}으로 협상 요청드립니다. 검토 부탁드려요!',
+                                  'time': '지금'
+                                });
+                              });
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: _accent.withOpacity(0.5)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('협상 요청', style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
+                        )),
+                        const SizedBox(width: 10),
+                        Expanded(child: ElevatedButton(
+                          onPressed: _agreed ? () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('✅ ${_fmt(adjustedPrice)}에 매매 동의 완료!')));
+                          } : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _agreed ? _green : _br,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('동의 완료',
+                            style: TextStyle(
+                              color: _agreed ? Colors.white : _tSec,
+                              fontWeight: FontWeight.w700)),
+                        )),
+                      ]),
+                    ],
+                  ),
+                ),
+
+                // ── 탭 2: 1:1 채팅 ──
+                Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollCtrl,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (_, i) {
+                          final m = _messages[i];
+                          final isMe = m['from'] == 'me';
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              mainAxisAlignment: isMe
+                                ? MainAxisAlignment.end
+                                : MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                if (!isMe) ...[
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: _accent.withOpacity(0.2),
+                                    child: const Text('🏪', style: TextStyle(fontSize: 14)),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Flexible(
+                                  child: Column(
+                                    crossAxisAlignment: isMe
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                    children: [
+                                      if (!isMe)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 4),
+                                          child: Text(widget.shopName,
+                                            style: const TextStyle(fontSize: 11, color: _tSec)),
+                                        ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: isMe ? _accent : _card,
+                                          borderRadius: BorderRadius.circular(14).copyWith(
+                                            bottomRight: isMe ? const Radius.circular(4) : null,
+                                            bottomLeft: isMe ? null : const Radius.circular(4),
+                                          ),
+                                          border: isMe ? null : Border.all(color: _br),
+                                        ),
+                                        child: Text(m['text'] as String,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isMe ? _bg : _tPri,
+                                            height: 1.4)),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(m['time'] as String,
+                                        style: const TextStyle(fontSize: 10, color: _tSec)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // 입력창
+                    Container(
+                      padding: EdgeInsets.fromLTRB(12, 8, 12, MediaQuery.of(context).padding.bottom + 8),
+                      decoration: BoxDecoration(
+                        color: _card,
+                        border: Border(top: BorderSide(color: _br)),
+                      ),
+                      child: Row(children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _chatCtrl,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: '메시지를 입력하세요...',
+                              hintStyle: TextStyle(color: _tSec.withOpacity(0.5), fontSize: 13),
+                              filled: true, fillColor: _bg,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: const BorderSide(color: _br)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: const BorderSide(color: _br)),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: const BorderSide(color: _accent)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            ),
+                            onSubmitted: (_) => _sendMsg(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _sendMsg,
+                          child: Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: _accent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.send_rounded, color: Color(0xFF020810), size: 20),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

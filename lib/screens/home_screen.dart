@@ -859,7 +859,130 @@ class _HomeScreenState extends State<HomeScreen>
                     fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600)),
           ),
         ),
+
+        // ⛽ 주유소 현황 오버레이 (우상단)
+        Positioned(right: 12, top: 50,
+          child: _buildGasOverlay(),
+        ),
       ]),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // ⛽ 주유소 현황 오버레이 위젯 빌드 (인라인)
+  // ──────────────────────────────────────────────────────────
+  static const _gasList = [
+    {'name': 'GS칼텍스 수성점', 'dist': '0.3km', 'price': 1682, 'type': '최근접', 'color': 0xFF4FC3F7},
+    {'name': 'SK에너지 범어점', 'dist': '0.7km', 'price': 1658, 'type': '최저가', 'color': 0xFF10B981},
+    {'name': '현대오일 동성점', 'dist': '1.1km', 'price': 1671, 'type': '추천',   'color': 0xFFFF6B35},
+  ];
+
+  Widget _buildGasOverlay() {
+    return GestureDetector(
+      onTap: () => showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+          backgroundColor: const Color(0xFF0D1B2A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Row(children: [
+                Text('⛽', style: TextStyle(fontSize: 22)),
+                SizedBox(width: 8),
+                Text('인근 주유소 현황',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
+              const SizedBox(height: 4),
+              const Text('대구 수성구 기준 · 휘발유',
+                style: TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
+              const SizedBox(height: 16),
+              ..._gasList.map((s) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(s['color'] as int).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Color(s['color'] as int).withOpacity(0.3)),
+                ),
+                child: Row(children: [
+                  Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(
+                      color: Color(s['color'] as int).withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(child: Text('⛽', style: TextStyle(fontSize: 20))),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Color(s['color'] as int).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(s['type'] as String,
+                          style: TextStyle(fontSize: 10, color: Color(s['color'] as int),
+                            fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(s['dist'] as String,
+                        style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text(s['name'] as String,
+                      style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                  ])),
+                  Text('${s['price']}원',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900,
+                      color: Color(s['color'] as int))),
+                ]),
+              )),
+              const SizedBox(height: 8),
+              Text('※ 오피넷 기준 · 실시간 가격은 앱에서 확인',
+                style: TextStyle(fontSize: 10, color: const Color(0xFFB0BEC5).withOpacity(0.6))),
+            ]),
+          ),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('⛽', style: TextStyle(fontSize: 12)),
+              SizedBox(width: 4),
+              Text('인근 주유소', style: TextStyle(fontSize: 10, color: Colors.white70)),
+            ]),
+            const SizedBox(height: 4),
+            ..._gasList.take(3).map((s) => Padding(
+              padding: const EdgeInsets.only(top: 3),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 6, height: 6,
+                  decoration: BoxDecoration(
+                    color: Color(s['color'] as int),
+                    shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 4),
+                Text('${s['dist']} ',
+                  style: const TextStyle(fontSize: 9, color: Colors.white60)),
+                Text('${s['price']}원',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                    color: Color(s['color'] as int))),
+              ]),
+            )),
+          ],
+        ),
+      ),
     );
   }
 

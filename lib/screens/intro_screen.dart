@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
 // ═══════════════════════════════════════════════════════════════
@@ -15,31 +15,44 @@ class IntroScreen extends StatefulWidget {
 class _IntroScreenState extends State<IntroScreen> {
   static const Color _bg     = Color(0xFF020810);
   static const Color _s1     = Color(0xFF071428);
-  static const Color _s2     = Color(0xFF0D1E3C);
-  static const Color _br     = Color(0xFF1A3050);
   static const Color _accent = Color(0xFF4FC3F7);
   static const Color _t1     = Color(0xFFE8F4FF);
-  static const Color _t2     = Color(0xFF7AB0D4);
   static const Color _t3     = Color(0xFF3A6080);
+
+  // 레이아웃쉬프트 방지: 상태바 높이 미리 캐시
+  double _statusBarH = 0;
+  bool _ready = false;
 
   @override
   void initState() {
     super.initState();
-    // 앱 시작 시 자동 로그인 체크
     _checkAutoLogin();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_ready) {
+      _statusBarH = MediaQuery.of(context).padding.top;
+      _ready = true;
+    }
   }
 
   Future<void> _checkAutoLogin() async {
     final valid = await AuthPrefs.isAutoLoginValid();
     if (valid && mounted) {
-      // 30일 이내 로그인 기록 있으면 홈으로 바로 이동
       Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF020810),
+        statusBarIconBrightness: Brightness.light,
+      ),
+      child: Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -73,34 +86,42 @@ class _IntroScreenState extends State<IntroScreen> {
               child: CustomPaint(painter: _IntroGridPainter()),
             ),
 
-            // 메인 콘텐츠
-            SafeArea(
+            // 메인 콘텐츠 — padding.top을 미리 캐시해서 쉬프트 방지
+            Positioned.fill(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  padding: EdgeInsets.fromLTRB(28, _statusBarH + 60, 28, 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 60),
-
-                      // MOINCAR 로고 이미지 (텍스트 삭제, 부제 위로 배치)
-                      Image.asset(
-                        'assets/images/moincar_logo.png',
-                        width: 120,  // 280 → 120 (크기 축소)
-                        fit: BoxFit.contain,
-                        errorBuilder: (c, e, s) => _buildNavyLogo(),
+                      // MOINCAR 로고 이미지 — 고정 SizedBox로 감싸 쉬프트 방지
+                      SizedBox(
+                        width: 120, height: 50,
+                        child: Image.asset(
+                          'assets/images/moincar_logo.png',
+                          width: 120,
+                          fit: BoxFit.contain,
+                          frameBuilder: (c, child, frame, _) =>
+                            frame == null
+                              ? Center(child: Text('MOINCAR',
+                                  style: GoogleFonts.notoSansKr(
+                                    fontSize: 18, fontWeight: FontWeight.w900,
+                                    color: _accent, letterSpacing: 1)))
+                              : child,
+                          errorBuilder: (c, e, s) => _buildNavyLogo(),
+                        ),
                       ),
 
-                      const SizedBox(height: 4),  // 5 → 4 (로고와 부제 간격 더 축소)
+                      const SizedBox(height: 6),
 
-                      // 부제목 (MOINCAR 텍스트 삭제됨)
+                      // 부제목 — "모인카" 한글로 변경
                       Text(
-                        'mobility international car',
+                        '모인카',
                         style: GoogleFonts.notoSansKr(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w400,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                           color: _accent,
-                          letterSpacing: 2,
+                          letterSpacing: 4,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -221,7 +242,6 @@ class _IntroScreenState extends State<IntroScreen> {
                         ],
                       ),
 
-                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
@@ -230,6 +250,7 @@ class _IntroScreenState extends State<IntroScreen> {
           ],
         ),
       ),
+      ), // AnnotatedRegion
     );
   }
 
