@@ -67,6 +67,13 @@ class KaaApp extends StatelessWidget {
           '/news': (_) => const NewsScreen(),
           '/emergency': (_) => const EmergencyScreen(),
           '/car-price': (_) => const CarPriceScreen(),
+          '/chat': (s) {
+            final args = s.settings.arguments as Map<String, dynamic>? ?? {};
+            return ChatScreen(
+              storeName: args['storeName'] as String? ?? '점포',
+              storeId:   args['storeId']   as int?    ?? 0,
+            );
+          },
         },
         onUnknownRoute: (settings) => MaterialPageRoute(
           builder: (_) => const HomeScreen(),

@@ -66,11 +66,14 @@ class _HomeScreenState extends State<HomeScreen>
   double _currentLat = 37.4817;  // 가산동 좌표
   double _currentLng = 126.8820;
 
-  // ── 주유소 오버레이 자동 숨김 ─────────────────────────────────
+  // ── 주유소 오버레이 표시 로직 ──────────────────────────────────
+  // showCount: 0=첫번째 표시중, 1=두번째 표시중, 2=1분잠금
   bool _gasOverlayVisible = true;
+  int  _gasShowCount = 0;          // 0→1→2 (2 이상이면 1분 대기)
+  DateTime? _gasHideUntil;         // 1분 잠금 해제 시각
   Timer? _gasTimer;
-  Timer? _gasRotateTimer;  // 6초 랜덤 전환
-  int _gasDisplayIndex = 0; // 현재 표시 중인 주유소 인덱스
+  Timer? _gasRotateTimer;
+  int _gasDisplayIndex = 0;
 
   // ── 배너 (무한 캐러셀) ────────────────────────────────────────
   static const int _bannerMultiplier = 500;
@@ -87,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '🏆 MOINCAR 인증',
       'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80',
       'color': Color(0xFF0A2040),
+      'route': '/store-list',
     },
     {
       'category': '기사 정보',
@@ -95,6 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '📰 자동차 뉴스',
       'image': 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80',
       'color': Color(0xFF0A1A30),
+      'route': '/news',
     },
     {
       'category': '주유 정보',
@@ -103,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '⛽ 주유 정보',
       'image': 'https://images.unsplash.com/photo-1565728744382-61accd4aa148?w=600&q=80',
       'color': Color(0xFF0D1E10),
+      'route': '',  // 주유 팝업 표시
     },
     {
       'category': '협회 정보',
@@ -111,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '🏅 협회 인증',
       'image': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&q=80',
       'color': Color(0xFF1A0A20),
+      'route': '/cert',
     },
     {
       'category': '이동리워드',
@@ -119,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '🎁 이동리워드',
       'image': 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600&q=80',
       'color': Color(0xFF1A1040),
+      'route': '/my',
     },
     {
       'category': '긴급 출동',
@@ -127,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen>
       'tag': '🚨 긴급 서비스',
       'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
       'color': Color(0xFF200A0A),
+      'route': '/emergency',
     },
   ];
 
@@ -244,8 +253,24 @@ class _HomeScreenState extends State<HomeScreen>
 
     setState(() => _scrollOffset = offset);
 
-    // 메인 상단으로 복귀 시 (100px 이하) 주유소 오버레이 재표시 후 4초 숨김
-    if (offset < 100 && prev >= 100) {
+    // 스크롤 내릴 때 오버레이 즉시 숨김
+    if (offset > 60 && prev <= 60 && _gasOverlayVisible) {
+      _gasTimer?.cancel();
+      setState(() => _gasOverlayVisible = false);
+      // showCount 증가 (스크롤로 숨긴 것도 1회 카운트)
+      if (_gasShowCount < 2) {
+        _gasShowCount++;
+        if (_gasShowCount >= 2) {
+          _gasHideUntil = DateTime.now().add(const Duration(minutes: 1));
+          _gasTimer = Timer(const Duration(minutes: 1), () {
+            if (mounted) setState(() { _gasShowCount = 0; _gasHideUntil = null; });
+          });
+        }
+      }
+    }
+
+    // 메인 상단으로 복귀 시 (60px 이하) 주유소 오버레이 재표시
+    if (offset < 60 && prev >= 60) {
       _startGasTimer();
     }
 
@@ -328,19 +353,43 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // ── 주유소 오버레이 타이머 (4초 후 숨김, 스크롤 복귀 시 재표시) ──
+  // ── 주유소 오버레이 타이머 ──────────────────────────────────────
+  // showCount 0,1 → 4초 표시 후 숨김
+  // showCount 2    → 1분 잠금 (DateTime 기록)
   void _startGasTimer() {
     _gasTimer?.cancel();
     _gasRotateTimer?.cancel();
+
+    // 1분 잠금 중이면 표시하지 않음
+    if (_gasHideUntil != null && DateTime.now().isBefore(_gasHideUntil!)) return;
+
+    // showCount 2 이상이면 1분 잠금 설정 후 종료
+    if (_gasShowCount >= 2) {
+      _gasHideUntil = DateTime.now().add(const Duration(minutes: 1));
+      // 1분 후 자동 재활성화
+      _gasTimer = Timer(const Duration(minutes: 1), () {
+        if (mounted) setState(() { _gasShowCount = 0; _gasHideUntil = null; });
+      });
+      return;
+    }
+
+    // 표시
     setState(() { _gasOverlayVisible = true; _gasDisplayIndex = 0; });
-    _gasTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _gasOverlayVisible = false);
-    });
-    // 6초마다 주유소 랜덤 전환
-    _gasRotateTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+
+    // 5초 후 숨김
+    _gasTimer = Timer(const Duration(seconds: 5), () {
       if (!mounted) return;
       setState(() {
-        _gasDisplayIndex = (_gasDisplayIndex + 1) % 3;
+        _gasOverlayVisible = false;
+        _gasShowCount++;          // 0→1 또는 1→2
+        if (_gasShowCount >= 2) {
+          // 두 번 다 봤음 → 1분 잠금
+          _gasHideUntil = DateTime.now().add(const Duration(minutes: 1));
+          // 1분 후 자동 리셋
+          _gasTimer = Timer(const Duration(minutes: 1), () {
+            if (mounted) setState(() { _gasShowCount = 0; _gasHideUntil = null; });
+          });
+        }
       });
     });
   }
@@ -437,19 +486,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
-          // ── ⛽ 주유소 현황 오버레이 (상단바 바로 아래 우측 고정) ──
-          Positioned(
-            right: 12,
-            top: topPad + _topBarH + 6,
-            child: AnimatedOpacity(
-              opacity: _gasOverlayVisible ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 500),
-              child: IgnorePointer(
-                ignoring: !_gasOverlayVisible,
-                child: _buildGasOverlay(),
-              ),
-            ),
-          ),
+          // ⛽ 주유소 오버레이는 배너 내부로 이동
 
           // ── 하단 BottomNav (Stack 내부 → 숨겨도 공백 없음) ───
           Positioned(
@@ -815,7 +852,20 @@ class _HomeScreenState extends State<HomeScreen>
             itemBuilder: (_, rawIndex) {
               final b = _bannerData[rawIndex % _bannerData.length];
               return RepaintBoundary(
-               child: Stack(fit: StackFit.expand, children: [
+               child: GestureDetector(
+                onTap: () {
+                  final route = b['route'] as String? ?? '';
+                  if (route.isEmpty) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: true,
+                      builder: (_) => _buildGasPopupDialog(),
+                    );
+                  } else {
+                    Navigator.pushNamed(context, route);
+                  }
+                },
+                child: Stack(fit: StackFit.expand, children: [
                 // 배경 사진 이미지 (네트워크)
                 Image.network(
                   b['image'] as String,
@@ -838,38 +888,81 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
-                // 좌측 하단 텍스트
+                // 좌측 하단 텍스트 (클릭 시 해당 페이지 이동)
                 Positioned(left: 22, right: 22, bottom: 28,
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                    // 카테고리 태그
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: _accent.withValues(alpha: 0.2),
-                        border: Border.all(color: _accent.withValues(alpha: 0.5)),
-                        borderRadius: BorderRadius.circular(20),
+                  child: GestureDetector(
+                    onTap: () {
+                      final route = b['route'] as String? ?? '';
+                      if (route.isEmpty) {
+                        // 주유 배너 → 팝업 표시
+                        showDialog(
+                          context: context,
+                          barrierDismissible: true,
+                          builder: (_) => _buildGasPopupDialog(),
+                        );
+                      } else {
+                        Navigator.pushNamed(context, route);
+                      }
+                    },
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                      // 카테고리 태그
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _accent.withValues(alpha: 0.2),
+                          border: Border.all(color: _accent.withValues(alpha: 0.5)),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(b['tag'] as String,
+                            style: GoogleFonts.notoSansKr(
+                                fontSize: 12, color: _accent, fontWeight: FontWeight.w600)),
                       ),
-                      child: Text(b['tag'] as String,
+                      const SizedBox(height: 10),
+                      Text(b['title'] as String,
                           style: GoogleFonts.notoSansKr(
-                              fontSize: 12, color: _accent, fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(b['title'] as String,
-                        style: GoogleFonts.notoSansKr(
-                            fontSize: 26, fontWeight: FontWeight.w900,
-                            color: Colors.white, height: 1.25,
-                            shadows: [Shadow(color: Colors.black54, blurRadius: 8)])),
-                    const SizedBox(height: 6),
-                    Text(b['sub'] as String,
-                        style: GoogleFonts.notoSansKr(
-                            fontSize: 13, color: Colors.white70,
-                            shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
-                  ]),
+                              fontSize: 26, fontWeight: FontWeight.w900,
+                              color: Colors.white, height: 1.25,
+                              shadows: [Shadow(color: Colors.black54, blurRadius: 8)])),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Expanded(child: Text(b['sub'] as String,
+                            style: GoogleFonts.notoSansKr(
+                                fontSize: 13, color: Colors.white70,
+                                shadows: [Shadow(color: Colors.black45, blurRadius: 4)]))),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Text('바로가기', style: GoogleFonts.notoSansKr(
+                                fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700)),
+                            const SizedBox(width: 3),
+                            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 10),
+                          ]),
+                        ),
+                      ]),
+                    ]),
+                  ),
                 ),
-              ])); // RepaintBoundary + Stack
+                // ⛽ 주유 오버레이 (배너 상단 우측)
+                Positioned(
+                  top: 12, right: 12,
+                  child: AnimatedOpacity(
+                    opacity: _gasOverlayVisible ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 400),
+                    child: IgnorePointer(
+                      ignoring: !_gasOverlayVisible,
+                      child: _buildGasMiniOverlay(),
+                    ),
+                  ),
+                ),
+              ]))); // RepaintBoundary + GestureDetector + Stack
             },
           ),
         ),
@@ -893,236 +986,219 @@ class _HomeScreenState extends State<HomeScreen>
     {'name': '현대오일 동성점',  'dist': '1.1km', 'distN': 1.1, 'gasoline': 1671, 'diesel': 1558},
   ];
 
-  Widget _buildGasOverlay() {
-    // 거리순 정렬된 _gasList에서 gasoline 최저가 인덱스 계산
-    int lowestGasIdx = 0;
-    int lowestGas = _gasList[0]['gasoline'] as int;
+  // ── 최저가 주유소 인덱스 계산 헬퍼 ───────────────────────────
+  int get _lowestGasIdx {
+    int idx = 0;
+    int lowest = _gasList[0]['gasoline'] as int;
     for (int i = 1; i < _gasList.length; i++) {
-      if ((_gasList[i]['gasoline'] as int) < lowestGas) {
-        lowestGas = _gasList[i]['gasoline'] as int;
-        lowestGasIdx = i;
+      if ((_gasList[i]['gasoline'] as int) < lowest) {
+        lowest = _gasList[i]['gasoline'] as int;
+        idx = i;
       }
     }
+    return idx;
+  }
 
+  // ── ⛽ 주유소 팝업 다이얼로그 ─────────────────────────────────
+  Widget _buildGasPopupDialog() {
+    final lowestGasIdx = _lowestGasIdx;
+    return Dialog(
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 30),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            // ─── 헤더 ───
+            Row(children: [
+              const Text('⛽', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('인근 주유소 가격 비교',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white))),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.close, color: Color(0xFF8BA3BC), size: 20)),
+            ]),
+            const SizedBox(height: 4),
+            Row(children: [
+              Text('현재 위치: $_currentAddress',
+                style: const TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4FC3F7).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.4)),
+                ),
+                child: const Text('거리순', style: TextStyle(fontSize: 10, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const SizedBox(height: 14),
+            // ─── 주유소 카드 목록 ───
+            ...List.generate(_gasList.length, (i) {
+              final s = _gasList[i];
+              final isLowest = i == lowestGasIdx;
+              final Color col = isLowest
+                  ? const Color(0xFFFF6B35)
+                  : (i == 0 ? const Color(0xFF4FC3F7) : const Color(0xFF10B981));
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: col.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: col.withOpacity(isLowest ? 0.7 : 0.25), width: isLowest ? 1.5 : 1),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A1628),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: col.withOpacity(0.4)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.location_on, color: col, size: 11),
+                        const SizedBox(width: 3),
+                        Text(s['dist'] as String,
+                          style: TextStyle(fontSize: 11, color: col, fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(s['name'] as String,
+                      style: TextStyle(fontSize: 13,
+                        color: isLowest ? Colors.white : const Color(0xFFE8F4FF),
+                        fontWeight: isLowest ? FontWeight.w800 : FontWeight.w600))),
+                    if (isLowest) Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B35).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
+                      ),
+                      child: const Text('최저가', style: TextStyle(fontSize: 10, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A1628),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: col.withOpacity(0.3)),
+                      ),
+                      child: Column(children: [
+                        const Text('휘발유', style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
+                        const SizedBox(height: 3),
+                        Text('${s['gasoline']}원',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900,
+                            color: isLowest ? const Color(0xFFFF6B35) : col)),
+                      ]),
+                    )),
+                    const SizedBox(width: 8),
+                    Expanded(child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A1628),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF1E3A5F)),
+                      ),
+                      child: Column(children: [
+                        const Text('경유', style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
+                        const SizedBox(height: 3),
+                        Text('${s['diesel']}원',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF7AB0D4))),
+                      ]),
+                    )),
+                    const SizedBox(width: 8),
+                    // 카카오맵 길찾기
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          backgroundColor: const Color(0xFFFFE000),
+                          content: Row(children: [
+                            const Text('🗺️', style: TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Expanded(child: Text('카카오맵: ${s['name']}',
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12))),
+                          ]),
+                          duration: const Duration(seconds: 2),
+                        ));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE000).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFFE000).withOpacity(0.5)),
+                        ),
+                        child: const Column(mainAxisSize: MainAxisSize.min, children: [
+                          Text('🗺️', style: TextStyle(fontSize: 13)),
+                          SizedBox(height: 2),
+                          Text('길찾기', style: TextStyle(fontSize: 9, color: Color(0xFFFFE000), fontWeight: FontWeight.w700)),
+                        ]),
+                      ),
+                    ),
+                  ]),
+                ]),
+              );
+            }),
+            const SizedBox(height: 4),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    backgroundColor: Color(0xFFFFE000),
+                    content: Row(children: [
+                      Text('🗺️', style: TextStyle(fontSize: 14)),
+                      SizedBox(width: 6),
+                      Expanded(child: Text('카카오맵에서 주유소를 검색합니다',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12))),
+                    ]),
+                    duration: Duration(seconds: 2),
+                  ));
+                },
+                icon: const Text('🗺️', style: TextStyle(fontSize: 14)),
+                label: const Text('카카오맵으로 주유소 찾기',
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFE000),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text('※ 오피넷 기준 · 실시간 가격은 앱에서 확인',
+              style: TextStyle(fontSize: 10, color: const Color(0xFFB0BEC5).withOpacity(0.6))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── ⛽ 배너 내 미니 오버레이 (탭 시 팝업) ────────────────────
+  Widget _buildGasMiniOverlay() {
+    final lowestGasIdx = _lowestGasIdx;
     return GestureDetector(
       onTap: () => showDialog(
         context: context,
         barrierDismissible: true,
-        builder: (ctx) => Dialog(
-          backgroundColor: const Color(0xFF0D1B2A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 30),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                // ─── 헤더 ───
-                Row(children: [
-                  const Text('⛽', style: TextStyle(fontSize: 22)),
-                  const SizedBox(width: 8),
-                  const Expanded(child: Text('인근 주유소 가격 비교',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white))),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: const Icon(Icons.close, color: Color(0xFF8BA3BC), size: 20)),
-                ]),
-                const SizedBox(height: 4),
-                Row(children: [
-                  Text('현재 위치: $_currentAddress',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4FC3F7).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.4)),
-                    ),
-                    child: const Text('거리순', style: TextStyle(fontSize: 10, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
-                  ),
-                ]),
-                const SizedBox(height: 14),
-
-                // ─── 주유소 카드 (거리순, 최저가 주황 강조) ───
-                ...List.generate(_gasList.length, (i) {
-                  final s = _gasList[i];
-                  final isLowest = i == lowestGasIdx;
-                  final Color col = isLowest
-                      ? const Color(0xFFFF6B35)
-                      : (i == 0 ? const Color(0xFF4FC3F7) : const Color(0xFF10B981));
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: col.withOpacity(0.07),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: col.withOpacity(isLowest ? 0.7 : 0.25),
-                        width: isLowest ? 1.5 : 1,
-                      ),
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        // 거리 뱃지
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0A1628),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: col.withOpacity(0.4)),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.location_on, color: col, size: 11),
-                            const SizedBox(width: 3),
-                            Text(s['dist'] as String,
-                              style: TextStyle(fontSize: 11, color: col, fontWeight: FontWeight.w700)),
-                          ]),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(s['name'] as String,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isLowest ? Colors.white : const Color(0xFFE8F4FF),
-                            fontWeight: isLowest ? FontWeight.w800 : FontWeight.w600,
-                          ))),
-                        if (isLowest) Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFF6B35).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
-                          ),
-                          child: const Text('최저가', style: TextStyle(fontSize: 10, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
-                        ),
-                      ]),
-                      const SizedBox(height: 8),
-                      // 휘발유 · 경유 · 카카오맵
-                      Row(children: [
-                        // 휘발유
-                        Expanded(child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0A1628),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: col.withOpacity(0.3)),
-                          ),
-                          child: Column(children: [
-                            const Text('휘발유', style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
-                            const SizedBox(height: 3),
-                            Text('${s['gasoline']}원',
-                              style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w900,
-                                color: isLowest ? const Color(0xFFFF6B35) : col,
-                              )),
-                          ]),
-                        )),
-                        const SizedBox(width: 8),
-                        // 경유
-                        Expanded(child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0A1628),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF1E3A5F)),
-                          ),
-                          child: Column(children: [
-                            const Text('경유', style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
-                            const SizedBox(height: 3),
-                            Text('${s['diesel']}원',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF7AB0D4))),
-                          ]),
-                        )),
-                        const SizedBox(width: 8),
-                        // 카카오맵 길찾기 버튼
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(ctx);
-                            final query = Uri.encodeComponent(s['name'] as String);
-                            final kakaoUrl = 'kakaomap://search?q=$query';
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              backgroundColor: const Color(0xFFFFE000),
-                              content: Row(children: [
-                                const Text('🗺️', style: TextStyle(fontSize: 14)),
-                                const SizedBox(width: 6),
-                                Expanded(child: Text(
-                                  '카카오맵: ${s['name']}',
-                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12),
-                                )),
-                              ]),
-                              duration: const Duration(seconds: 2),
-                              action: SnackBarAction(
-                                label: '열기',
-                                textColor: Colors.black87,
-                                onPressed: () async {
-                                  // ignore: unused_local_variable
-                                  final uri = Uri.parse(kakaoUrl);
-                                },
-                              ),
-                            ));
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFE000).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFFFE000).withOpacity(0.5)),
-                            ),
-                            child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              const Text('🗺️', style: TextStyle(fontSize: 13)),
-                              const SizedBox(height: 2),
-                              const Text('길찾기', style: TextStyle(fontSize: 9, color: Color(0xFFFFE000), fontWeight: FontWeight.w700)),
-                            ]),
-                          ),
-                        ),
-                      ]),
-                    ]),
-                  );
-                }),
-
-                const SizedBox(height: 4),
-                // 카카오맵 전체 검색 버튼
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        backgroundColor: Color(0xFFFFE000),
-                        content: Row(children: [
-                          Text('🗺️', style: TextStyle(fontSize: 14)),
-                          SizedBox(width: 6),
-                          Expanded(child: Text('카카오맵에서 주유소를 검색합니다',
-                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12))),
-                        ]),
-                        duration: Duration(seconds: 2),
-                      ));
-                    },
-                    icon: const Text('🗺️', style: TextStyle(fontSize: 14)),
-                    label: const Text('카카오맵으로 주유소 찾기',
-                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFE000),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text('※ 오피넷 기준 · 실시간 가격은 앱에서 확인',
-                  style: TextStyle(fontSize: 10, color: const Color(0xFFB0BEC5).withOpacity(0.6))),
-              ]),
-            ),
-          ),
-        ),
+        builder: (_) => _buildGasPopupDialog(),
       ),
-      // ── 미니 오버레이 위젯 (3곳 동시 표시) ──
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.80),
+          color: Colors.black.withOpacity(0.75),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
+          border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.6)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -1131,11 +1207,10 @@ class _HomeScreenState extends State<HomeScreen>
             Row(mainAxisSize: MainAxisSize.min, children: [
               const Text('⛽', style: TextStyle(fontSize: 10)),
               const SizedBox(width: 4),
-              const Text('인근 주유소 가격 비교',
+              const Text('주유소 가격',
                 style: TextStyle(fontSize: 9, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 4),
-            // 거리순 3곳 (최저가 주황)
             ..._gasList.asMap().entries.map((e) {
               final i = e.key;
               final s = e.value;
@@ -1144,13 +1219,12 @@ class _HomeScreenState extends State<HomeScreen>
               return Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  // 거리 표시
                   Text(s['dist'] as String,
                     style: TextStyle(fontSize: 8, color: col.withOpacity(0.8))),
                   const SizedBox(width: 3),
                   if (isLowest)
                     Container(
-                      margin: const EdgeInsets.only(right: 4),
+                      margin: const EdgeInsets.only(right: 3),
                       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF6B35).withOpacity(0.2),
@@ -1172,8 +1246,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
-
 
   // ── 주유소 카테고리 페이지 이동 ───────────────────────────────
   void _navigateToGasCategory() {
@@ -1742,7 +1814,12 @@ class _HomeScreenState extends State<HomeScreen>
           itemCount: _recentStores.length,
           itemBuilder: (_, i) {
             final s = _recentStores[i];
-            return Container(
+            final storeId = (i % AppData.stores.length) + 1;
+            return GestureDetector(
+              onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
+                  settings: RouteSettings(arguments: storeId))),
+              child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _recentStores.length - 1 ? 14 : 0),
               decoration: BoxDecoration(
@@ -1786,7 +1863,8 @@ class _HomeScreenState extends State<HomeScreen>
                   ]),
                 ),
               ]),
-            );
+            ), // Container
+            ); // GestureDetector
           },
         ),
       ),
@@ -1807,8 +1885,15 @@ class _HomeScreenState extends State<HomeScreen>
         padding: const EdgeInsets.fromLTRB(16, 26, 16, 16),
         child: _sectionHeader('📍  가까운 점포순', null),
       ),
-      ...list.map((s) {
-        return Container(
+      ...list.asMap().entries.map((entry) {
+        final i = entry.key;
+        final s = entry.value;
+        final storeId = (i % AppData.stores.length) + 1;
+        return GestureDetector(
+          onTap: () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
+              settings: RouteSettings(arguments: storeId))),
+          child: Container(
           margin: const EdgeInsets.fromLTRB(14, 0, 14, 16),
           decoration: BoxDecoration(
             color: _s1,
@@ -1886,7 +1971,8 @@ class _HomeScreenState extends State<HomeScreen>
               ]),
             ),
           ]),
-        );
+          ), // Container
+        ); // GestureDetector
       }).toList(),
 
       // 더보기 버튼

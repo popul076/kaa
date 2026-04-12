@@ -85,6 +85,7 @@ class Store {
   final String image;
   final List<StoreService> services;
   final String desc;
+  final String aiIntro;
 
   Store({
     required this.id,
@@ -103,6 +104,7 @@ class Store {
     required this.image,
     required this.services,
     required this.desc,
+    this.aiIntro = '',
   });
 }
 
@@ -139,6 +141,7 @@ class AppData {
         StoreService(name: '하체 소음 진단', price: '35,000원', desc: '하체 진단 및 리프트 점검'),
       ],
       desc: 'KAA 추천 프리미엄 정비소의 대표 서비스와 이용 정보를 한눈에 확인하세요.',
+      aiIntro: '대구 수성구에 위치한 KAA 공식 인증 프리미엄 정비소입니다. 20년 이상 경력의 전문 정비사가 직접 차량을 점검하며, 엔진·미션·브레이크 등 핵심 부품 전반을 다룹니다. 고객 대기실에는 무료 음료와 Wi-Fi가 제공되며, 실시간 정비 현황을 문자로 안내해 드립니다.',
     ),
     Store(
       id: 2, name: '추천 세차·코팅 전문점', category: '세차',
@@ -154,6 +157,7 @@ class AppData {
         StoreService(name: '세라믹 코팅', price: '350,000원', desc: '3년 보장 세라믹 코팅'),
       ],
       desc: '전문 세차 장비와 친환경 세차용품으로 차량을 완벽하게 관리해드립니다.',
+      aiIntro: '친환경 세차 용품만 사용하는 수성구 대표 세차 코팅 전문점입니다. 세라믹 코팅 3년 보증 서비스를 제공하며, 전담 코팅 전문가가 차량 상태를 분석한 후 맞춤형 코팅 플랜을 제안합니다. 광택 복원율 98%를 자랑합니다.',
     ),
     Store(
       id: 3, name: '프리미엄 타이어 전문점', category: '타이어',
@@ -169,6 +173,7 @@ class AppData {
         StoreService(name: '휠 얼라인먼트', price: '30,000원', desc: '4륜 얼라인먼트 정밀 측정'),
       ],
       desc: '국내외 주요 타이어 브랜드를 취급하며 전문 기술진이 최적의 타이어를 추천해드립니다.',
+      aiIntro: 'KAA 인증 타이어 전문점으로, 국내외 모든 주요 타이어 브랜드를 최저가로 공급합니다. 최신 3D 얼라인먼트 장비를 보유하고 있으며, 구매 후 6개월 무상 점검 서비스와 펑크 무상 수리 혜택이 제공됩니다.',
     ),
     Store(
       id: 4, name: 'KAA 인증 중고차센터', category: '중고차',
@@ -184,6 +189,7 @@ class AppData {
         StoreService(name: '사고이력 조회', price: '무료', desc: '사고이력 무료 조회'),
       ],
       desc: 'KAA 인증 중고차센터에서 투명하고 안전한 중고차 거래를 경험하세요.',
+      aiIntro: 'KAA 공식 인증 투명한 중고차 거래 전문센터입니다. 160개 항목의 철저한 성능 점검과 무료 사고이력 조회를 통해 안심 구매를 보장합니다. 구매 후 30일 무상 AS와 1년 보증 서비스가 제공됩니다.',
     ),
     Store(
       id: 5, name: '하이브리드 배터리 전문점', category: '정비',
@@ -199,6 +205,7 @@ class AppData {
         StoreService(name: '배터리 교체', price: '900,000원~', desc: '하이브리드 배터리 전문 교체'),
       ],
       desc: '하이브리드 및 전기차 배터리 전문 정비센터입니다.',
+      aiIntro: '하이브리드 전기차 배터리 전문 정비센터입니다. 현대 기아 도요타 등 주요 차량의 배터리 진단 장비를 완비하고 있으며, 배터리 교체 시 12개월 품질 보증이 제공됩니다.',
     ),
     Store(
       id: 6, name: '수입차 브랜드 전문가점', category: '정비',
@@ -214,6 +221,7 @@ class AppData {
         StoreService(name: '수입차 종합점검', price: '80,000원', desc: '수입차 전문 종합 점검'),
       ],
       desc: 'BMW, 벤츠, 아우디 등 수입차 전문 정비센터입니다.',
+      aiIntro: 'BMW 벤츠 아우디 공식 인증 정비사가 상주하는 수입차 전문 케어센터입니다. 수입차 전용 OBD 진단 장비와 정품 부품만을 사용하며, 딜러사 대비 30~40% 저렴한 가격으로 동일한 품질의 서비스를 제공합니다.',
     ),
   ];
 

@@ -5945,3 +5945,219 @@ class UsedCarStoreDetailScreen extends StatelessWidget {
   }
 }
 
+
+// ==================== 1:1 채팅 ====================
+class ChatScreen extends StatefulWidget {
+  final String storeName;
+  final int storeId;
+  const ChatScreen({super.key, required this.storeName, required this.storeId});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final _ctrl   = TextEditingController();
+  final _scroll = ScrollController();
+  final List<Map<String, dynamic>> _messages = [
+    {'text': '안녕하세요! 무엇을 도와드릴까요?', 'isMe': false, 'time': '방금'},
+  ];
+
+  void _send() {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _messages.add({'text': text, 'isMe': true, 'time': '방금'});
+      _ctrl.clear();
+    });
+    // 자동 응답
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      setState(() {
+        _messages.add({
+          'text': '문의 내용을 확인했습니다. 잠시 후 담당자가 답변해 드리겠습니다. 감사합니다!',
+          'isMe': false,
+          'time': '방금',
+        });
+      });
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent + 100,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      _scroll.animateTo(
+        _scroll.position.maxScrollExtent + 100,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            // 헤더
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: _mAccent.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _mAccent.withOpacity(0.4)),
+                    ),
+                    child: const Icon(Icons.store, color: _mAccent, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.storeName,
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                        Row(
+                          children: [
+                            Container(width: 7, height: 7,
+                              decoration: const BoxDecoration(color: _mGreen, shape: BoxShape.circle)),
+                            const SizedBox(width: 4),
+                            Text('온라인', style: TextStyle(fontSize: 11, color: _mTextSec)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.more_vert, color: _mTextSec),
+                ],
+              ),
+            ),
+
+            // 메시지 목록
+            Expanded(
+              child: ListView.builder(
+                controller: _scroll,
+                padding: const EdgeInsets.all(16),
+                itemCount: _messages.length,
+                itemBuilder: (_, i) {
+                  final m = _messages[i];
+                  final isMe = m['isMe'] as bool;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (!isMe) ...[
+                          Container(
+                            width: 32, height: 32,
+                            margin: const EdgeInsets.only(right: 8, bottom: 4),
+                            decoration: BoxDecoration(
+                              color: _mAccent.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.store, color: _mAccent, size: 16),
+                          ),
+                        ],
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isMe ? _mAccent : _mCard,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft:     const Radius.circular(16),
+                                    topRight:    const Radius.circular(16),
+                                    bottomLeft:  Radius.circular(isMe ? 16 : 4),
+                                    bottomRight: Radius.circular(isMe ? 4 : 16),
+                                  ),
+                                  border: Border.all(
+                                    color: isMe ? _mAccent : _mBorder,
+                                  ),
+                                ),
+                                child: Text(m['text'] as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isMe ? Colors.white : Colors.white,
+                                    height: 1.5,
+                                  )),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(m['time'] as String,
+                                style: TextStyle(fontSize: 10, color: _mTextSec)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // 입력창
+            Container(
+              padding: EdgeInsets.fromLTRB(12, 10, 12, MediaQuery.of(context).padding.bottom + 10),
+              decoration: BoxDecoration(
+                color: _mCard,
+                border: Border(top: BorderSide(color: _mBorder)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _mBg,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: _mBorder),
+                      ),
+                      child: TextField(
+                        controller: _ctrl,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: '메시지를 입력하세요...',
+                          hintStyle: TextStyle(color: _mTextSec, fontSize: 14),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        ),
+                        onSubmitted: (_) => _send(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _send,
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: _mAccent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
