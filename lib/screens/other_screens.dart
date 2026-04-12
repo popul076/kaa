@@ -2752,26 +2752,21 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
   }
 
   // 신청서 발송 (3곳 매장에 추가)
-  Future<void> _sendApplications() async {
+  // 선택한 매장에만 신청서 전달
+  Future<void> _sendToSelectedStores(List<Map<String,dynamic>> selectedStores) async {
     if (_priceResult == null) return;
     setState(() => _applying = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 800));
 
     final now = DateTime.now();
     final dateStr = '${now.month}/${now.day} ${now.hour}:${now.minute.toString().padLeft(2,'0')}';
     final carInfo = '${_priceResult!['maker']} ${_priceResult!['model']} ${_priceResult!['year']}년';
 
-    final stores = [
-      {'name': '대구모터스',   'rating': '★4.8', 'distance': '0.8km', 'color': 0xFF4FC3F7},
-      {'name': '수성카딜러',   'rating': '★4.6', 'distance': '1.2km', 'color': 0xFF10B981},
-      {'name': '범어중고차센터','rating': '★4.5', 'distance': '1.9km', 'color': 0xFFFF6B35},
-    ];
-
-    final newApps = stores.map((s) => {
+    final newApps = selectedStores.map((s) => {
       'storeName':     s['name'],
-      'storeRating':   s['rating'],
-      'storeDistance': s['distance'],
-      'storeColor':    s['color'],
+      'storeRating':   s['rating'] ?? '',
+      'storeDistance': s['dist'] ?? '',
+      'storeColor':    s['color'] ?? 0xFF4FC3F7,
       'sentAt':        dateStr,
       'cancelled':     false,
       'carInfo':       carInfo,
@@ -3230,8 +3225,19 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
     );
   }
 
+  // ── 수동 신청서 UI (체크박스로 매장 선택 후 전송) ──
+  bool _storeCheck0 = true;
+  bool _storeCheck1 = true;
+  bool _storeCheck2 = true;
+
   Widget _buildApplicationSection() {
     final activeApps = _applications.where((a) => !(a['cancelled'] as bool)).toList();
+    final stores = [
+      {'icon': '🔵', 'name': '대구모터스',    'dist': '0.8km', 'rating': '★4.8', 'color': 0xFF4FC3F7},
+      {'icon': '🟢', 'name': '수성카딜러',    'dist': '1.2km', 'rating': '★4.6', 'color': 0xFF10B981},
+      {'icon': '🟡', 'name': '범어중고차센터', 'dist': '1.9km', 'rating': '★4.5', 'color': 0xFFFF6B35},
+    ];
+    final checks = [_storeCheck0, _storeCheck1, _storeCheck2];
 
     return Column(
       children: [
@@ -3245,6 +3251,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 헤더
               Row(children: [
                 const Text('🏪', style: TextStyle(fontSize: 18)),
                 const SizedBox(width: 8),
@@ -3270,43 +3277,128 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                     ),
                   ),
               ]),
-              const SizedBox(height: 8),
-              Text('인근 MOINCAR 인증 중고차 매장 3곳에\n신청서가 자동 전달됩니다. 자유롭게 추가 신청 가능합니다.',
+              const SizedBox(height: 6),
+              Text('신청할 매장을 선택하세요. 선택한 매장에만 신청서가 전달됩니다.',
                 style: TextStyle(fontSize: 12, color: _mTextSec, height: 1.5)),
               const SizedBox(height: 12),
-              ...[
-                {'icon': '🔵', 'name': '대구모터스',    'dist': '0.8km', 'rating': '★4.8'},
-                {'icon': '🟢', 'name': '수성카딜러',    'dist': '1.2km', 'rating': '★4.6'},
-                {'icon': '🟡', 'name': '범어중고차센터', 'dist': '1.9km', 'rating': '★4.5'},
-              ].map((s) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(children: [
-                  Text(s['icon']!, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(width: 6),
-                  Text('${s['name']} (${s['dist']})',
-                    style: const TextStyle(fontSize: 12, color: Colors.white)),
-                  const Spacer(),
-                  Text(s['rating']!, style: TextStyle(fontSize: 11, color: _mAccent)),
-                ]),
-              )),
-              const SizedBox(height: 14),
+
+              // 체크박스 매장 목록
+              ...stores.asMap().entries.map((e) {
+                final i = e.key; final s = e.value;
+                final chk = checks[i];
+                final col = Color(s['color'] as int);
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    if (i == 0) _storeCheck0 = !_storeCheck0;
+                    if (i == 1) _storeCheck1 = !_storeCheck1;
+                    if (i == 2) _storeCheck2 = !_storeCheck2;
+                  }),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: chk ? col.withOpacity(0.08) : _mBg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: chk ? col.withOpacity(0.5) : _mBorder),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        width: 20, height: 20,
+                        decoration: BoxDecoration(
+                          color: chk ? col : Colors.transparent,
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(color: chk ? col : _mBorder, width: 1.5),
+                        ),
+                        child: chk ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(s['icon'] as String, style: const TextStyle(fontSize: 14)),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text('${s['name']} (${s['dist']})',
+                        style: TextStyle(fontSize: 13, color: chk ? Colors.white : _mTextSec,
+                          fontWeight: chk ? FontWeight.w600 : FontWeight.normal))),
+                      Text(s['rating'] as String,
+                        style: TextStyle(fontSize: 11, color: chk ? col : _mTextSec)),
+                    ]),
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 10),
+
+              // 신청 버튼
               SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
                   onPressed: _applying ? null : () async {
-                    await _sendApplications();
+                    // 선택된 매장 확인
+                    final selectedStores = <Map<String,dynamic>>[];
+                    if (_storeCheck0) selectedStores.add(stores[0]);
+                    if (_storeCheck1) selectedStores.add(stores[1]);
+                    if (_storeCheck2) selectedStores.add(stores[2]);
+
+                    if (selectedStores.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('신청할 매장을 1곳 이상 선택해주세요.'),
+                          backgroundColor: Colors.red));
+                      return;
+                    }
+
+                    // 확인 다이얼로그
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: _mCard,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        title: const Text('신청서 전달 확인',
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('선택한 매장 ${selectedStores.length}곳에 신청서를 전달할까요?',
+                              style: TextStyle(color: _mTextSec, fontSize: 13)),
+                            const SizedBox(height: 12),
+                            ...selectedStores.map((s) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(children: [
+                                Text(s['icon'] as String),
+                                const SizedBox(width: 6),
+                                Text(s['name'] as String,
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                const SizedBox(width: 4),
+                                Text(s['dist'] as String,
+                                  style: TextStyle(color: _mTextSec, fontSize: 11)),
+                              ]),
+                            )),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text('취소', style: TextStyle(color: _mTextSec))),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('전달하기',
+                              style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700))),
+                        ],
+                      ),
+                    );
+
+                    if (confirm != true) return;
+                    await _sendToSelectedStores(selectedStores);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           backgroundColor: _mGreen,
-                          content: const Row(children: [
-                            Icon(Icons.check_circle, color: Colors.white, size: 18),
-                            SizedBox(width: 8),
-                            Expanded(child: Text('🎉 인증 매장 3곳에 신청서 전달 완료!',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+                          content: Row(children: [
+                            const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('✅ ${selectedStores.length}곳에 신청서 전달 완료!',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
                           ]),
-                          duration: Duration(seconds: 3),
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                     }
@@ -3318,13 +3410,15 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                   child: _applying
                     ? const SizedBox(width: 20, height: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('🚗 인증 매장 3곳에 신청하기',
+                    : const Text('🚗 선택 매장에 신청서 전달',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ],
           ),
         ),
+
+        // 신청 내역 리스트
         if (_showApplications && _applications.isNotEmpty) ...[
           const SizedBox(height: 12),
           ..._applications.asMap().entries.map((entry) {
@@ -3367,7 +3461,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                           color: cancelled ? Colors.red : _mGreen)),
                     ),
                   ]),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text('${app['carInfo']}  ·  ${app['storeDistance']}  ·  ${app['storeRating']}',
                     style: TextStyle(fontSize: 11, color: _mTextSec)),
                   Text('신청일시: ${app['sentAt']}',
@@ -3507,12 +3601,121 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
   static const Color _border  = Color(0xFF1E3A5F);
 
   final _plateCtrl  = TextEditingController();
-  final _makerCtrl  = TextEditingController();
-  final _modelCtrl  = TextEditingController();
-  final _yearCtrl   = TextEditingController();
   final _mileCtrl   = TextEditingController();
+  String _selectedMaker = '';
+  String _selectedModel = '';
+  String _selectedYear  = '';
+  String _selectedMonth = '';
   String _fuelType = '가솔린';
   bool _isSaved = false;
+
+  // 제조사-모델 데이터 (CarPriceScreen과 동일)
+  static const Map<String, List<String>> _makerModels = {
+    '현대': ['아반떼','쏘나타','그랜저','투싼','싼타페','팰리세이드','코나','아이오닉5','아이오닉6','벨로스터','넥쏘'],
+    '기아': ['K3','K5','K8','K9','스포티지','쏘렌토','카니발','셀토스','EV6','EV9','스팅어','모하비'],
+    '제네시스': ['G70','G80','G90','GV70','GV80','GV60'],
+    '쉐보레': ['말리부','트레일블레이저','트래버스','콜로라도','스파크','이쿼녹스'],
+    '르노코리아': ['SM6','XM3','QM6','조에','아르카나'],
+    'KG모빌리티': ['티볼리','코란도','렉스턴','토레스','무쏘'],
+    'BMW': ['3시리즈','5시리즈','7시리즈','X3','X5','X7','i4','iX','M3','M5'],
+    '벤츠': ['C클래스','E클래스','S클래스','GLC','GLE','GLS','EQS','AMG GT'],
+    '아우디': ['A4','A6','A8','Q3','Q5','Q7','e-tron','RS6'],
+    '폭스바겐': ['골프','파사트','티구안','투아렉','ID.4','아테온'],
+    '토요타': ['캠리','RAV4','하이랜더','프리우스','C-HR','크라운'],
+    '렉서스': ['ES','IS','LS','NX','RX','LX','UX','RZ'],
+    '혼다': ['어코드','CR-V','HR-V','파일럿','ZR-V'],
+    '테슬라': ['모델3','모델Y','모델S','모델X','사이버트럭'],
+    '포르쉐': ['카이엔','마칸','파나메라','911','타이칸'],
+    '볼보': ['S60','S90','XC40','XC60','XC90','C40'],
+    '재규어': ['F-PACE','E-PACE','I-PACE','XE','XF'],
+    '랜드로버': ['디펜더','레인지로버','디스커버리','이보크'],
+    '지프': ['랭글러','그랜드체로키','컴패스','글래디에이터'],
+    '포드': ['머스탱','익스플로러','레인저','브롱코','F-150'],
+    '링컨': ['노틸러스','에비에이터','코르세어','내비게이터'],
+    '캐딜락': ['에스컬레이드','CT5','XT4','XT5','LYRIQ'],
+    '쉐보레(미국)': ['콜벳','카마로','실버라도'],
+    '미니': ['쿠퍼','클럽맨','컨트리맨','페이스맨'],
+    '페라리': ['로마','SF90','포르토피노','F8'],
+    '람보르기니': ['우라칸','아벤타도르','우루스'],
+    '마세라티': ['기블리','콰트로포르테','르반떼'],
+    '벤틀리': ['컨티넨탈','플라잉스퍼','벤테이가'],
+    '롤스로이스': ['팬텀','고스트','실버스퍼','컬리넌'],
+    '애스턴마틴': ['DB11','밴티지','DBS'],
+    '인피니티': ['Q50','QX50','QX60','QX80'],
+    '시트로엥': ['C3','C4','C5 X'],
+  };
+
+  List<String> get _years => List.generate(20, (i) => '${2025-i}년');
+  List<String> get _months => List.generate(12, (i) => '${i+1}월');
+
+  void _showPicker(String title, List<String> items, String current, Function(String) onSelect) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _border))),
+            child: Row(children: [
+              Expanded(child: Text(title,
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700))),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.close, color: Colors.white, size: 20)),
+            ]),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (_, i) {
+                final item = items[i];
+                final isSelected = item == current;
+                return ListTile(
+                  title: Text(item, style: TextStyle(
+                    color: isSelected ? _accent : Colors.white,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+                    fontSize: 14)),
+                  trailing: isSelected ? Icon(Icons.check_rounded, color: _accent, size: 18) : null,
+                  onTap: () { onSelect(item); Navigator.pop(context); },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pickerField(String label, String value, String hint, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: _textSec, fontSize: 12, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1628),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: value.isNotEmpty ? _accent.withOpacity(0.5) : _border),
+            ),
+            child: Row(children: [
+              Expanded(child: Text(value.isNotEmpty ? value : hint,
+                style: TextStyle(
+                  color: value.isNotEmpty ? Colors.white : _textSec.withOpacity(0.5),
+                  fontSize: 13))),
+              Icon(Icons.arrow_drop_down_rounded,
+                color: value.isNotEmpty ? _accent : _textSec, size: 22),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
 
   final List<Map<String, dynamic>> _myVehicles = [
     {'plate': '123가 4567', 'maker': '현대', 'model': '아반떼', 'year': '2021', 'fuel': '가솔린',
@@ -3582,19 +3785,42 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(child: _VehicleField(ctrl: _makerCtrl, label: '제조사', hint: '현대, 기아...')),
+                          Expanded(child: _pickerField('제조사', _selectedMaker, '선택하세요', () {
+                            _showPicker('제조사 선택', _makerModels.keys.toList(), _selectedMaker, (v) {
+                              setState(() { _selectedMaker = v; _selectedModel = ''; });
+                            });
+                          })),
                           const SizedBox(width: 10),
-                          Expanded(child: _VehicleField(ctrl: _modelCtrl, label: '모델명', hint: '아반떼, K5...')),
+                          Expanded(child: _pickerField('모델명', _selectedModel, '선택하세요', () {
+                            if (_selectedMaker.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('제조사를 먼저 선택해주세요')));
+                              return;
+                            }
+                            _showPicker('모델 선택', _makerModels[_selectedMaker] ?? [], _selectedModel, (v) {
+                              setState(() => _selectedModel = v);
+                            });
+                          })),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(child: _VehicleField(ctrl: _yearCtrl, label: '연식', hint: '2021', isNum: true)),
+                          Expanded(child: _pickerField('연식', _selectedYear, '선택', () {
+                            _showPicker('연식 선택', _years, _selectedYear, (v) {
+                              setState(() => _selectedYear = v);
+                            });
+                          })),
                           const SizedBox(width: 10),
-                          Expanded(child: _VehicleField(ctrl: _mileCtrl, label: '현재 주행거리(km)', hint: '45000', isNum: true)),
+                          Expanded(child: _pickerField('등록월', _selectedMonth, '선택', () {
+                            _showPicker('등록월 선택', _months, _selectedMonth, (v) {
+                              setState(() => _selectedMonth = v);
+                            });
+                          })),
                         ],
                       ),
+                      const SizedBox(height: 10),
+                      _VehicleField(ctrl: _mileCtrl, label: '현재 주행거리(km)', hint: '45000', isNum: true),
                       const SizedBox(height: 10),
                       const Text('연료 유형', style: TextStyle(color: _textSec, fontSize: 12)),
                       const SizedBox(height: 8),
@@ -3632,16 +3858,17 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
                               setState(() {
                                 _myVehicles.add({
                                   'plate': _plateCtrl.text,
-                                  'maker': _makerCtrl.text,
-                                  'model': _modelCtrl.text,
-                                  'year': _yearCtrl.text,
+                                  'maker': _selectedMaker,
+                                  'model': _selectedModel,
+                                  'year': _selectedYear,
+                                  'month': _selectedMonth,
                                   'fuel': _fuelType,
                                   'mile': _mileCtrl.text,
                                   'lastService': '-',
                                   'color': 0xFFFF6B35,
                                 });
-                                _plateCtrl.clear(); _makerCtrl.clear();
-                                _modelCtrl.clear(); _yearCtrl.clear(); _mileCtrl.clear();
+                                _plateCtrl.clear(); _mileCtrl.clear();
+                                setState(() { _selectedMaker = ''; _selectedModel = ''; _selectedYear = ''; _selectedMonth = ''; });
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('✅ 차량이 등록되었습니다')));

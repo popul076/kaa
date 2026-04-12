@@ -186,25 +186,53 @@ class LoginScreen extends StatelessWidget {
                   const SizedBox(height: 14),
 
                   // 일반 가입하기 버튼
+                  // 일반 로그인 버튼
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: OutlinedButton(
+                    child: ElevatedButton(
                       onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SignupNormalScreen())),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: _accent.withOpacity(0.5)),
+                        MaterialPageRoute(builder: (_) => const NormalLoginScreen())),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent.withOpacity(0.15),
+                        side: BorderSide(color: _accent.withOpacity(0.6)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        backgroundColor: _accent.withOpacity(0.05),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.person_add_outlined, color: _accent, size: 18),
+                          Icon(Icons.lock_outline_rounded, color: _accent, size: 18),
                           const SizedBox(width: 8),
-                          Text('일반 가입하기 (ID·비밀번호·이메일)',
+                          Text('일반 회원 로그인 (ID + 비밀번호 필수)',
                             style: GoogleFonts.notoSansKr(
                               fontSize: 14, fontWeight: FontWeight.w700, color: _accent)),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // 일반 가입하기 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SignupNormalScreen())),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: _br),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        backgroundColor: Colors.transparent,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_add_outlined, color: _t2, size: 16),
+                          const SizedBox(width: 8),
+                          Text('일반 가입하기',
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 13, fontWeight: FontWeight.w600, color: _t2)),
                         ],
                       ),
                     ),
@@ -854,4 +882,217 @@ class _GooglePainter extends CustomPainter {
       Paint()..color = const Color(0xFF4285F4));
   }
   @override bool shouldRepaint(_) => false;
+}
+
+// ══════════════════════════════════════════════════════════
+// 일반 회원 로그인 화면 (ID + 비밀번호 필수)
+// ══════════════════════════════════════════════════════════
+class NormalLoginScreen extends StatefulWidget {
+  const NormalLoginScreen({super.key});
+  @override
+  State<NormalLoginScreen> createState() => _NormalLoginScreenState();
+}
+
+class _NormalLoginScreenState extends State<NormalLoginScreen> {
+  static const Color _bg     = Color(0xFF020810);
+  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _br     = Color(0xFF1E3A5F);
+  static const Color _accent = Color(0xFF4FC3F7);
+  static const Color _t1     = Color(0xFFE8F4FF);
+  static const Color _t2     = Color(0xFF7AB0D4);
+  static const Color _t3     = Color(0xFF3A6080);
+
+  final _idCtrl  = TextEditingController();
+  final _pwCtrl  = TextEditingController();
+  bool _pwVisible = false;
+  bool _isLoading = false;
+
+  // 간편 로그인(SNS)은 이메일/비밀번호 입력 불필요 안내 문구 표시
+  static const String _simpleLimitMsg =
+    '간편 로그인(카카오/네이버/구글)은\n이메일·비밀번호 입력이 필요 없습니다.\n이전 화면의 SNS 버튼을 이용하세요.';
+
+  @override
+  void dispose() {
+    _idCtrl.dispose();
+    _pwCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _doLogin() async {
+    final id = _idCtrl.text.trim();
+    final pw = _pwCtrl.text;
+
+    if (id.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('아이디를 입력해주세요'), backgroundColor: Colors.red));
+      return;
+    }
+    if (pw.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호를 입력해주세요 (필수)'), backgroundColor: Colors.red));
+      return;
+    }
+    if (pw.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호는 6자리 이상이어야 합니다'), backgroundColor: Colors.red));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    // 더미 인증 (실제 앱에서는 서버 API 호출)
+    if (id == 'test' && pw == 'test123') {
+      await AuthPrefs.saveLogin();
+      AppState().setLoggedIn(UserModel(
+        name: '일반회원',
+        email: '$id@moincar.com',
+        loginType: 'normal',
+      ));
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+      }
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('아이디 또는 비밀번호가 일치하지 않습니다'),
+            backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _bg,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20, color: Color(0xFF7AB0D4)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('일반 회원 로그인',
+          style: TextStyle(color: _t1, fontSize: 16, fontWeight: FontWeight.w700)),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32),
+
+              // 간편 로그인 안내
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _accent.withOpacity(0.2)),
+                ),
+                child: Row(children: [
+                  Icon(Icons.info_outline_rounded, color: _accent, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_simpleLimitMsg,
+                    style: TextStyle(color: _t2, fontSize: 12, height: 1.5))),
+                ]),
+              ),
+
+              const SizedBox(height: 28),
+
+              // 아이디 입력
+              Text('아이디', style: TextStyle(color: _t2, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _idCtrl,
+                style: TextStyle(color: _t1, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: '아이디를 입력하세요',
+                  hintStyle: TextStyle(color: _t3.withOpacity(0.6), fontSize: 13),
+                  filled: true,
+                  fillColor: _card,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _br)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _accent)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _br)),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 비밀번호 (필수 표시)
+              Row(children: [
+                Text('비밀번호', style: TextStyle(color: _t2, fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.red.withOpacity(0.4)),
+                  ),
+                  child: const Text('필수', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _pwCtrl,
+                obscureText: !_pwVisible,
+                style: TextStyle(color: _t1, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: '6자리 이상 입력 (일반 회원 필수)',
+                  hintStyle: TextStyle(color: _t3.withOpacity(0.6), fontSize: 12),
+                  filled: true,
+                  fillColor: _card,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _br)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _accent)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _br)),
+                  suffixIcon: IconButton(
+                    icon: Icon(_pwVisible ? Icons.visibility_off : Icons.visibility,
+                      color: _t3, size: 20),
+                    onPressed: () => setState(() => _pwVisible = !_pwVisible)),
+                ),
+                onSubmitted: (_) => _doLogin(),
+              ),
+
+              const Spacer(),
+
+              // 로그인 버튼
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _doLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: _isLoading
+                    ? const SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('로그인',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -67,6 +67,8 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 주유소 오버레이 자동 숨김 ─────────────────────────────────
   bool _gasOverlayVisible = true;
   Timer? _gasTimer;
+  Timer? _gasRotateTimer;  // 6초 랜덤 전환
+  int _gasDisplayIndex = 0; // 현재 표시 중인 주유소 인덱스
 
   // ── 배너 (무한 캐러셀) ────────────────────────────────────────
   static const int _bannerMultiplier = 500;
@@ -327,9 +329,17 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 주유소 오버레이 타이머 (4초 후 숨김, 스크롤 복귀 시 재표시) ──
   void _startGasTimer() {
     _gasTimer?.cancel();
-    setState(() => _gasOverlayVisible = true);
+    _gasRotateTimer?.cancel();
+    setState(() { _gasOverlayVisible = true; _gasDisplayIndex = 0; });
     _gasTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) setState(() => _gasOverlayVisible = false);
+    });
+    // 6초마다 주유소 랜덤 전환
+    _gasRotateTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted) return;
+      setState(() {
+        _gasDisplayIndex = (_gasDisplayIndex + 1) % 3;
+      });
     });
   }
 
@@ -355,6 +365,7 @@ class _HomeScreenState extends State<HomeScreen>
   void dispose() {
     _bannerTimer?.cancel();
     _gasTimer?.cancel();
+    _gasRotateTimer?.cancel();
     _bannerController.dispose();
     _tabController.dispose();
     _navTimer?.cancel();
@@ -913,6 +924,7 @@ class _HomeScreenState extends State<HomeScreen>
         builder: (ctx) => Dialog(
           backgroundColor: const Color(0xFF0D1B2A),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 40),
           child: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -1015,9 +1027,6 @@ class _HomeScreenState extends State<HomeScreen>
                             style: TextStyle(fontSize: 10, color: Color(s['color'] as int),
                               fontWeight: FontWeight.w700)),
                         ),
-                        const SizedBox(width: 6),
-                        Text(s['dist'] as String,
-                          style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
                       ]),
                       const SizedBox(height: 4),
                       Text(s['name'] as String,
@@ -1076,42 +1085,37 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            const Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('⛽', style: TextStyle(fontSize: 12)),
-              SizedBox(width: 4),
-              Text('인근 주유소', style: TextStyle(fontSize: 10, color: Colors.white70)),
-            ]),
-            const SizedBox(height: 4),
-            ..._gasList.take(3).map((s) => Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 6, height: 6,
-                  decoration: BoxDecoration(
-                    color: Color(s['color'] as int),
-                    shape: BoxShape.circle),
-                ),
+      child: Builder(builder: (_) {
+        final s = _gasList[_gasDisplayIndex];
+        final col = Color(s['color'] as int);
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.7),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: col.withOpacity(0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                const Text('⛽', style: TextStyle(fontSize: 11)),
                 const SizedBox(width: 4),
-                Text('${s['dist']} ',
-                  style: const TextStyle(fontSize: 9, color: Colors.white60)),
-                Text('${s['price']}원',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
-                    color: Color(s['color'] as int))),
+                Text(s['type'] as String,
+                  style: TextStyle(fontSize: 10, color: col, fontWeight: FontWeight.w700)),
               ]),
-            )),
-          ],
-        ),
-      ),
+              const SizedBox(height: 3),
+              Text(s['name'] as String,
+                style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text('${s['price']}원/L',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: col)),
+            ],
+          ),
+        );
+      }),
     );
   }
 
