@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../models/app_state.dart';
@@ -2771,6 +2773,11 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
       'cancelled':     false,
       'carInfo':       carInfo,
       'priceResult':   Map<String, dynamic>.from(_priceResult!),
+      // 읽음 상태: 'unread'=전달됨/미확인, 'read'=점포가 확인함, 'replied'=견적답변옴
+      'readStatus':    'unread',
+      // 점포 예상 견적 (replied 상태일 때 채움)
+      'estimatePrice': 0,
+      'estimateNote':  '',
     }).toList();
 
     setState(() {
@@ -3231,16 +3238,16 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
   bool _storeCheck2 = true;
 
   Widget _buildApplicationSection() {
-    final activeApps = _applications.where((a) => !(a['cancelled'] as bool)).toList();
     final stores = [
-      {'icon': '🔵', 'name': '대구모터스',    'dist': '0.8km', 'rating': '★4.8', 'color': 0xFF4FC3F7},
-      {'icon': '🟢', 'name': '수성카딜러',    'dist': '1.2km', 'rating': '★4.6', 'color': 0xFF10B981},
-      {'icon': '🟡', 'name': '범어중고차센터', 'dist': '1.9km', 'rating': '★4.5', 'color': 0xFFFF6B35},
+      {'icon': '🔵', 'name': '대구모터스',     'dist': '0.8km', 'rating': '★4.8', 'color': 0xFF4FC3F7},
+      {'icon': '🟢', 'name': '수성카딜러',     'dist': '1.2km', 'rating': '★4.6', 'color': 0xFF10B981},
+      {'icon': '🟡', 'name': '범어중고차센터',  'dist': '1.9km', 'rating': '★4.5', 'color': 0xFFFF6B35},
     ];
     final checks = [_storeCheck0, _storeCheck1, _storeCheck2];
 
     return Column(
       children: [
+        // ── 매장 선택 + 신청 버튼 컨테이너 ──
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -3251,42 +3258,20 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 헤더
               Row(children: [
-                const Text('🏪', style: TextStyle(fontSize: 18)),
+                Icon(Icons.send_rounded, color: _mGreen, size: 18),
                 const SizedBox(width: 8),
-                const Expanded(child: Text('내 차 팔기 신청',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white))),
-                if (_applications.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => setState(() => _showApplications = !_showApplications),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _mAccent.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _mAccent.withOpacity(0.4)),
-                      ),
-                      child: Row(children: [
-                        Text('신청내역 ${activeApps.length}건',
-                          style: const TextStyle(fontSize: 11, color: _mAccent, fontWeight: FontWeight.w600)),
-                        const SizedBox(width: 4),
-                        Icon(_showApplications ? Icons.expand_less : Icons.expand_more,
-                          color: _mAccent, size: 16),
-                      ]),
-                    ),
-                  ),
+                const Text('신청서 전송 매장 선택',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
               ]),
-              const SizedBox(height: 6),
-              Text('신청할 매장을 선택하세요. 선택한 매장에만 신청서가 전달됩니다.',
-                style: TextStyle(fontSize: 12, color: _mTextSec, height: 1.5)),
+              const SizedBox(height: 4),
+              Text('원하는 매장을 선택하세요 (최대 3곳)',
+                style: TextStyle(fontSize: 11, color: _mTextSec)),
               const SizedBox(height: 12),
-
-              // 체크박스 매장 목록
               ...stores.asMap().entries.map((e) {
-                final i = e.key; final s = e.value;
-                final chk = checks[i];
-                final col = Color(s['color'] as int);
+                final i = e.key;
+                final s = e.value;
+                final checked = checks[i];
                 return GestureDetector(
                   onTap: () => setState(() {
                     if (i == 0) _storeCheck0 = !_storeCheck0;
@@ -3295,177 +3280,212 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                   }),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: chk ? col.withOpacity(0.08) : _mBg,
+                      color: checked ? Color(s['color'] as int).withOpacity(0.1) : _mBg,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: chk ? col.withOpacity(0.5) : _mBorder),
+                      border: Border.all(
+                        color: checked ? Color(s['color'] as int).withOpacity(0.5) : _mBorder),
                     ),
                     child: Row(children: [
-                      Container(
-                        width: 20, height: 20,
-                        decoration: BoxDecoration(
-                          color: chk ? col : Colors.transparent,
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(color: chk ? col : _mBorder, width: 1.5),
-                        ),
-                        child: chk ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
-                      ),
+                      Icon(checked ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                        color: checked ? Color(s['color'] as int) : _mTextSec, size: 20),
                       const SizedBox(width: 10),
-                      Text(s['icon'] as String, style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text('${s['name']} (${s['dist']})',
-                        style: TextStyle(fontSize: 13, color: chk ? Colors.white : _mTextSec,
-                          fontWeight: chk ? FontWeight.w600 : FontWeight.normal))),
-                      Text(s['rating'] as String,
-                        style: TextStyle(fontSize: 11, color: chk ? col : _mTextSec)),
+                      Text(s['icon'] as String, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(s['name'] as String,
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                            Text('${s['dist']}  ${s['rating']}',
+                              style: TextStyle(fontSize: 11, color: _mTextSec)),
+                          ],
+                        ),
+                      ),
+                      if (checked) Icon(Icons.check_circle_rounded,
+                        color: Color(s['color'] as int), size: 16),
                     ]),
                   ),
                 );
-              }),
-
-              const SizedBox(height: 10),
-
-              // 신청 버튼
+              }).toList(),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _applying ? null : () async {
-                    // 선택된 매장 확인
-                    final selectedStores = <Map<String,dynamic>>[];
-                    if (_storeCheck0) selectedStores.add(stores[0]);
-                    if (_storeCheck1) selectedStores.add(stores[1]);
-                    if (_storeCheck2) selectedStores.add(stores[2]);
-
-                    if (selectedStores.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('신청할 매장을 1곳 이상 선택해주세요.'),
-                          backgroundColor: Colors.red));
-                      return;
-                    }
-
-                    // 확인 다이얼로그
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: _mCard,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        title: const Text('신청서 전달 확인',
-                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('선택한 매장 ${selectedStores.length}곳에 신청서를 전달할까요?',
-                              style: TextStyle(color: _mTextSec, fontSize: 13)),
-                            const SizedBox(height: 12),
-                            ...selectedStores.map((s) => Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Row(children: [
-                                Text(s['icon'] as String),
-                                const SizedBox(width: 6),
-                                Text(s['name'] as String,
-                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                                const SizedBox(width: 4),
-                                Text(s['dist'] as String,
-                                  style: TextStyle(color: _mTextSec, fontSize: 11)),
-                              ]),
-                            )),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: Text('취소', style: TextStyle(color: _mTextSec))),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('전달하기',
-                              style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w700))),
-                        ],
-                      ),
-                    );
-
-                    if (confirm != true) return;
-                    await _sendToSelectedStores(selectedStores);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: _mGreen,
-                          content: Row(children: [
-                            const Icon(Icons.check_circle, color: Colors.white, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text('✅ ${selectedStores.length}곳에 신청서 전달 완료!',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
-                          ]),
-                          duration: const Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  },
+                child: ElevatedButton.icon(
+                  onPressed: (!_storeCheck0 && !_storeCheck1 && !_storeCheck2) ? null
+                    : () {
+                        final selected = <Map<String,dynamic>>[];
+                        if (_storeCheck0) selected.add(stores[0]);
+                        if (_storeCheck1) selected.add(stores[1]);
+                        if (_storeCheck2) selected.add(stores[2]);
+                        _sendToSelectedStores(selected);
+                      },
+                  icon: const Icon(Icons.send_rounded, size: 16),
+                  label: const Text('선택 매장에 신청서 전송'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _mGreen,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: _applying
-                    ? const SizedBox(width: 20, height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('🚗 선택 매장에 신청서 전달',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(height: 12),
 
-        // 신청 내역 리스트
-        if (_showApplications && _applications.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          ..._applications.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final app = entry.value;
-            final cancelled = app['cancelled'] as bool;
-            final color = Color(app['storeColor'] as int);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _mCard,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: cancelled ? _mBorder : color.withOpacity(0.4)),
-              ),
+        // ── 신청서 진행 안내 ──
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _mCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _mAccent.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(Icons.info_outline_rounded, color: _mAccent, size: 16),
+                const SizedBox(width: 6),
+                const Text('신청서 진행 안내',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+              ]),
+              const SizedBox(height: 10),
+              _flowStep('1', '전달완료', '신청서가 해당 매장에 전달되었습니다.', Colors.blue, false),
+              _flowArrow(),
+              _flowStep('2', '매장 확인중', '매장에서 신청서를 읽고 검토 중입니다.\n아직 읽지 않았다면 다른 매장에 추가 신청하세요.', const Color(0xFF4FC3F7), false),
+              _flowArrow(),
+              _flowStep('3', '예상견적 도착', '매장이 예상 견적서를 보내왔습니다.\n견적을 확인하고 상담 여부를 결정하세요.', _mAccent, false),
+              _flowArrow(),
+              _flowStep('4', '상담 진행', '1:1 채팅으로 가격 조정 및 상담을 합니다.', _mGreen, false),
+              _flowArrow(),
+              _flowStep('5', '재신청 가능', '마음에 안 들면 신청 취소 후\n다른 매장에 새로 신청할 수 있습니다.', _mOrange, false),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── 신청서 카드 목록 ──
+        ..._applications.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final app = entry.value;
+          final cancelled = app['cancelled'] as bool;
+          final color = Color(app['storeColor'] as int);
+          final readStatus = app['readStatus'] as String? ?? 'unread';
+          final estimatePrice = app['estimatePrice'] as int? ?? 0;
+          final estimateNote  = app['estimateNote']  as String? ?? '';
+
+          Color statusColor;
+          String statusLabel;
+          IconData statusIcon;
+          switch (readStatus) {
+            case 'read':
+              statusColor = _mAccent; statusLabel = '읽음'; statusIcon = Icons.visibility_rounded; break;
+            case 'replied':
+              statusColor = _mGreen; statusLabel = '견적도착'; statusIcon = Icons.description_rounded; break;
+            default:
+              statusColor = _mTextSec; statusLabel = '미확인'; statusIcon = Icons.schedule_rounded;
+          }
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: cancelled ? _mBorder
+                  : readStatus == 'replied' ? _mGreen.withOpacity(0.5)
+                  : readStatus == 'read'    ? _mAccent.withOpacity(0.3)
+                  : color.withOpacity(0.4)),
+            ),
+            child: Opacity(
+              opacity: cancelled ? 0.5 : 1.0,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 헤더
                   Row(children: [
-                    Container(
-                      width: 8, height: 8,
+                    Container(width: 8, height: 8,
                       decoration: BoxDecoration(
                         color: cancelled ? _mBorder : color,
-                        shape: BoxShape.circle),
-                    ),
+                        shape: BoxShape.circle)),
                     const SizedBox(width: 8),
                     Expanded(child: Text(app['storeName'] as String,
-                      style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w700,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
                         color: cancelled ? _mTextSec : Colors.white))),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    if (!cancelled) Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                        color: cancelled ? Colors.red.withOpacity(0.1) : _mGreen.withOpacity(0.1),
+                        color: statusColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(cancelled ? '취소됨' : '전달완료',
-                        style: TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.w700,
-                          color: cancelled ? Colors.red : _mGreen)),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(statusIcon, size: 11, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(statusLabel,
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
+                      ]),
                     ),
+                    if (cancelled) const Text('취소됨',
+                      style: TextStyle(fontSize: 11, color: Colors.red)),
                   ]),
-                  const SizedBox(height: 4),
-                  Text('${app['carInfo']}  ·  ${app['storeDistance']}  ·  ${app['storeRating']}',
-                    style: TextStyle(fontSize: 11, color: _mTextSec)),
-                  Text('신청일시: ${app['sentAt']}',
-                    style: TextStyle(fontSize: 11, color: _mTextSec)),
+                  const SizedBox(height: 6),
+                  Text('${app['carInfo']}', style: TextStyle(fontSize: 12, color: _mTextSec)),
+                  Text('전송: ${app['sentAt']}', style: TextStyle(fontSize: 11, color: _mTextSec)),
+
+                  // 견적 도착시 표시
+                  if (!cancelled && readStatus == 'replied' && estimatePrice > 0) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _mGreen.withOpacity(0.07),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: _mGreen.withOpacity(0.4)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Icon(Icons.description_rounded, size: 14, color: _mGreen),
+                            const SizedBox(width: 6),
+                            const Text('📋 매장 예상 견적서 도착',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white)),
+                          ]),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0A1628),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(children: [
+                              Text('예상 매입가',
+                                style: TextStyle(fontSize: 11, color: _mTextSec)),
+                              const SizedBox(height: 4),
+                              Text('${(estimatePrice ~/ 10000)}만원',
+                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _mGreen)),
+                            ]),
+                          ),
+                          if (estimateNote.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text('매장 메모: $estimateNote',
+                              style: TextStyle(fontSize: 11, color: _mTextSec, height: 1.4)),
+                          ],
+                          const SizedBox(height: 4),
+                          Text('* 실제 가격은 차량 직접 확인 후 최종 결정됩니다.',
+                            style: TextStyle(fontSize: 10, color: _mTextSec.withOpacity(0.6))),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   if (!cancelled) ...[
                     const SizedBox(height: 10),
                     Row(children: [
@@ -3476,27 +3496,67 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                             Navigator.push(context, MaterialPageRoute(
                               builder: (_) => CarConsultScreen(
                                 shopName: app['storeName'] as String,
-                                carInfo: app['carInfo'] as String,
+                                carInfo:  app['carInfo']  as String,
                                 estimatedPrice: pr?['mid'] as int? ?? 0,
                               ),
                             ));
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 9),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.15),
+                              color: (readStatus == 'replied' ? _mGreen : color).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: color.withOpacity(0.4)),
+                              border: Border.all(
+                                color: (readStatus == 'replied' ? _mGreen : color).withOpacity(0.4)),
                             ),
                             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Icon(Icons.chat_bubble_outline, color: color, size: 14),
+                              Icon(readStatus == 'replied' ? Icons.chat_bubble : Icons.chat_bubble_outline,
+                                color: readStatus == 'replied' ? _mGreen : color, size: 14),
                               const SizedBox(width: 4),
-                              Text('상담하기', style: TextStyle(
-                                fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                              Text(readStatus == 'replied' ? '견적 확인·상담' : '상담하기',
+                                style: TextStyle(fontSize: 12,
+                                  color: readStatus == 'replied' ? _mGreen : color,
+                                  fontWeight: FontWeight.w700)),
                             ]),
                           ),
                         ),
                       ),
+                      if (readStatus == 'unread') ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() => _applications[idx]['readStatus'] = 'read'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: _mAccent.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _mAccent.withOpacity(0.3)),
+                            ),
+                            child: Text('읽음확인',
+                              style: TextStyle(fontSize: 11, color: _mAccent, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ] else if (readStatus == 'read') ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            _applications[idx]['readStatus']    = 'replied';
+                            _applications[idx]['estimatePrice'] =
+                              (_applications[idx]['priceResult']?['mid'] as int? ?? 18000000) - 1200000;
+                            _applications[idx]['estimateNote']  = '차량 상태 양호 시 협의 가능합니다.';
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: _mGreen.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _mGreen.withOpacity(0.3)),
+                            ),
+                            child: Text('견적시뮬',
+                              style: TextStyle(fontSize: 11, color: _mGreen, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () async {
@@ -3507,14 +3567,12 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               title: const Text('신청서 취소',
                                 style: TextStyle(color: Colors.white, fontSize: 15)),
-                              content: Text('${app['storeName']}에 보낸 신청서를 취소하시겠습니까?',
+                              content: Text('\${app[\'storeName\']}에 보낸 신청서를 취소하시겠습니까?',
                                 style: TextStyle(color: _mTextSec, fontSize: 13)),
                               actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
+                                TextButton(onPressed: () => Navigator.pop(ctx, false),
                                   child: Text('아니오', style: TextStyle(color: _mTextSec))),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
+                                TextButton(onPressed: () => Navigator.pop(ctx, true),
                                   child: const Text('취소하기',
                                     style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700))),
                               ],
@@ -3523,24 +3581,61 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                           if (confirm == true) await _cancelApplication(idx);
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.red.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: Colors.red.withOpacity(0.3)),
                           ),
                           child: const Text('취소',
-                            style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
+                            style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ]),
                   ],
                 ],
               ),
-            );
-          }),
-        ],
+            ),
+          );
+        }).toList(),
       ],
+    );
+  }
+
+  // ── 신청 플로우 UI 헬퍼 ──
+  Widget _flowStep(String num, String title, String desc, Color color, bool active) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 24, height: 24,
+          decoration: BoxDecoration(
+            color: active ? color : color.withOpacity(0.25),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(num, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: active ? color : Colors.white)),
+              const SizedBox(height: 2),
+              Text(desc, style: TextStyle(fontSize: 11, color: _mTextSec, height: 1.4)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _flowArrow() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 11, top: 3, bottom: 3),
+      child: Icon(Icons.arrow_downward_rounded, color: _mBorder, size: 14),
     );
   }
 
@@ -3608,6 +3703,88 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
   String _selectedMonth = '';
   String _fuelType = '가솔린';
   bool _isSaved = false;
+
+  // ── 사진 업로드 (최대 10장, 압축 저장) ──
+  final List<File> _vehiclePhotos = [];
+  bool _photoLoading = false;
+  final _picker = ImagePicker();
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    if (_vehiclePhotos.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('최대 10장까지 등록 가능합니다.'), backgroundColor: Colors.orange));
+      return;
+    }
+    try {
+      final xfile = await _picker.pickImage(source: source, imageQuality: 80, maxWidth: 1280);
+      if (xfile == null) return;
+      setState(() => _photoLoading = true);
+
+      // 이미지 압축 (JPEG 35% 품질 → 원본 5MB → 약 150~300KB)
+      final bytes = await FlutterImageCompress.compressWithFile(
+        xfile.path,
+        quality: 35,
+        minWidth: 800,
+        minHeight: 600,
+        format: CompressFormat.jpeg,
+      );
+      if (bytes == null) return;
+
+      // 임시 파일로 저장
+      final dir = Directory.systemTemp;
+      final tmpPath = '${dir.path}/moincar_photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final tmpFile = await File(tmpPath).writeAsBytes(bytes);
+
+      setState(() {
+        _vehiclePhotos.add(tmpFile);
+        _photoLoading = false;
+      });
+
+      final kb = (bytes.length / 1024).toStringAsFixed(0);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사진 추가 완료 (압축: ${kb}KB)'), backgroundColor: const Color(0xFF10B981)));
+      }
+    } catch (e) {
+      setState(() => _photoLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사진 불러오기 실패: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  void _removePhoto(int index) {
+    setState(() => _vehiclePhotos.removeAt(index));
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 8),
+          Container(width: 40, height: 4,
+            decoration: BoxDecoration(color: const Color(0xFF1E3A5F), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF4FC3F7)),
+            title: const Text('카메라로 촬영', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.camera); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF4FC3F7)),
+            title: const Text('갤러리에서 선택', style: TextStyle(color: Colors.white)),
+            onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.gallery); },
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
 
   // 제조사-모델 데이터 (CarPriceScreen과 동일)
   static const Map<String, List<String>> _makerModels = {
@@ -3850,6 +4027,91 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // ── 차량 사진 업로드 (최대 10장) ──
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0D1B2A),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF1E3A5F)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.photo_camera_rounded, color: Color(0xFF4FC3F7), size: 18),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text('차량 사진 (최대 10장)',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                              ),
+                              Text('${_vehiclePhotos.length}/10',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
+                            ]),
+                            const SizedBox(height: 4),
+                            const Text('이미지는 자동으로 압축됩니다 (원본 5MB→약 200KB)',
+                              style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
+                            const SizedBox(height: 12),
+                            if (_vehiclePhotos.isNotEmpty)
+                              SizedBox(
+                                height: 88,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _vehiclePhotos.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                  itemBuilder: (_, i) => Stack(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.file(_vehiclePhotos[i],
+                                          width: 88, height: 88, fit: BoxFit.cover),
+                                      ),
+                                      Positioned(
+                                        top: 2, right: 2,
+                                        child: GestureDetector(
+                                          onTap: () => _removePhoto(i),
+                                          child: Container(
+                                            width: 22, height: 22,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red, shape: BoxShape.circle),
+                                            child: const Icon(Icons.close, color: Colors.white, size: 14),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (_vehiclePhotos.isNotEmpty) const SizedBox(height: 10),
+                            if (_vehiclePhotos.length < 10)
+                              GestureDetector(
+                                onTap: _photoLoading ? null : _showPhotoOptions,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF020810),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF4FC3F7).withOpacity(0.4),
+                                      style: BorderStyle.solid),
+                                  ),
+                                  child: _photoLoading
+                                    ? const Center(child: SizedBox(width: 20, height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4FC3F7))))
+                                    : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                        Icon(Icons.add_photo_alternate_rounded, color: Color(0xFF4FC3F7), size: 20),
+                                        SizedBox(width: 8),
+                                        Text('사진 추가', style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 13, fontWeight: FontWeight.w600)),
+                                      ]),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -3866,12 +4128,14 @@ class _VehicleRegisterScreenState extends State<VehicleRegisterScreen> {
                                   'mile': _mileCtrl.text,
                                   'lastService': '-',
                                   'color': 0xFFFF6B35,
+                                  'photoCount': _vehiclePhotos.length,
                                 });
                                 _plateCtrl.clear(); _mileCtrl.clear();
-                                setState(() { _selectedMaker = ''; _selectedModel = ''; _selectedYear = ''; _selectedMonth = ''; });
+                                _vehiclePhotos.clear();
+                                _selectedMaker = ''; _selectedModel = ''; _selectedYear = ''; _selectedMonth = '';
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('✅ 차량이 등록되었습니다')));
+                                SnackBar(content: Text('✅ 차량이 등록되었습니다 (사진 ${_vehiclePhotos.length}장)')));
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('차량 번호를 입력해주세요')));
@@ -5699,3 +5963,4 @@ class UsedCarStoreDetailScreen extends StatelessWidget {
     );
   }
 }
+
