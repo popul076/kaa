@@ -435,6 +435,20 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
 
+          // ── ⛽ 주유소 현황 오버레이 (상단바 바로 아래 우측 고정) ──
+          Positioned(
+            right: 12,
+            top: topPad + _topBarH + 6,
+            child: AnimatedOpacity(
+              opacity: _gasOverlayVisible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 500),
+              child: IgnorePointer(
+                ignoring: !_gasOverlayVisible,
+                child: _buildGasOverlay(),
+              ),
+            ),
+          ),
+
           // ── 하단 BottomNav (Stack 내부 → 숨겨도 공백 없음) ───
           Positioned(
             left: 0,
@@ -860,17 +874,7 @@ class _HomeScreenState extends State<HomeScreen>
         // 인디케이터 삭제됨
         // 카테고리 라벨 뱃지 삭제됨
 
-        // ⛽ 주유소 현황 오버레이 (우상단) - 4초 자동 숨김
-        Positioned(right: 12, top: 8,
-          child: AnimatedOpacity(
-            opacity: _gasOverlayVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 500),
-            child: IgnorePointer(
-              ignoring: !_gasOverlayVisible,
-              child: _buildGasOverlay(),
-            ),
-          ),
-        ),
+        // (주유소 오버레이는 메인 Stack으로 이동)
       ]),
     );
   }
@@ -1079,47 +1083,59 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-      // ── 미니 오버레이 위젯 (순환 표시) ──
-      child: Builder(builder: (_) {
-        final s = _gasList[_gasDisplayIndex % _gasList.length];
-        final isLowest = _gasDisplayIndex % _gasList.length == 0;
-        final col = isLowest ? const Color(0xFFFF6B35) : const Color(0xFF4FC3F7);
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 400),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: col.withOpacity(0.6)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                const Text('⛽', style: TextStyle(fontSize: 10)),
-                const SizedBox(width: 3),
-                if (isLowest) Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(color: const Color(0xFFFF6B35).withOpacity(0.25), borderRadius: BorderRadius.circular(3)),
-                  child: const Text('최저가', style: TextStyle(fontSize: 9, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
-                ) else Text('인근주유소', style: TextStyle(fontSize: 9, color: const Color(0xFF4FC3F7).withOpacity(0.9))),
-              ]),
-              const SizedBox(height: 2),
-              Text(s['name'] as String,
-                style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 2),
-              Row(mainAxisSize: MainAxisSize.min, children: [
-                Text('휘발유 ${s['gasoline']}',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: col)),
-                const Text(' / ', style: TextStyle(fontSize: 9, color: Color(0xFFB0BEC5))),
-                Text('경유 ${s['diesel']}',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF7AB0D4))),
-              ]),
-            ],
-          ),
-        );
-      }),
+      // ── 미니 오버레이 위젯 (3곳 동시 표시, 최저가 주황 강조) ──
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.80),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('⛽', style: TextStyle(fontSize: 10)),
+              const SizedBox(width: 4),
+              const Text('인근 주유소 가격 비교',
+                style: TextStyle(fontSize: 9, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: 4),
+            // 3곳 가격 리스트 (최저가순 정렬)
+            ..._gasList.asMap().entries.map((e) {
+              final i = e.key;
+              final s = e.value;
+              final isLowest = i == 0; // rank 1 = 최저가
+              final col = isLowest ? const Color(0xFFFF6B35) : const Color(0xFFB0BEC5);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (isLowest)
+                    Container(
+                      margin: const EdgeInsets.only(right: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B35).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(3)),
+                      child: const Text('최저', style: TextStyle(fontSize: 8, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
+                    )
+                  else
+                    const SizedBox(width: 24),
+                  Text(s['name'] as String,
+                    style: TextStyle(fontSize: 9, color: col, fontWeight: isLowest ? FontWeight.w700 : FontWeight.w400)),
+                  const SizedBox(width: 4),
+                  Text('${s['gasoline']}원',
+                    style: TextStyle(fontSize: 10, color: col, fontWeight: isLowest ? FontWeight.w900 : FontWeight.w500)),
+                  const Text(' / ', style: TextStyle(fontSize: 8, color: Color(0xFF4A6080))),
+                  Text('경유 ${s['diesel']}',
+                    style: const TextStyle(fontSize: 8, color: Color(0xFF7AB0D4))),
+                ]),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
     );
   }
 
