@@ -1353,51 +1353,110 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
 
   void _showEditIntroDialog() {
     final ctrl = TextEditingController(text: _aiIntroText);
+    final aiSamples = [
+      'MOINCAR 추천 프리미엄 정비소는 대구 수성구에 위치한 전문 자동차 정비 업체입니다. 10년 이상의 풍부한 경험을 보유한 전문 기술진이 고객님의 차량을 꼼꼼하게 점검하고 수리합니다. 엔진오일 교환, 브레이크 정비, 타이어 교체 등 모든 서비스를 합리적인 가격으로 제공합니다.',
+      '🔧 대구 수성구 No.1 프리미엄 정비소\n엔진오일·브레이크·타이어 전문\n10년 이상 경력 전문 기술진 상주\n당일 처리 · 합리적인 가격으로 고객 만족 최우선',
+      '🚗 MOINCAR 공식 추천 정비소\n전국 최저가 보장 · 예약 우선 처리\n친환경 정비 시스템 도입으로 안전하고 빠른 서비스\n방문 시 쿠폰 즉시 사용 가능합니다',
+      '✅ 지역 1등 자동차 정비 전문점\n수입차·국산차 모두 완벽 처리\n주행거리 무관 정밀 점검 무료 제공\n재방문 고객 10% 추가 할인 혜택',
+    ];
+    int sampleIdx = 0;
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('AI 소개글 수정', style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w700)),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 8,
-          style: const TextStyle(color: _textPri, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: '점포 소개글을 입력하세요',
-            hintStyle: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 12),
-            filled: true,
-            fillColor: _bg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: _border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: _border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: _accent),
-            ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: _card,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('AI 소개글 수정',
+              style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // AI 재생성 버튼
+              GestureDetector(
+                onTap: () {
+                  sampleIdx = (sampleIdx + 1) % aiSamples.length;
+                  setDlg(() => ctrl.text = aiSamples[sampleIdx]);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✨ AI 소개글 재생성 완료!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_purple.withOpacity(0.25), _accent.withOpacity(0.15)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _purple.withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('🔄', style: TextStyle(fontSize: 14)),
+                      SizedBox(width: 6),
+                      Text('AI 재생성',
+                          style: TextStyle(
+                              color: _purple,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                      SizedBox(width: 4),
+                      Text('(탭할 때마다 새 문구)',
+                          style: TextStyle(color: _textSec, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ),
+              // 텍스트 편집 필드
+              TextField(
+                controller: ctrl,
+                maxLines: 8,
+                style: const TextStyle(color: _textPri, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: '점포 소개글을 직접 입력하거나\nAI 재생성 버튼을 눌러보세요',
+                  hintStyle: TextStyle(color: _textSec.withOpacity(0.5), fontSize: 12),
+                  filled: true,
+                  fillColor: _bg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _accent),
+                  ),
+                ),
+              ),
+            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('취소', style: TextStyle(color: _textSec)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {});
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('소개글이 저장되었습니다 ✅')));
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: _accent),
+              child: const Text('저장',
+                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('취소', style: TextStyle(color: _textSec)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {});
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('소개글이 저장되었습니다')));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _accent),
-            child: const Text('저장', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
-          ),
-        ],
       ),
     );
   }
@@ -1807,39 +1866,85 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
           ),
           const SizedBox(height: 14),
 
-          // KPI 카드 3개
-          Row(
-            children: kpis.map((k) => Expanded(
-              child: Container(
-                margin: EdgeInsets.only(right: k == kpis.last ? 0 : 8),
-                padding: const EdgeInsets.all(12),
+          // KPI 카드 3개 — 년 탭은 세로, 나머지는 가로
+          if (_dateFilter == '년')
+            Column(
+              children: kpis.map((k) => Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: _bg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _border),
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    Text(k['icon'] as String, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(height: 4),
-                    Text(k['num'] as String,
-                      style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w900,
-                        color: k['color'] as Color)),
-                    const SizedBox(height: 2),
-                    Text(k['label'] as String,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 10, color: _textSec)),
-                    const SizedBox(height: 4),
-                    Text(k['trend'] as String,
-                      style: TextStyle(
-                        fontSize: 10, fontWeight: FontWeight.w700,
-                        color: (k['up'] as bool) ? _green : const Color(0xFFFF4D4F))),
+                    Text(k['icon'] as String, style: const TextStyle(fontSize: 24)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(k['label'] as String,
+                            style: const TextStyle(fontSize: 12, color: _textSec)),
+                          const SizedBox(height: 2),
+                          Text(k['num'] as String,
+                            style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.w900,
+                              color: k['color'] as Color)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: ((k['up'] as bool) ? _green : const Color(0xFFFF4D4F))
+                            .withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(k['trend'] as String,
+                        style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700,
+                          color: (k['up'] as bool) ? _green : const Color(0xFFFF4D4F))),
+                    ),
                   ],
                 ),
-              ),
-            )).toList(),
-          ),
+              )).toList(),
+            )
+          else
+            Row(
+              children: kpis.map((k) => Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: k == kpis.last ? 0 : 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(k['icon'] as String, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(height: 4),
+                      Text(k['num'] as String,
+                        style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w900,
+                          color: k['color'] as Color)),
+                      const SizedBox(height: 2),
+                      Text(k['label'] as String,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 10, color: _textSec)),
+                      const SizedBox(height: 4),
+                      Text(k['trend'] as String,
+                        style: TextStyle(
+                          fontSize: 10, fontWeight: FontWeight.w700,
+                          color: (k['up'] as bool) ? _green : const Color(0xFFFF4D4F))),
+                    ],
+                  ),
+                ),
+              )).toList(),
+            ),
           const SizedBox(height: 14),
 
           // 퍼널 차트

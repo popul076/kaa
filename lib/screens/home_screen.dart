@@ -64,6 +64,10 @@ class _HomeScreenState extends State<HomeScreen>
   double _currentLat = 37.4817;  // 가산동 좌표
   double _currentLng = 126.8820;
 
+  // ── 주유소 오버레이 자동 숨김 ─────────────────────────────────
+  bool _gasOverlayVisible = true;
+  Timer? _gasTimer;
+
   // ── 배너 (무한 캐러셀) ────────────────────────────────────────
   static const int _bannerMultiplier = 500;
   int _currentBannerIndex = 0;
@@ -209,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen>
     // 위치는 첫 프레임 이후에 시작 → 레이아웃 확정 뒤 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initLocation();
+      _startGasTimer(); // 주유소 오버레이 4초 후 자동 숨김
     });
   }
 
@@ -228,11 +233,17 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 스크롤 리스너 ────────────────────────────────────────────
   void _onScroll() {
     final offset = _scrollController.offset.clamp(0.0, double.infinity);
+    final prev   = _scrollOffset;
 
     // 스크롤 변화량이 1px 미만이면 setState 스킵 (불필요한 리빌드 방지)
-    if ((offset - _scrollOffset).abs() < 1.0) return;
+    if ((offset - prev).abs() < 1.0) return;
 
     setState(() => _scrollOffset = offset);
+
+    // 메인 상단으로 복귀 시 (100px 이하) 주유소 오버레이 재표시 후 4초 숨김
+    if (offset < 100 && prev >= 100) {
+      _startGasTimer();
+    }
 
     // BottomNav: 스크롤 중 숨김, 600ms 정지 후 복귀
     _navTimer?.cancel();
@@ -313,6 +324,15 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // ── 주유소 오버레이 타이머 (4초 후 숨김, 스크롤 복귀 시 재표시) ──
+  void _startGasTimer() {
+    _gasTimer?.cancel();
+    setState(() => _gasOverlayVisible = true);
+    _gasTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _gasOverlayVisible = false);
+    });
+  }
+
   // ── 배너 타이머 ──────────────────────────────────────────────
   void _startBannerTimer() {
     _bannerTimer?.cancel();
@@ -334,6 +354,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _bannerTimer?.cancel();
+    _gasTimer?.cancel();
     _bannerController.dispose();
     _tabController.dispose();
     _navTimer?.cancel();
@@ -860,9 +881,16 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        // ⛽ 주유소 현황 오버레이 (우상단)
+        // ⛽ 주유소 현황 오버레이 (우상단) - 4초 자동 숨김
         Positioned(right: 12, top: 50,
-          child: _buildGasOverlay(),
+          child: AnimatedOpacity(
+            opacity: _gasOverlayVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 500),
+            child: IgnorePointer(
+              ignoring: !_gasOverlayVisible,
+              child: _buildGasOverlay(),
+            ),
+          ),
         ),
       ]),
     );
@@ -881,69 +909,170 @@ class _HomeScreenState extends State<HomeScreen>
     return GestureDetector(
       onTap: () => showDialog(
         context: context,
+        barrierDismissible: true,
         builder: (ctx) => Dialog(
           backgroundColor: const Color(0xFF0D1B2A),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Row(children: [
-                Text('⛽', style: TextStyle(fontSize: 22)),
-                SizedBox(width: 8),
-                Text('인근 주유소 현황',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
-              ]),
-              const SizedBox(height: 4),
-              const Text('대구 수성구 기준 · 휘발유',
-                style: TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
-              const SizedBox(height: 16),
-              ..._gasList.map((s) => Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color(s['color'] as int).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Color(s['color'] as int).withOpacity(0.3)),
-                ),
-                child: Row(children: [
-                  Container(
-                    width: 44, height: 44,
-                    decoration: BoxDecoration(
-                      color: Color(s['color'] as int).withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(child: Text('⛽', style: TextStyle(fontSize: 20))),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Color(s['color'] as int).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(s['type'] as String,
-                          style: TextStyle(fontSize: 10, color: Color(s['color'] as int),
-                            fontWeight: FontWeight.w700)),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(s['dist'] as String,
-                        style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
-                    ]),
-                    const SizedBox(height: 4),
-                    Text(s['name'] as String,
-                      style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
-                  ])),
-                  Text('${s['price']}원',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900,
-                      color: Color(s['color'] as int))),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                // 헤더
+                Row(children: [
+                  const Text('⛽', style: TextStyle(fontSize: 22)),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('인근 주유소 현황',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white))),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: const Icon(Icons.close, color: Color(0xFF8BA3BC), size: 20)),
                 ]),
-              )),
-              const SizedBox(height: 8),
-              Text('※ 오피넷 기준 · 실시간 가격은 앱에서 확인',
-                style: TextStyle(fontSize: 10, color: const Color(0xFFB0BEC5).withOpacity(0.6))),
-            ]),
+                const SizedBox(height: 4),
+                Text('현재 위치: $_currentAddress · 휘발유',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
+                const SizedBox(height: 12),
+
+                // 지도 이미지 대체 영역
+                Container(
+                  width: double.infinity,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A1628),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF1E3A5F)),
+                  ),
+                  child: Stack(children: [
+                    // 배경 격자 (지도 느낌)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CustomPaint(
+                        painter: _MapGridPainter(),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                    // 중앙 현위치 핀
+                    Center(child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('📍', style: TextStyle(fontSize: 28)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4FC3F7).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.5)),
+                          ),
+                          child: const Text('현재 위치',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    )),
+                    // 주유소 위치 핀들
+                    Positioned(right: 40, top: 20,
+                      child: _gasPinDot(const Color(0xFF4FC3F7), '0.3km')),
+                    Positioned(left: 30, bottom: 25,
+                      child: _gasPinDot(const Color(0xFF10B981), '0.7km')),
+                    Positioned(right: 25, bottom: 18,
+                      child: _gasPinDot(const Color(0xFFFF6B35), '1.1km')),
+                    // 지도 워터마크
+                    Positioned(bottom: 6, left: 8,
+                      child: Text('* API 연동 전 이미지 지도',
+                        style: TextStyle(fontSize: 8,
+                          color: const Color(0xFFB0BEC5).withOpacity(0.5)))),
+                  ]),
+                ),
+                const SizedBox(height: 14),
+
+                // 주유소 카드 목록
+                ..._gasList.map((s) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Color(s['color'] as int).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Color(s['color'] as int).withOpacity(0.3)),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: Color(s['color'] as int).withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(child: Text('⛽', style: TextStyle(fontSize: 20))),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Color(s['color'] as int).withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(s['type'] as String,
+                            style: TextStyle(fontSize: 10, color: Color(s['color'] as int),
+                              fontWeight: FontWeight.w700)),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(s['dist'] as String,
+                          style: const TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
+                      ]),
+                      const SizedBox(height: 4),
+                      Text(s['name'] as String,
+                        style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+                    ])),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('${s['price']}원',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900,
+                          color: Color(s['color'] as int))),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          // 주유소 카테고리 페이지로 이동
+                          _navigateToGasCategory();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Color(s['color'] as int).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Color(s['color'] as int).withOpacity(0.4)),
+                          ),
+                          child: Text('찾아가기',
+                            style: TextStyle(fontSize: 10,
+                              color: Color(s['color'] as int), fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ]),
+                  ]),
+                )),
+                const SizedBox(height: 6),
+                // 주유소 목록 페이지 이동 버튼
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _navigateToGasCategory();
+                    },
+                    icon: const Icon(Icons.local_gas_station, size: 16, color: Colors.black),
+                    label: const Text('주유소 전체 목록 보기',
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4FC3F7),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text('※ 오피넷 기준 · 실시간 가격은 앱에서 확인',
+                  style: TextStyle(fontSize: 10, color: const Color(0xFFB0BEC5).withOpacity(0.6))),
+              ]),
+            ),
           ),
         ),
       ),
@@ -984,6 +1113,48 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+  }
+
+  // ── 주유소 지도 핀 점 ─────────────────────────────────────────
+  Widget _gasPinDot(Color color, String dist) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 16, height: 16,
+        decoration: BoxDecoration(
+          color: color, shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+      ),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(dist, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w700)),
+      ),
+    ]);
+  }
+
+  // ── 주유소 카테고리 페이지 이동 ───────────────────────────────
+  void _navigateToGasCategory() {
+    // 주유소 카테고리 페이지로 이동 (카테고리 페이지 연동 준비)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: Color(0xFF4FC3F7),
+        content: Row(children: [
+          Text('⛽', style: TextStyle(fontSize: 16)),
+          SizedBox(width: 8),
+          Expanded(child: Text('주유소 카테고리 페이지로 이동합니다',
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600))),
+        ]),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    // TODO: 주유소 카테고리 페이지 완성 후 아래 코드로 교체
+    // Navigator.push(context, MaterialPageRoute(
+    //   builder: (_) => CategoryStoreListScreen(category: '주유소', emoji: '⛽'),
+    // ));
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -2154,4 +2325,41 @@ class _NavyGridPainter extends CustomPainter {
     canvas.drawLine(Offset(size.width * 0.4, 0), Offset(size.width * 0.4, size.height), road);
   }
   @override bool shouldRepaint(_) => false;
+}
+
+// ── 지도 격자 배경 페인터 ─────────────────────────────────────
+class _MapGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF1E3A5F).withOpacity(0.4)
+      ..strokeWidth = 0.5;
+
+    // 수평선
+    for (double y = 0; y < size.height; y += 20) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+    // 수직선
+    for (double x = 0; x < size.width; x += 20) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+
+    // 도로 (가로)
+    final roadPaint = Paint()
+      ..color = const Color(0xFF1E3A5F)
+      ..strokeWidth = 6;
+    canvas.drawLine(
+      Offset(0, size.height * 0.55),
+      Offset(size.width, size.height * 0.55),
+      roadPaint,
+    );
+    canvas.drawLine(
+      Offset(size.width * 0.45, 0),
+      Offset(size.width * 0.45, size.height),
+      roadPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MapGridPainter old) => false;
 }
