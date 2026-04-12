@@ -6,119 +6,203 @@ import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
 
+// ── MOINCAR 공통 다크 색상 상수 ──
+const Color _mBg      = Color(0xFF020810);
+const Color _mCard    = Color(0xFF0D1B2A);
+const Color _mAccent  = Color(0xFF4FC3F7);
+const Color _mOrange  = Color(0xFFFF6B35);
+const Color _mGreen   = Color(0xFF10B981);
+const Color _mBorder  = Color(0xFF1E3A5F);
+const Color _mTextPri = Colors.white;
+const Color _mTextSec = Color(0xFFB0BEC5);
+
 // ==================== 쿠폰 ====================
 class CouponScreen extends StatelessWidget {
   const CouponScreen({super.key});
 
   final coupons = const [
-    {'store': 'KAA 추천 프리미엄 정비소', 'title': '엔진오일 교환 20% 할인', 'expires': '2025-06-30', 'discount': '20%', 'used': false},
+    {'store': 'MOINCAR 추천 프리미엄 정비소', 'title': '엔진오일 교환 20% 할인', 'expires': '2025-06-30', 'discount': '20%', 'used': false},
     {'store': '추천 세차·코팅 전문점', 'title': '프리미엄 손세차 무료', 'expires': '2025-05-31', 'discount': '무료', 'used': false},
     {'store': '프리미엄 타이어 전문점', 'title': '타이어 교체 10,000원 할인', 'expires': '2025-04-30', 'discount': '10,000원', 'used': true},
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(title: '쿠폰', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: coupons.length,
-              itemBuilder: (_, i) {
-                final c = coupons[i];
-                final used = c['used'] as bool;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: used ? AppColors.bgGray : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: used ? AppColors.border : AppColors.primary.withOpacity(0.3)),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            // 상단바
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                   ),
-                  child: Stack(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: used ? AppColors.border : AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Center(
-                                child: Text(c['discount'] as String,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w800,
-                                    color: used ? AppColors.textMuted : AppColors.primary,
-                                  ),
-                                  textAlign: TextAlign.center,
+                  const SizedBox(width: 12),
+                  const Text('🎟️ 내 쿠폰',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _mOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _mOrange.withOpacity(0.4)),
+                    ),
+                    child: Text('${coupons.where((c) => !(c['used'] as bool)).length}장 보유',
+                      style: const TextStyle(fontSize: 11, color: _mOrange, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+            // 요약 카드
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_mOrange.withOpacity(0.15), _mAccent.withOpacity(0.08)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _mOrange.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _statItem('전체', '${coupons.length}', '장', _mAccent),
+                  Container(width: 1, height: 40, color: _mBorder),
+                  _statItem('사용가능', '${coupons.where((c) => !(c['used'] as bool)).length}', '장', _mGreen),
+                  Container(width: 1, height: 40, color: _mBorder),
+                  _statItem('사용완료', '${coupons.where((c) => c['used'] as bool).length}', '장', _mTextSec),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                itemCount: coupons.length,
+                itemBuilder: (_, i) {
+                  final c = coupons[i];
+                  final used = c['used'] as bool;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: _mCard,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: used ? _mBorder : _mOrange.withOpacity(0.4)),
+                    ),
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 62,
+                                height: 62,
+                                decoration: BoxDecoration(
+                                  color: used
+                                    ? _mBorder.withOpacity(0.3)
+                                    : _mOrange.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: used ? _mBorder : _mOrange.withOpacity(0.5)),
+                                ),
+                                child: Center(
+                                  child: Text(c['discount'] as String,
+                                    style: TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w800,
+                                      color: used ? _mTextSec : _mOrange),
+                                    textAlign: TextAlign.center),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(c['store'] as String,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: used ? AppColors.textMuted : AppColors.textSecondary,
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(c['store'] as String,
+                                      style: TextStyle(fontSize: 11,
+                                        color: used ? _mTextSec.withOpacity(0.5) : _mAccent)),
+                                    const SizedBox(height: 4),
+                                    Text(c['title'] as String,
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
+                                        color: used ? _mTextSec : _mTextPri)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.schedule, size: 11,
+                                          color: used ? _mTextSec.withOpacity(0.5) : _mTextSec),
+                                        const SizedBox(width: 3),
+                                        Text('유효기간: ${c['expires']}',
+                                          style: TextStyle(fontSize: 11,
+                                            color: used ? _mTextSec.withOpacity(0.5) : _mTextSec)),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(c['title'] as String,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: used ? AppColors.textMuted : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text('유효기간: ${c['expires']}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: used ? AppColors.textMuted : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (used)
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.textMuted,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text('사용완료',
-                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
-                            ),
+                            ],
                           ),
                         ),
-                    ],
-                  ),
-                );
-              },
+                        if (used)
+                          Positioned(
+                            top: 12, right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _mBorder,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('사용완료',
+                                style: TextStyle(color: _mTextSec, fontSize: 10, fontWeight: FontWeight.w600)),
+                            ),
+                          )
+                        else
+                          Positioned(
+                            top: 12, right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _mGreen.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _mGreen.withOpacity(0.4)),
+                              ),
+                              child: const Text('사용가능',
+                                style: TextStyle(color: _mGreen, fontSize: 10, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _statItem(String label, String num, String unit, Color color) {
+    return Column(
+      children: [
+        RichText(text: TextSpan(children: [
+          TextSpan(text: num,
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+          TextSpan(text: unit,
+            style: TextStyle(fontSize: 12, color: color.withOpacity(0.7))),
+        ])),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 11, color: _mTextSec)),
+      ],
     );
   }
 }
@@ -129,198 +213,319 @@ class CertScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(title: '협회 인증', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.textPrimary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        const KaaLogo(size: 28, dark: true),
-                        const SizedBox(height: 12),
-                        const Text('한국자동차협회\n공식 인증',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        Text('인증된 점포에서 안심하고 서비스를 받으세요.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.7)),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            minimumSize: const Size(double.infinity, 48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('인증서 발급 신청하기',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                   ),
-                  const SizedBox(height: 16),
-                  ...AppData.stores.where((s) => s.type == 'certified').map((s) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppColors.textPrimary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.verified, color: Colors.white, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(s.name,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                                ),
-                                Text('${s.category} · ${s.distance}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right, color: AppColors.textMuted),
-                        ],
-                      ),
-                    );
-                  }),
+                  const SizedBox(width: 12),
+                  const Text('🏅 MOINCAR 인증',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _mGreen.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _mGreen.withOpacity(0.4)),
+                    ),
+                    child: const Text('공식 인증', style: TextStyle(fontSize: 10, color: _mGreen, fontWeight: FontWeight.w700)),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [_mGreen.withOpacity(0.15), _mAccent.withOpacity(0.08)],
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _mGreen.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 64, height: 64,
+                            decoration: BoxDecoration(
+                              color: _mGreen.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: _mGreen.withOpacity(0.5), width: 2),
+                            ),
+                            child: const Icon(Icons.verified_rounded, color: _mGreen, size: 32),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text('MOINCAR 공식 인증',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                          const SizedBox(height: 8),
+                          Text('인증된 점포에서 안심하고 서비스를 받으세요.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 13, color: _mTextSec)),
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('인증 신청 기능 준비중입니다'))),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _mGreen,
+                                minimumSize: const Size(double.infinity, 48),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: const Text('인증서 발급 신청하기',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _mCard,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _mBorder),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('인증 혜택',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                          const SizedBox(height: 12),
+                          ...[
+                            ['✅', '신뢰성 검증', 'MOINCAR 공식 품질 기준 통과 점포'],
+                            ['🔍', '투명한 정보', '실시간 가격·서비스 정보 공개'],
+                            ['⭐', '우선 노출', '앱 잠금화면 및 메인 화면 우선 표시'],
+                            ['🎁', '특별 쿠폰', '인증 점포 전용 할인 쿠폰 제공'],
+                          ].map((item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Text(item[0], style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item[1], style: const TextStyle(fontSize: 13,
+                                      fontWeight: FontWeight.w600, color: Colors.white)),
+                                    Text(item[2], style: TextStyle(fontSize: 11, color: _mTextSec)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          )),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('인증 점포 목록',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ),
+                    const SizedBox(height: 10),
+                    ...AppData.stores.where((s) => s.type == 'certified').map((s) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: _mCard,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _mGreen.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44, height: 44,
+                              decoration: BoxDecoration(
+                                color: _mGreen.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: _mGreen.withOpacity(0.4)),
+                              ),
+                              child: const Icon(Icons.verified_rounded, color: _mGreen, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(s.name,
+                                    style: const TextStyle(fontSize: 14,
+                                      fontWeight: FontWeight.w600, color: Colors.white)),
+                                  Text('${s.category} · ${s.distance}',
+                                    style: TextStyle(fontSize: 12, color: _mTextSec)),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: _mTextSec.withOpacity(0.5)),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ==================== 중고차 ====================
-class UsedCarScreen extends StatelessWidget {
+class UsedCarScreen extends StatefulWidget {
   const UsedCarScreen({super.key});
+  @override
+  State<UsedCarScreen> createState() => _UsedCarScreenState();
+}
+
+class _UsedCarScreenState extends State<UsedCarScreen> {
+  String _selectedFilter = '전체';
+  final _filters = ['전체', '국산차', '수입차', '전기차', '연식순', '가격순'];
+
+  final _cars = [
+    {'name': '2022 현대 아반떼 1.6 가솔린', 'price': '1,850만원', 'km': '32,000km', 'year': '2022년식', 'type': '국산차', 'emoji': '🚗'},
+    {'name': '2021 기아 K5 2.0 하이브리드', 'price': '2,300만원', 'km': '48,000km', 'year': '2021년식', 'type': '국산차', 'emoji': '🚙'},
+    {'name': '2020 BMW 320i', 'price': '3,200만원', 'km': '55,000km', 'year': '2020년식', 'type': '수입차', 'emoji': '🏎️'},
+    {'name': '2023 테슬라 Model 3', 'price': '4,500만원', 'km': '12,000km', 'year': '2023년식', 'type': '전기차', 'emoji': '⚡'},
+    {'name': '2019 현대 그랜저 3.0', 'price': '2,750만원', 'km': '72,000km', 'year': '2019년식', 'type': '국산차', 'emoji': '🚗'},
+    {'name': '2022 벤츠 E220d', 'price': '5,200만원', 'km': '18,000km', 'year': '2022년식', 'type': '수입차', 'emoji': '🏎️'},
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(title: '중고차', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+    final filtered = _selectedFilter == '전체'
+      ? _cars
+      : _cars.where((c) => c['type'] == _selectedFilter).toList();
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
               child: Column(
                 children: [
-                  // 검색 바
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.search, color: AppColors.textMuted, size: 18),
-                        SizedBox(width: 8),
-                        Text('차량 검색 (제조사, 모델명)',
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text('🚗 중고차 매물',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _mAccent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _mAccent.withOpacity(0.4)),
                         ),
+                        child: Text('${filtered.length}건',
+                          style: const TextStyle(fontSize: 11, color: _mAccent, fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1B2A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _mBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: _mTextSec.withOpacity(0.5), size: 18),
+                        const SizedBox(width: 8),
+                        Text('차량 검색 (제조사, 모델명, 차량번호)',
+                          style: TextStyle(color: _mTextSec.withOpacity(0.5), fontSize: 13)),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-
-                  // 필터 칩
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['전체', '국산차', '수입차', '전기차', '연식순', '가격순'].map((f) {
-                        return Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: f == '전체' ? AppColors.primary : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: f == '전체' ? AppColors.primary : AppColors.border,
-                            ),
-                          ),
-                          child: Text(f,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: f == '전체' ? Colors.white : AppColors.textSecondary,
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 중고차 카드 목록
-                  ...[
-                    {'name': '2022 현대 아반떼 1.6 가솔린', 'price': '1,850만원', 'km': '32,000km', 'year': '2022년식', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80'},
-                    {'name': '2021 기아 K5 2.0 하이브리드', 'price': '2,300만원', 'km': '48,000km', 'year': '2021년식', 'image': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80'},
-                    {'name': '2020 BMW 320i', 'price': '3,200만원', 'km': '55,000km', 'year': '2020년식', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80'},
-                    {'name': '2023 테슬라 Model 3', 'price': '4,500만원', 'km': '12,000km', 'year': '2023년식', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&q=80'},
-                  ].map((car) {
-                    return Container(
+                ],
+              ),
+            ),
+            // 필터 칩
+            Container(
+              color: _mCard,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _filters.map((f) {
+                    final isSelected = f == _selectedFilter;
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedFilter = f),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isSelected ? _mAccent : _mBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? _mAccent : _mBorder),
+                        ),
+                        child: Text(f,
+                          style: TextStyle(
+                            fontSize: 12, fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+                            color: isSelected ? _mBg : _mTextSec)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final car = filtered[i];
+                  return GestureDetector(
+                    onTap: () {},
+                    child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: _mCard,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: _mBorder),
                       ),
                       child: Row(
                         children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
-                            child: Image.network(
-                              car['image'] as String,
-                              width: 120,
-                              height: 90,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 120,
-                                height: 90,
-                                color: AppColors.bgGray,
-                                child: const Icon(Icons.directions_car, color: AppColors.textMuted),
-                              ),
+                          Container(
+                            width: 110, height: 90,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0A1628),
+                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+                            ),
+                            child: Center(
+                              child: Text(car['emoji'] as String,
+                                style: const TextStyle(fontSize: 40)),
                             ),
                           ),
                           Expanded(
@@ -334,42 +539,48 @@ class UsedCarScreen extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: AppColors.badgeCert,
+                                          color: _mGreen.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(3),
+                                          border: Border.all(color: _mGreen.withOpacity(0.4)),
+                                        ),
+                                        child: const Text('MOINCAR 인증',
+                                          style: TextStyle(color: _mGreen, fontSize: 9, fontWeight: FontWeight.w700)),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _mAccent.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(3),
                                         ),
-                                        child: const Text('KAA 인증',
-                                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-                                        ),
+                                        child: Text(car['type'] as String,
+                                          style: const TextStyle(color: _mAccent, fontSize: 9, fontWeight: FontWeight.w600)),
                                       ),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
                                   Text(car['name'] as String,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                                    maxLines: 2, overflow: TextOverflow.ellipsis),
                                   const SizedBox(height: 4),
                                   Text('${car['year']} · ${car['km']}',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                                  ),
+                                    style: TextStyle(fontSize: 11, color: _mTextSec)),
                                   const SizedBox(height: 4),
                                   Text(car['price'] as String,
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primary),
-                                  ),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _mOrange)),
                                 ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                    );
-                  }),
-                ],
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -644,18 +855,20 @@ class _MyScreenState extends State<MyScreen> {
                     // ── 설정 ──
                     _buildSection('설정', [
                       _DarkMenuItem(icon: Icons.notifications_outlined, label: '알림 설정',
-                        color: _textSec, onTap: () {}),
+                        color: _textSec,
+                        onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()))),
                       _DarkMenuItem(icon: Icons.lock_outline, label: '개인정보 설정',
-                        color: _textSec, onTap: () {}),
+                        color: _textSec,
+                        onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const PrivacySettingsScreen()))),
                       if (isLoggedIn)
                         _DarkMenuItem(
                           icon: Icons.logout,
                           label: '로그아웃',
                           color: Colors.red.withOpacity(0.8),
-                          onTap: () {
-                            AppState().logout();
-                            Navigator.pushNamedAndRemoveUntil(context, '/intro', (_) => false);
-                          },
+                          onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const LogoutScreen())),
                         ),
                     ]),
 
@@ -797,69 +1010,281 @@ class _DarkMenuItem {
 // _MenuItem 제거됨 (미사용)
 
 // ==================== 알림 ====================
-class NotificationScreen extends StatelessWidget {
+// ==================== 알림 게시판 ====================
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  final List<Map<String, dynamic>> _notifs = [
+    {
+      'title': '견적 요청 접수',
+      'body': 'MOINCAR 프리미엄 정비소에서 견적이 도착했습니다.\n\n견적 금액: 85,000원\n작업 내용: 엔진오일 교환 + 에어필터 교체\n예상 소요 시간: 1시간\n\n지금 바로 확인하고 예약을 확정하세요.',
+      'date': '2025-04-12',
+      'time': '방금 전',
+      'icon': '📋',
+      'read': false,
+      'category': '견적',
+    },
+    {
+      'title': '쿠폰 만료 예정',
+      'body': '엔진오일 20% 할인 쿠폰이 3일 후 만료됩니다.\n\n• 쿠폰명: 엔진오일 교환 20% 할인\n• 유효기간: 2025-04-15\n• 사용 가능 점포: MOINCAR 추천 전체 점포\n\n만료 전에 꼭 사용하세요!',
+      'date': '2025-04-12',
+      'time': '1시간 전',
+      'icon': '🎟️',
+      'read': false,
+      'category': '쿠폰',
+    },
+    {
+      'title': 'MOINCAR 인증 완료',
+      'body': 'MOINCAR 추천 정비소가 공식 인증 완료되었습니다.\n\n인증 점포명: 대구 수성구 프리미엄 정비소\n인증 유효기간: 2025.04 ~ 2026.04\n인증 등급: MOINCAR 골드 인증\n\n인증 점포에서는 특별 할인 혜택이 제공됩니다.',
+      'date': '2025-04-10',
+      'time': '2일 전',
+      'icon': '✅',
+      'read': true,
+      'category': '인증',
+    },
+    {
+      'title': '전기차 보조금 변경 안내',
+      'body': '2025년 전기차 국고 보조금이 변경되었습니다.\n\n주요 변경사항:\n• 소형 전기차: 최대 500만원 → 400만원\n• 중형 전기차: 최대 800만원 → 700만원\n• 지자체 추가 보조금은 별도 확인 필요\n\n자세한 내용은 환경부 보조금 조회 시스템에서 확인하세요.',
+      'date': '2025-04-09',
+      'time': '3일 전',
+      'icon': '📰',
+      'read': true,
+      'category': '뉴스',
+    },
+    {
+      'title': '정비 예약 리마인더',
+      'body': '내일 오전 10시 정기 점검 예약이 있습니다.\n\n예약 점포: MOINCAR 추천 정비소\n예약 시간: 2025-04-13 10:00\n서비스: 엔진오일 교환 + 타이어 점검\n\n예약 취소/변경은 예약 시간 2시간 전까지 가능합니다.',
+      'date': '2025-04-08',
+      'time': '4일 전',
+      'icon': '🔔',
+      'read': true,
+      'category': '예약',
+    },
+  ];
+
+  final Set<int> _expanded = {};
+
+  int get _unreadCount => _notifs.where((n) => !(n['read'] as bool)).length;
+
+  void _markAllRead() {
+    setState(() {
+      for (final n in _notifs) n['read'] = true;
+    });
+    AppState().updateNotificationCount(0);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final notifications = [
-      {'title': '견적 요청 접수', 'body': '프리미엄 정비소에서 견적이 도착했습니다.', 'time': '방금 전', 'icon': '📋'},
-      {'title': '쿠폰 만료 예정', 'body': '엔진오일 20% 할인 쿠폰이 3일 후 만료됩니다.', 'time': '1시간 전', 'icon': '🎟️'},
-      {'title': 'KAA 인증 완료', 'body': 'KAA 추천 정비소가 인증 완료되었습니다.', 'time': '2일 전', 'icon': '✅'},
-      {'title': '새로운 뉴스', 'body': '전기차 보조금 2025년 변경사항 안내', 'time': '3일 전', 'icon': '📰'},
-    ];
-
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(showBack: true, title: '알림', notifCount: 0),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: notifications.length,
-              itemBuilder: (_, i) {
-                final n = notifications[i];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            // 상단바
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(n['icon'] as String, style: const TextStyle(fontSize: 22)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(n['title'] as String,
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(n['body'] as String,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                            ),
-                          ],
-                        ),
+                  const SizedBox(width: 12),
+                  const Text('🔔 알림',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  if (_unreadCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _mOrange,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      Text(n['time'] as String,
-                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      child: Text('$_unreadCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (_unreadCount > 0)
+                    GestureDetector(
+                      onTap: _markAllRead,
+                      child: Text('모두 읽음',
+                        style: TextStyle(fontSize: 12, color: _mAccent, fontWeight: FontWeight.w600)),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: _notifs.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔕', style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 12),
+                        Text('알림이 없습니다', style: TextStyle(fontSize: 16, color: _mTextSec)),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _notifs.length,
+                    itemBuilder: (_, i) {
+                      final n = _notifs[i];
+                      final isRead = n['read'] as bool;
+                      final isExpanded = _expanded.contains(i);
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            if (isExpanded) {
+                              _expanded.remove(i);
+                            } else {
+                              _expanded.add(i);
+                              if (!isRead) {
+                                n['read'] = true;
+                                final unread = _notifs.where((n) => !(n['read'] as bool)).length;
+                                AppState().updateNotificationCount(unread);
+                              }
+                            }
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isRead ? _mCard : const Color(0xFF0D1F3A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isRead ? _mBorder : _mAccent.withOpacity(0.4),
+                              width: isRead ? 1 : 1.5),
+                          ),
+                          child: Column(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // 아이콘 + 미읽음 도트
+                                    Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Text(n['icon'] as String,
+                                          style: const TextStyle(fontSize: 22)),
+                                        if (!isRead)
+                                          Positioned(
+                                            right: -4, top: -4,
+                                            child: Container(
+                                              width: 8, height: 8,
+                                              decoration: const BoxDecoration(
+                                                color: _mOrange,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              // 카테고리 뱃지
+                                              Container(
+                                                margin: const EdgeInsets.only(right: 6),
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: _mAccent.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(n['category'] as String,
+                                                  style: const TextStyle(fontSize: 9, color: _mAccent,
+                                                    fontWeight: FontWeight.w600)),
+                                              ),
+                                              if (!isRead)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: _mOrange.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: const Text('NEW',
+                                                    style: TextStyle(fontSize: 9, color: _mOrange,
+                                                      fontWeight: FontWeight.w700)),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(n['title'] as String,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
+                                              color: isRead ? _mTextPri : Colors.white)),
+                                          const SizedBox(height: 3),
+                                          if (!isExpanded)
+                                            Text(
+                                              (n['body'] as String).split('\n').first,
+                                              style: TextStyle(fontSize: 12, color: _mTextSec),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(n['time'] as String,
+                                          style: TextStyle(fontSize: 10, color: _mTextSec.withOpacity(0.6))),
+                                        const SizedBox(height: 8),
+                                        Icon(
+                                          isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                          color: _mTextSec.withOpacity(0.5), size: 18),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // 확장 상세 내용
+                              if (isExpanded) ...[
+                                Divider(color: _mBorder, height: 1),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(n['body'] as String,
+                                        style: TextStyle(fontSize: 13, color: _mTextSec, height: 1.7)),
+                                      const SizedBox(height: 10),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.calendar_today, size: 12, color: _mTextSec.withOpacity(0.5)),
+                                          const SizedBox(width: 4),
+                                          Text(n['date'] as String,
+                                            style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.5))),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1750,7 +2175,7 @@ class NewsScreen extends StatelessWidget {
       {'title': '중고차 성능점검 확인 수요 확대', 'category': '자동차 소식', 'time': '2시간 전', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'},
       {'title': '2025년 전기차 보조금 변경 사항 정리', 'category': '전기차·친환경', 'time': '5시간 전', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=300&q=80'},
       {'title': '봄철 타이어 관리 필수 체크리스트', 'category': '차량 정비', 'time': '1일 전', 'image': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&q=80'},
-      {'title': 'KAA 협회 인증 점포 확대 안내', 'category': 'KAA 소식', 'time': '2일 전', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80'},
+      {'title': 'MOINCAR 인증 점포 확대 안내', 'category': 'MOINCAR 소식', 'time': '2일 전', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80'},
     ];
 
     return Scaffold(
@@ -1919,77 +2344,241 @@ class EmergencyScreen extends StatelessWidget {
 }
 
 // ==================== 내차 시세 ====================
-class CarPriceScreen extends StatelessWidget {
+class CarPriceScreen extends StatefulWidget {
   const CarPriceScreen({super.key});
+  @override
+  State<CarPriceScreen> createState() => _CarPriceScreenState();
+}
+
+class _CarPriceScreenState extends State<CarPriceScreen> {
+  // 단계: 0=입력, 1=결과
+  int _step = 0;
+  bool _loading = false;
+
+  final _plateCtrl    = TextEditingController();
+  final _makerCtrl    = TextEditingController();
+  final _modelCtrl    = TextEditingController();
+  final _yearCtrl     = TextEditingController();
+  final _kmCtrl       = TextEditingController();
+  final _gradeCtrl    = TextEditingController();
+
+  // 시세 결과 (더미 데이터 - 실제 API 연동 가능)
+  Map<String, dynamic>? _priceResult;
+
+  void _lookup() async {
+    final plate = _plateCtrl.text.trim();
+    final maker = _makerCtrl.text.trim();
+    final model = _modelCtrl.text.trim();
+    final year  = _yearCtrl.text.trim();
+    final km    = _kmCtrl.text.trim();
+
+    if (maker.isEmpty || model.isEmpty || year.isEmpty || km.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('제조사, 모델명, 연식, 주행거리를 입력해주세요')));
+      return;
+    }
+
+    setState(() => _loading = true);
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    // 더미 시세 계산 로직
+    final yearNum = int.tryParse(year) ?? 2020;
+    final kmNum = int.tryParse(km.replaceAll(RegExp(r'[^0-9]'), '')) ?? 50000;
+    final base = maker.contains('BMW') || maker.contains('벤츠') || maker.contains('아우디')
+      ? 45000000 : 20000000;
+    final ageFactor = (2026 - yearNum) * 0.07;
+    final kmFactor = (kmNum / 100000) * 0.15;
+    final est = (base * (1 - ageFactor - kmFactor)).toInt();
+    final low = (est * 0.90).toInt();
+    final high = (est * 1.10).toInt();
+
+    setState(() {
+      _loading = false;
+      _priceResult = {
+        'maker': maker,
+        'model': model,
+        'year': year,
+        'km': km,
+        'plate': plate,
+        'low': low,
+        'mid': est,
+        'high': high,
+        'grade': _grade(yearNum, kmNum),
+      };
+      _step = 1;
+    });
+  }
+
+  String _grade(int year, int km) {
+    final age = 2026 - year;
+    if (age <= 3 && km < 30000) return 'A+ (최상)';
+    if (age <= 5 && km < 60000) return 'A (상)';
+    if (age <= 8 && km < 100000) return 'B+ (중상)';
+    if (age <= 10 && km < 150000) return 'B (중)';
+    return 'C (하)';
+  }
+
+  String _fmt(int val) {
+    final man = val ~/ 10000;
+    final rest = val % 10000;
+    if (rest == 0) return '$man만원';
+    return '$man만${rest ~/ 1000}천원';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(showBack: true, title: '내차 시세', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            // 상단바
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF9E6),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFFFD54A)),
-                    ),
-                    child: const Column(
-                      children: [
-                        Text('💰', style: TextStyle(fontSize: 40)),
-                        SizedBox(height: 8),
-                        Text('내 차 시세를 알아보세요',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFFD4A017)),
-                        ),
-                        SizedBox(height: 6),
-                        Text('차량 정보를 입력하면 즉시 시세를 확인할 수 있습니다.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
+                  GestureDetector(
+                    onTap: () {
+                      if (_step == 1) { setState(() { _step = 0; _priceResult = null; }); }
+                      else { Navigator.pop(context); }
+                    },
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                   ),
-                  const SizedBox(height: 24),
-                  _buildFormField('차량 번호', '123가 4567'),
-                  const SizedBox(height: 16),
-                  _buildFormField('제조사', '현대, 기아, BMW 등'),
-                  const SizedBox(height: 16),
-                  _buildFormField('모델명', '아반떼, K5 등'),
-                  const SizedBox(height: 16),
-                  _buildFormField('연식', '2020, 2021 등'),
-                  const SizedBox(height: 16),
-                  _buildFormField('주행거리', '예: 50,000 km'),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('시세 조회 중입니다...')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4A017),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('시세 조회하기',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Text(_step == 0 ? '💰 내차 시세 조회' : '📊 시세 결과',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const Spacer(),
+                  if (_step == 1)
+                    GestureDetector(
+                      onTap: () => setState(() { _step = 0; _priceResult = null; }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _mAccent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _mAccent.withOpacity(0.4)),
+                        ),
+                        child: const Text('재조회', style: TextStyle(fontSize: 11, color: _mAccent)),
                       ),
                     ),
-                  ),
                 ],
               ),
+            ),
+            Expanded(
+              child: _step == 0 ? _buildInputPage() : _buildResultPage(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputPage() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 안내 배너
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_mOrange.withOpacity(0.15), _mAccent.withOpacity(0.08)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _mOrange.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                const Text('💰', style: TextStyle(fontSize: 32)),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('AI 기반 내차 시세 조회',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+                      SizedBox(height: 4),
+                      Text('차량 정보 입력 후 즉시 시세 범위를 확인하세요',
+                        style: TextStyle(fontSize: 11, color: _mTextSec)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _darkField('🚗 차량 번호 (선택)', '123가 4567', _plateCtrl),
+          const SizedBox(height: 14),
+          _darkField('🏭 제조사 *', '현대, 기아, BMW, 벤츠 등', _makerCtrl),
+          const SizedBox(height: 14),
+          _darkField('🚙 모델명 *', '아반떼, K5, 320i 등', _modelCtrl),
+          const SizedBox(height: 14),
+          _darkField('📅 연식 *', '2020, 2021, 2022 등', _yearCtrl,
+            keyboardType: TextInputType.number),
+          const SizedBox(height: 14),
+          _darkField('📏 주행거리 *', '50000 (km 단위)', _kmCtrl,
+            keyboardType: TextInputType.number),
+          const SizedBox(height: 14),
+          _darkField('⭐ 등급 (선택)', '무사고, 단순교환 등', _gradeCtrl),
+          const SizedBox(height: 24),
+          // 조회 버튼
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _lookup,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mOrange,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _loading
+                ? const SizedBox(width: 22, height: 22,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                : const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text('시세 조회하기',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ],
+                  ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          // 주의사항
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _mBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('📌 안내사항',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 8),
+                ...['제공되는 시세는 참고용이며 실제 거래가와 차이가 있을 수 있습니다.',
+                  '차량 상태, 옵션, 사고 이력에 따라 시세가 달라집니다.',
+                  '정확한 시세는 MOINCAR 공인 딜러 상담을 이용하세요.']
+                  .map((t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('• ', style: TextStyle(color: _mTextSec.withOpacity(0.7), fontSize: 11)),
+                        Expanded(child: Text(t,
+                          style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.7)))),
+                      ],
+                    ),
+                  )),
+              ],
             ),
           ),
         ],
@@ -1997,23 +2586,257 @@ class CarPriceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFormField(String label, String hint) {
+  Widget _buildResultPage() {
+    final r = _priceResult!;
+    final low  = r['low'] as int;
+    final mid  = r['mid'] as int;
+    final high = r['high'] as int;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          // 차량 정보 카드
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _mBorder),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: _mAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(child: Text('🚗', style: TextStyle(fontSize: 26))),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${r['year']} ${r['maker']} ${r['model']}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const SizedBox(height: 4),
+                      Text('주행거리 ${r['km']}km · 등급 ${r['grade']}',
+                        style: TextStyle(fontSize: 12, color: _mTextSec)),
+                      if ((r['plate'] as String).isNotEmpty)
+                        Text('차량번호: ${r['plate']}',
+                          style: TextStyle(fontSize: 11, color: _mAccent)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 시세 범위 카드
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_mOrange.withOpacity(0.15), _mAccent.withOpacity(0.08)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _mOrange.withOpacity(0.4)),
+            ),
+            child: Column(
+              children: [
+                const Text('AI 분석 시세 범위',
+                  style: TextStyle(fontSize: 13, color: _mTextSec)),
+                const SizedBox(height: 12),
+                Text(_fmt(mid),
+                  style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white)),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _mCard,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('최저 ${_fmt(low)}',
+                        style: const TextStyle(fontSize: 12, color: _mTextSec)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('~', style: TextStyle(color: _mTextSec)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _mCard,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('최고 ${_fmt(high)}',
+                        style: const TextStyle(fontSize: 12, color: _mTextSec)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 시세 게이지
+                Stack(
+                  children: [
+                    Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _mCard,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: 0.65,
+                      child: Container(
+                        height: 10,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [_mOrange, _mAccent]),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('하한가 ${_fmt(low)}', style: TextStyle(fontSize: 10, color: _mTextSec)),
+                    Text('상한가 ${_fmt(high)}', style: TextStyle(fontSize: 10, color: _mTextSec)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 시세 요인 분석
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _mBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('📊 시세 영향 요인',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 12),
+                ...[
+                  ['연식', '${r['year']}년식', _mAccent, 0.7],
+                  ['주행거리', '${r['km']}km', _mOrange, 0.5],
+                  ['차량 등급', '${r['grade']}', _mGreen, 0.85],
+                  ['시장 수요', '보통', const Color(0xFF8B5CF6), 0.6],
+                ].map((item) {
+                  final pct = item[3] as double;
+                  final color = item[2] as Color;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(item[0] as String,
+                              style: TextStyle(fontSize: 12, color: _mTextSec)),
+                            Text(item[1] as String,
+                              style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Stack(children: [
+                          Container(height: 6,
+                            decoration: BoxDecoration(
+                              color: _mBg, borderRadius: BorderRadius.circular(3))),
+                          FractionallySizedBox(
+                            widthFactor: pct,
+                            child: Container(height: 6,
+                              decoration: BoxDecoration(
+                                color: color, borderRadius: BorderRadius.circular(3))),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 내차 팔기 버튼
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('MOINCAR 내차 팔기 서비스 준비중입니다'))),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _mGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: const Text('🚗 내 차 팔기 신청',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text('* 제공되는 시세는 AI 분석 기반 참고용입니다.',
+            style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.6))),
+        ],
+      ),
+    );
+  }
+
+  Widget _darkField(String label, String hint, TextEditingController ctrl,
+    {TextInputType? keyboardType}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
         const SizedBox(height: 6),
         TextField(
+          controller: ctrl,
+          keyboardType: keyboardType,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+            hintStyle: TextStyle(color: _mTextSec.withOpacity(0.4), fontSize: 13),
+            filled: true,
+            fillColor: _mCard,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _mBorder)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _mBorder)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _mAccent)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           ),
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _plateCtrl.dispose();
+    _makerCtrl.dispose();
+    _modelCtrl.dispose();
+    _yearCtrl.dispose();
+    _kmCtrl.dispose();
+    _gradeCtrl.dispose();
+    super.dispose();
   }
 }
 
@@ -2573,4 +3396,492 @@ class _SummaryItem extends StatelessWidget {
     const SizedBox(height: 2),
     Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
   ]);
+}
+
+// ==================== 알림 설정 ====================
+class NotificationSettingsScreen extends StatefulWidget {
+  const NotificationSettingsScreen({super.key});
+  @override
+  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+}
+
+class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+  bool _allNotif     = true;
+  bool _quoteNotif   = true;
+  bool _couponNotif  = true;
+  bool _newsNotif    = false;
+  bool _priceNotif   = true;
+  bool _certNotif    = true;
+  bool _soundOn      = true;
+  bool _vibrationOn  = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('🔔 알림 설정',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _settingSection('전체 설정', [
+                    _switchTile('전체 알림', '모든 알림을 켜거나 끕니다', Icons.notifications_rounded, _allNotif,
+                      (v) => setState(() { _allNotif = v; if (!v) { _quoteNotif = false; _couponNotif = false; _newsNotif = false; _priceNotif = false; _certNotif = false; } })),
+                  ]),
+                  const SizedBox(height: 12),
+                  _settingSection('알림 유형', [
+                    _switchTile('견적 알림', '견적 요청·결과 알림', Icons.description_outlined, _quoteNotif,
+                      (v) => setState(() => _quoteNotif = v)),
+                    _switchTile('쿠폰 알림', '쿠폰 발급·만료 알림', Icons.local_offer_outlined, _couponNotif,
+                      (v) => setState(() => _couponNotif = v)),
+                    _switchTile('시세 알림', '내 차 시세 변동 알림', Icons.trending_up, _priceNotif,
+                      (v) => setState(() => _priceNotif = v)),
+                    _switchTile('인증 알림', '점포 인증 관련 알림', Icons.verified_outlined, _certNotif,
+                      (v) => setState(() => _certNotif = v)),
+                    _switchTile('뉴스 알림', '자동차 관련 뉴스 알림', Icons.newspaper_outlined, _newsNotif,
+                      (v) => setState(() => _newsNotif = v)),
+                  ]),
+                  const SizedBox(height: 12),
+                  _settingSection('알림 방식', [
+                    _switchTile('소리', '알림 소리 켜기', Icons.volume_up_outlined, _soundOn,
+                      (v) => setState(() => _soundOn = v)),
+                    _switchTile('진동', '알림 진동 켜기', Icons.vibration, _vibrationOn,
+                      (v) => setState(() => _vibrationOn = v)),
+                  ]),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ 알림 설정이 저장되었습니다')));
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _mAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _settingSection(String title, List<Widget> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _mCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _mBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text(title,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                color: _mTextSec.withOpacity(0.8), letterSpacing: 0.5)),
+          ),
+          ...items,
+        ],
+      ),
+    );
+  }
+
+  Widget _switchTile(String title, String sub, IconData icon, bool value, Function(bool) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+              color: _mAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: _mAccent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                Text(sub, style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.7))),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: _mAccent,
+            activeTrackColor: _mAccent.withOpacity(0.3),
+            inactiveThumbColor: _mTextSec,
+            inactiveTrackColor: _mBorder,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== 개인정보 설정 ====================
+class PrivacySettingsScreen extends StatefulWidget {
+  const PrivacySettingsScreen({super.key});
+  @override
+  State<PrivacySettingsScreen> createState() => _PrivacySettingsScreenState();
+}
+
+class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
+  bool _locationConsent = true;
+  bool _marketingConsent = false;
+  bool _analyticsConsent = true;
+  bool _thirdPartyConsent = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('🔒 개인정보 설정',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // 개인정보 요약 카드
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [_mAccent.withOpacity(0.1), _mBg]),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _mAccent.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text('🛡️', style: TextStyle(fontSize: 28)),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('개인정보 보호',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                              SizedBox(height: 3),
+                              Text('MOINCAR는 고객님의 개인정보를 안전하게 보호합니다.',
+                                style: TextStyle(fontSize: 11, color: _mTextSec)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  _privacySection('동의 항목', [
+                    _consentTile('위치 정보 활용', '주변 점포 검색에 사용됩니다', _locationConsent,
+                      (v) => setState(() => _locationConsent = v)),
+                    _consentTile('마케팅 정보 수신', '혜택 및 이벤트 정보를 받습니다', _marketingConsent,
+                      (v) => setState(() => _marketingConsent = v)),
+                    _consentTile('서비스 분석 동의', '앱 개선을 위한 익명 데이터 수집', _analyticsConsent,
+                      (v) => setState(() => _analyticsConsent = v)),
+                    _consentTile('제3자 정보 제공', '파트너사 맞춤 서비스 제공', _thirdPartyConsent,
+                      (v) => setState(() => _thirdPartyConsent = v)),
+                  ]),
+                  const SizedBox(height: 12),
+
+                  _privacySection('계정 관리', [
+                    _actionTile('비밀번호 변경', Icons.lock_outline, _mAccent,
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('비밀번호 변경 기능 준비중')))),
+                    _actionTile('이메일 변경', Icons.email_outlined, _mAccent,
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('이메일 변경 기능 준비중')))),
+                    _actionTile('계정 삭제', Icons.delete_outline, Colors.red,
+                      () => _showDeleteAccountDialog(context)),
+                  ]),
+                  const SizedBox(height: 12),
+
+                  _privacySection('개인정보 문서', [
+                    _docTile('개인정보 처리방침', '최종 수정: 2025년 1월', Icons.article_outlined),
+                    _docTile('서비스 이용약관', '최종 수정: 2025년 1월', Icons.description_outlined),
+                    _docTile('위치기반 서비스 약관', '최종 수정: 2025년 1월', Icons.location_on_outlined),
+                  ]),
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('✅ 개인정보 설정이 저장되었습니다')));
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _mAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('저장', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _privacySection(String title, List<Widget> items) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _mCard,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _mBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text(title,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                color: _mTextSec.withOpacity(0.8))),
+          ),
+          ...items,
+        ],
+      ),
+    );
+  }
+
+  Widget _consentTile(String title, String sub, bool value, Function(bool) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                Text(sub, style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.7))),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: _mAccent,
+            activeTrackColor: _mAccent.withOpacity(0.3),
+            inactiveThumbColor: _mTextSec,
+            inactiveTrackColor: _mBorder,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionTile(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: TextStyle(fontSize: 14, color: color, fontWeight: FontWeight.w500))),
+            Icon(Icons.chevron_right, size: 16, color: _mTextSec.withOpacity(0.4)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _docTile(String title, String sub, IconData icon) {
+    return InkWell(
+      onTap: () {},
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: _mTextSec),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w500)),
+                  Text(sub, style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.6))),
+                ],
+              ),
+            ),
+            Icon(Icons.open_in_new, size: 14, color: _mTextSec.withOpacity(0.4)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: _mCard,
+        title: const Text('계정 삭제', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text('계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.\n정말 삭제하시겠습니까?',
+          style: TextStyle(color: _mTextSec, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('취소', style: TextStyle(color: _mTextSec)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('계정 삭제 요청이 접수되었습니다')));
+            },
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== 로그아웃 확인 ====================
+class LogoutScreen extends StatelessWidget {
+  const LogoutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(statusBarColor: _mBg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _mBg,
+        body: Column(
+          children: [
+            Container(
+              color: _mCard,
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + 10, 16, 14),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('로그아웃',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 80, height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.red.withOpacity(0.3), width: 2),
+                        ),
+                        child: const Icon(Icons.logout, color: Colors.red, size: 36),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text('로그아웃 하시겠습니까?',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const SizedBox(height: 12),
+                      Text('로그아웃 후 다시 로그인이 필요합니다.\n자동 로그인이 해제됩니다.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: _mTextSec, height: 1.5)),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            AppState().logout();
+                            Navigator.pushNamedAndRemoveUntil(context, '/intro', (_) => false);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('로그아웃',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: _mBorder),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text('취소', style: TextStyle(fontSize: 16, color: _mTextSec)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

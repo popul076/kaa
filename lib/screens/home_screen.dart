@@ -457,28 +457,35 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const Spacer(),
         // 알림
-        Stack(clipBehavior: Clip.none, children: [
-          Container(
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/notification'),
+          child: Stack(clipBehavior: Clip.none, children: [
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(color: _s1,
+                  borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
+              child: const Icon(Icons.notifications_none_rounded, color: _t2, size: 19),
+            ),
+            Positioned(right: -1, top: -1,
+              child: Container(
+                width: 15, height: 15,
+                decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
+                child: const Center(child: Text('2',
+                    style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        // 마이버튼 → 마이페이지 이동
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/my'),
+          child: Container(
             width: 38, height: 38,
             decoration: BoxDecoration(color: _s1,
                 borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
-            child: const Icon(Icons.notifications_none_rounded, color: _t2, size: 19),
+            child: const Icon(Icons.person_outline_rounded, color: _t2, size: 19),
           ),
-          Positioned(right: -1, top: -1,
-            child: Container(
-              width: 15, height: 15,
-              decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
-              child: const Center(child: Text('2',
-                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))),
-            ),
-          ),
-        ]),
-        const SizedBox(width: 8),
-        Container(
-          width: 38, height: 38,
-          decoration: BoxDecoration(color: _s1,
-              borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
-          child: const Icon(Icons.person_outline_rounded, color: _t2, size: 19),
         ),
       ]),
     );

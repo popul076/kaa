@@ -521,10 +521,14 @@ class _StoreDetailScreenState extends State<StoreDetailScreen>
             ],
           ),
           const SizedBox(height: 10),
+          // AI 소개글 전체 표시 (접기/펼치기 없음)
           Text(store.desc,
             style: const TextStyle(
-              fontSize: 14, color: _textSec, height: 1.6),
+              fontSize: 14, color: _textSec, height: 1.7),
           ),
+          const SizedBox(height: 8),
+          const Text('✅ 이 문구가 잠금화면 이미지 위에 전체 노출됩니다',
+            style: TextStyle(fontSize: 11, color: Color(0xFF10B981))),
         ],
       ),
     );
@@ -846,7 +850,7 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
       'MOINCAR 추천 프리미엄 정비소는 대구 수성구에 위치한 전문 자동차 정비 업체입니다. '
       '10년 이상의 풍부한 경험을 보유한 전문 기술진이 고객님의 차량을 꼼꼼하게 점검하고 '
       '수리합니다. 엔진오일 교환, 브레이크 정비, 타이어 교체 등 모든 서비스를 합리적인 '
-      '가격에 제공하며, KAA 협회 인증 점포로서 최고의 서비스 품질을 보장합니다. '
+      '가격에 제공하며, MOINCAR 공식 인증 점포로서 최고의 서비스 품질을 보장합니다. '
       '예약 없이 방문 가능하며 당일 처리를 원칙으로 합니다. '
       '고객 만족을 최우선으로 하는 MOINCAR 추천 정비소에서 내 차의 건강을 지켜보세요. '
       '친절한 상담과 투명한 견적으로 신뢰를 드리겠습니다.';

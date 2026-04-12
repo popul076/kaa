@@ -54,6 +54,11 @@ class AppState extends ChangeNotifier {
     user = null;
     notifyListeners();
   }
+
+  void updateNotificationCount(int count) {
+    notificationCount = count;
+    notifyListeners();
+  }
 }
 
 // ==================== 데이터 모델 ====================
