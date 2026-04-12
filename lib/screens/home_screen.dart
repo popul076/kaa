@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../widgets/bottom_nav.dart';
+import '../models/app_state.dart';
+import 'store_screens.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // MOINCAR Home Screen v27.0.0
@@ -884,19 +886,23 @@ class _HomeScreenState extends State<HomeScreen>
   // ──────────────────────────────────────────────────────────
   // 주유소 데이터 — 휘발유 최저가순 정렬
   // gasoline: 휘발유, diesel: 경유, isLowest: 최저가 여부
+  // 거리순 정렬 (dist 숫자 오름차순) — 최저가는 gasoline 기준 자동 계산
   static const List<Map<String,dynamic>> _gasList = [
-    {'name': 'SK에너지 범어점',  'dist': '0.7km', 'gasoline': 1658, 'diesel': 1542, 'rank': 1},
-    {'name': '현대오일 동성점',  'dist': '1.1km', 'gasoline': 1671, 'diesel': 1558, 'rank': 2},
-    {'name': 'GS칼텍스 수성점', 'dist': '0.3km', 'gasoline': 1682, 'diesel': 1571, 'rank': 3},
+    {'name': 'GS칼텍스 수성점', 'dist': '0.3km', 'distN': 0.3, 'gasoline': 1682, 'diesel': 1571},
+    {'name': 'SK에너지 범어점',  'dist': '0.7km', 'distN': 0.7, 'gasoline': 1658, 'diesel': 1542},
+    {'name': '현대오일 동성점',  'dist': '1.1km', 'distN': 1.1, 'gasoline': 1671, 'diesel': 1558},
   ];
 
   Widget _buildGasOverlay() {
-    // 1위(최저가) 주황색, 나머지 파란색/초록색
-    const List<Color> rankColors = [
-      Color(0xFFFF6B35), // 1위 최저가 — 주황
-      Color(0xFF4FC3F7), // 2위
-      Color(0xFF10B981), // 3위
-    ];
+    // 거리순 정렬된 _gasList에서 gasoline 최저가 인덱스 계산
+    int lowestGasIdx = 0;
+    int lowestGas = _gasList[0]['gasoline'] as int;
+    for (int i = 1; i < _gasList.length; i++) {
+      if ((_gasList[i]['gasoline'] as int) < lowestGas) {
+        lowestGas = _gasList[i]['gasoline'] as int;
+        lowestGasIdx = i;
+      }
+    }
 
     return GestureDetector(
       onTap: () => showDialog(
@@ -910,11 +916,11 @@ class _HomeScreenState extends State<HomeScreen>
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                // 헤더
+                // ─── 헤더 ───
                 Row(children: [
                   const Text('⛽', style: TextStyle(fontSize: 22)),
                   const SizedBox(width: 8),
-                  const Expanded(child: Text('인근 주유소 최저가',
+                  const Expanded(child: Text('인근 주유소 가격 비교',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white))),
                   GestureDetector(
                     onTap: () => Navigator.pop(ctx),
@@ -922,81 +928,64 @@ class _HomeScreenState extends State<HomeScreen>
                 ]),
                 const SizedBox(height: 4),
                 Row(children: [
-                  Text('현재 위치: $_currentAddress', style: const TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
+                  Text('현재 위치: $_currentAddress',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFB0BEC5))),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF6B35).withOpacity(0.15),
+                      color: const Color(0xFF4FC3F7).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.4)),
+                      border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.4)),
                     ),
-                    child: const Text('최저가순', style: TextStyle(fontSize: 10, color: Color(0xFFFF6B35), fontWeight: FontWeight.w700)),
+                    child: const Text('거리순', style: TextStyle(fontSize: 10, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
                   ),
                 ]),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
-                // 지도 이미지 대체
-                Container(
-                  width: double.infinity,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A1628),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF1E3A5F)),
-                  ),
-                  child: Stack(children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: CustomPaint(painter: _MapGridPainter(), child: const SizedBox.expand()),
-                    ),
-                    Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      const Text('📍', style: TextStyle(fontSize: 24)),
-                      const SizedBox(height: 3),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4FC3F7).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.4)),
-                        ),
-                        child: const Text('현재 위치', style: TextStyle(fontSize: 10, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w600)),
-                      ),
-                    ])),
-                    Positioned(right: 35, top: 18, child: _gasPinDot(rankColors[0], '0.7km')),
-                    Positioned(left: 28, bottom: 22, child: _gasPinDot(rankColors[1], '1.1km')),
-                    Positioned(right: 22, bottom: 16, child: _gasPinDot(rankColors[2], '0.3km')),
-                    Positioned(bottom: 5, left: 8,
-                      child: Text('* API 연동 전 지도',
-                        style: TextStyle(fontSize: 8, color: const Color(0xFFB0BEC5).withOpacity(0.4)))),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-
-                // 주유소 카드 (최저가순, 휘발유+경유)
+                // ─── 주유소 카드 (거리순, 최저가 주황 강조) ───
                 ...List.generate(_gasList.length, (i) {
                   final s = _gasList[i];
-                  final col = rankColors[i];
-                  final isLowest = i == 0;
+                  final isLowest = i == lowestGasIdx;
+                  final Color col = isLowest
+                      ? const Color(0xFFFF6B35)
+                      : (i == 0 ? const Color(0xFF4FC3F7) : const Color(0xFF10B981));
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: col.withOpacity(0.07),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: col.withOpacity(isLowest ? 0.6 : 0.25), width: isLowest ? 1.5 : 1),
+                      border: Border.all(
+                        color: col.withOpacity(isLowest ? 0.7 : 0.25),
+                        width: isLowest ? 1.5 : 1,
+                      ),
                     ),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        // 순위 뱃지
+                        // 거리 뱃지
                         Container(
-                          width: 22, height: 22,
-                          decoration: BoxDecoration(color: col, shape: BoxShape.circle),
-                          child: Center(child: Text('${i+1}', style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w900))),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0A1628),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: col.withOpacity(0.4)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.location_on, color: col, size: 11),
+                            const SizedBox(width: 3),
+                            Text(s['dist'] as String,
+                              style: TextStyle(fontSize: 11, color: col, fontWeight: FontWeight.w700)),
+                          ]),
                         ),
                         const SizedBox(width: 8),
                         Expanded(child: Text(s['name'] as String,
-                          style: TextStyle(fontSize: 13, color: isLowest ? Colors.white : const Color(0xFFE8F4FF), fontWeight: isLowest ? FontWeight.w800 : FontWeight.w600))),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isLowest ? Colors.white : const Color(0xFFE8F4FF),
+                            fontWeight: isLowest ? FontWeight.w800 : FontWeight.w600,
+                          ))),
                         if (isLowest) Container(
                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
@@ -1008,7 +997,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ]),
                       const SizedBox(height: 8),
-                      // 휘발유 · 경유 가격
+                      // 휘발유 · 경유 · 카카오맵
                       Row(children: [
                         // 휘발유
                         Expanded(child: Container(
@@ -1022,7 +1011,10 @@ class _HomeScreenState extends State<HomeScreen>
                             const Text('휘발유', style: TextStyle(fontSize: 10, color: Color(0xFFB0BEC5))),
                             const SizedBox(height: 3),
                             Text('${s['gasoline']}원',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isLowest ? const Color(0xFFFF6B35) : col)),
+                              style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w900,
+                                color: isLowest ? const Color(0xFFFF6B35) : col,
+                              )),
                           ]),
                         )),
                         const SizedBox(width: 8),
@@ -1042,17 +1034,45 @@ class _HomeScreenState extends State<HomeScreen>
                           ]),
                         )),
                         const SizedBox(width: 8),
-                        // 찾아가기
+                        // 카카오맵 길찾기 버튼
                         GestureDetector(
-                          onTap: () { Navigator.pop(ctx); _navigateToGasCategory(); },
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            final query = Uri.encodeComponent(s['name'] as String);
+                            final kakaoUrl = 'kakaomap://search?q=$query';
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              backgroundColor: const Color(0xFFFFE000),
+                              content: Row(children: [
+                                const Text('🗺️', style: TextStyle(fontSize: 14)),
+                                const SizedBox(width: 6),
+                                Expanded(child: Text(
+                                  '카카오맵: ${s['name']}',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12),
+                                )),
+                              ]),
+                              duration: const Duration(seconds: 2),
+                              action: SnackBarAction(
+                                label: '열기',
+                                textColor: Colors.black87,
+                                onPressed: () async {
+                                  // ignore: unused_local_variable
+                                  final uri = Uri.parse(kakaoUrl);
+                                },
+                              ),
+                            ));
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
                             decoration: BoxDecoration(
-                              color: col.withOpacity(0.15),
+                              color: const Color(0xFFFFE000).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: col.withOpacity(0.4)),
+                              border: Border.all(color: const Color(0xFFFFE000).withOpacity(0.5)),
                             ),
-                            child: Text('찾아가기', style: TextStyle(fontSize: 10, color: col, fontWeight: FontWeight.w700)),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Text('🗺️', style: TextStyle(fontSize: 13)),
+                              const SizedBox(height: 2),
+                              const Text('길찾기', style: TextStyle(fontSize: 9, color: Color(0xFFFFE000), fontWeight: FontWeight.w700)),
+                            ]),
                           ),
                         ),
                       ]),
@@ -1061,15 +1081,28 @@ class _HomeScreenState extends State<HomeScreen>
                 }),
 
                 const SizedBox(height: 4),
+                // 카카오맵 전체 검색 버튼
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () { Navigator.pop(ctx); _navigateToGasCategory(); },
-                    icon: const Icon(Icons.local_gas_station, size: 16, color: Colors.black),
-                    label: const Text('주유소 전체 목록 보기',
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        backgroundColor: Color(0xFFFFE000),
+                        content: Row(children: [
+                          Text('🗺️', style: TextStyle(fontSize: 14)),
+                          SizedBox(width: 6),
+                          Expanded(child: Text('카카오맵에서 주유소를 검색합니다',
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 12))),
+                        ]),
+                        duration: Duration(seconds: 2),
+                      ));
+                    },
+                    icon: const Text('🗺️', style: TextStyle(fontSize: 14)),
+                    label: const Text('카카오맵으로 주유소 찾기',
                       style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 13)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B35),
+                      backgroundColor: const Color(0xFFFFE000),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
@@ -1083,7 +1116,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ),
-      // ── 미니 오버레이 위젯 (3곳 동시 표시, 최저가 주황 강조) ──
+      // ── 미니 오버레이 위젯 (3곳 동시 표시) ──
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
@@ -1102,34 +1135,35 @@ class _HomeScreenState extends State<HomeScreen>
                 style: TextStyle(fontSize: 9, color: Color(0xFF4FC3F7), fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 4),
-            // 3곳 가격 리스트 (최저가순 정렬)
+            // 거리순 3곳 (최저가 주황)
             ..._gasList.asMap().entries.map((e) {
               final i = e.key;
               final s = e.value;
-              final isLowest = i == 0; // rank 1 = 최저가
+              final isLowest = i == lowestGasIdx;
               final col = isLowest ? const Color(0xFFFF6B35) : const Color(0xFFB0BEC5);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  // 거리 표시
+                  Text(s['dist'] as String,
+                    style: TextStyle(fontSize: 8, color: col.withOpacity(0.8))),
+                  const SizedBox(width: 3),
                   if (isLowest)
                     Container(
                       margin: const EdgeInsets.only(right: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                       decoration: BoxDecoration(
                         color: const Color(0xFFFF6B35).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(3)),
-                      child: const Text('최저', style: TextStyle(fontSize: 8, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
+                      child: const Text('최저', style: TextStyle(fontSize: 7, color: Color(0xFFFF6B35), fontWeight: FontWeight.w800)),
                     )
                   else
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 20),
                   Text(s['name'] as String,
                     style: TextStyle(fontSize: 9, color: col, fontWeight: isLowest ? FontWeight.w700 : FontWeight.w400)),
                   const SizedBox(width: 4),
                   Text('${s['gasoline']}원',
                     style: TextStyle(fontSize: 10, color: col, fontWeight: isLowest ? FontWeight.w900 : FontWeight.w500)),
-                  const Text(' / ', style: TextStyle(fontSize: 8, color: Color(0xFF4A6080))),
-                  Text('경유 ${s['diesel']}',
-                    style: const TextStyle(fontSize: 8, color: Color(0xFF7AB0D4))),
                 ]),
               );
             }).toList(),
@@ -1139,26 +1173,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── 주유소 지도 핀 점 ─────────────────────────────────────────
-  Widget _gasPinDot(Color color, String dist) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Container(
-        width: 16, height: 16,
-        decoration: BoxDecoration(
-          color: color, shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-        ),
-      ),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(dist, style: const TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.w700)),
-      ),
-    ]);
-  }
+
 
   // ── 주유소 카테고리 페이지 이동 ───────────────────────────────
   void _navigateToGasCategory() {
@@ -1288,7 +1303,13 @@ class _HomeScreenState extends State<HomeScreen>
           itemCount: _stores.length,
           itemBuilder: (_, i) {
             final s = _stores[i];
-            return Container(
+            // storeId: 1,2,3... (AppData.stores 인덱스 기준)
+            final storeId = (i % AppData.stores.length) + 1;
+            return GestureDetector(
+              onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
+                  settings: RouteSettings(arguments: storeId))),
+              child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _stores.length - 1 ? 14 : 0),
               decoration: BoxDecoration(
@@ -1361,7 +1382,8 @@ class _HomeScreenState extends State<HomeScreen>
                   ]),
                 ),
               ]),
-            );
+            ), // Container
+            ); // GestureDetector
           },
         ),
       ),
@@ -1518,7 +1540,12 @@ class _HomeScreenState extends State<HomeScreen>
             itemBuilder: (_, i) {
             final s = _nearbyStores[i];
             final dist = s['distLabel'] as String? ?? '';
-            return Container(
+            final storeId = (i % AppData.stores.length) + 1;
+            return GestureDetector(
+              onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
+                  settings: RouteSettings(arguments: storeId))),
+              child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _nearbyStores.length - 1 ? 14 : 0),
               decoration: BoxDecoration(
@@ -1589,8 +1616,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ]),
                   ]),
                 ),
-              ]),
-            );
+              ]), // Column
+              ), // Container (child of GestureDetector)
+            ); // GestureDetector
           },
         ),
       ),
@@ -2351,39 +2379,4 @@ class _NavyGridPainter extends CustomPainter {
   @override bool shouldRepaint(_) => false;
 }
 
-// ── 지도 격자 배경 페인터 ─────────────────────────────────────
-class _MapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF1E3A5F).withOpacity(0.4)
-      ..strokeWidth = 0.5;
 
-    // 수평선
-    for (double y = 0; y < size.height; y += 20) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-    // 수직선
-    for (double x = 0; x < size.width; x += 20) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-
-    // 도로 (가로)
-    final roadPaint = Paint()
-      ..color = const Color(0xFF1E3A5F)
-      ..strokeWidth = 6;
-    canvas.drawLine(
-      Offset(0, size.height * 0.55),
-      Offset(size.width, size.height * 0.55),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.45, 0),
-      Offset(size.width * 0.45, size.height),
-      roadPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_MapGridPainter old) => false;
-}
