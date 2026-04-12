@@ -218,7 +218,6 @@ class _StoreListCard extends StatelessWidget {
 // ==================== 점포 상세 (사용자용 - 잠금화면 클릭 진입) ====================
 class StoreDetailScreen extends StatefulWidget {
   const StoreDetailScreen({super.key});
-
   @override
   State<StoreDetailScreen> createState() => _StoreDetailScreenState();
 }
@@ -226,23 +225,17 @@ class StoreDetailScreen extends StatefulWidget {
 class _StoreDetailScreenState extends State<StoreDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-  int _heroIdx = 0;
 
-  // MOINCAR dark theme
-  static const Color _bg       = Color(0xFF020810);
-  static const Color _card     = Color(0xFF0D1B2A);
-  static const Color _accent   = Color(0xFF4FC3F7);
-  static const Color _orange   = Color(0xFFFF6B35);
-  static const Color _green    = Color(0xFF10B981);
-  static const Color _textPri  = Colors.white;
-  static const Color _textSec  = Color(0xFFB0BEC5);
-  static const Color _border   = Color(0xFF1E3A5F);
-
-  final List<Map<String, dynamic>> _heroImages = [
-    {'label': '간판 / 외관', 'emoji': '🏪', 'color': Color(0xFF1A2F4A)},
-    {'label': '매장 내부',   'emoji': '🔧', 'color': Color(0xFF1A3A2A)},
-    {'label': '대표 차량',   'emoji': '🚗', 'color': Color(0xFF2A1A3A)},
-  ];
+  // ── MOINCAR 다크 컬러 ──
+  static const _bg      = Color(0xFF020810);
+  static const _card    = Color(0xFF0D1B2A);
+  static const _navy    = Color(0xFF0A1628);
+  static const _accent  = Color(0xFF4FC3F7);
+  static const _orange  = Color(0xFFFF6B35);
+  static const _green   = Color(0xFF10B981);
+  static const _border  = Color(0xFF1E3A5F);
+  static const _textPri = Colors.white;
+  static const _textSec = Color(0xFFB0BEC5);
 
   @override
   void initState() {
@@ -263,149 +256,143 @@ class _StoreDetailScreenState extends State<StoreDetailScreen>
       (s) => s.id == storeId,
       orElse: () => AppData.stores.first,
     );
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF020810),
+        statusBarColor: _bg,
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: _bg,
         body: CustomScrollView(
+          physics: const ClampingScrollPhysics(),
           slivers: [
-            // ─── 히어로 헤더 (사진 슬라이드) ───
-            SliverToBoxAdapter(child: _buildHero(store)),
-
-            // ─── 점포명 + 평점 + 태그 ───
-            SliverToBoxAdapter(child: _buildTitle(store)),
-
-            // ─── 빠른 액션 버튼 ───
+            // ─── 히어로 배너 ───
+            SliverToBoxAdapter(child: _buildHero(context, store)),
+            // ─── 빠른 액션 3버튼 ───
             SliverToBoxAdapter(child: _buildQuickActions(context, store)),
-
-            // ─── AI 소개글 ───
-            SliverToBoxAdapter(child: _buildAiIntro(store)),
-
-            // ─── 탭: 서비스 / 정보 / 리뷰 ───
+            // ─── 점포 기본 정보 ───
+            SliverToBoxAdapter(child: _buildBasicInfo(store)),
+            // ─── 탭 ───
             SliverToBoxAdapter(child: _buildTabBar()),
             SliverToBoxAdapter(child: _buildTabContent(context, store)),
-
-            // ─── 하단 패딩 ───
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            // 하단 고정 버튼 여백
+            SliverToBoxAdapter(child: SizedBox(height: bottomPad + 90)),
           ],
         ),
-
-        // ─── 하단 고정 버튼 ───
-        bottomNavigationBar: _buildBottomBar(context),
+        // ─── 하단 고정: 전화걸기 + 1:1 채팅 (항상 표시) ───
+        bottomNavigationBar: _buildBottomBar(context, store),
       ),
     );
   }
 
-  // ── 히어로 슬라이드 ──
-  Widget _buildHero(Store store) {
+  // ── 히어로 배너 ──
+  Widget _buildHero(BuildContext context, Store store) {
+    final topPad = MediaQuery.of(context).padding.top;
     return SizedBox(
-      height: 260,
+      height: 220 + topPad,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // 메인 이미지 / 이모지
-          PageView.builder(
-            itemCount: _heroImages.length,
-            onPageChanged: (i) => setState(() => _heroIdx = i),
-            itemBuilder: (_, i) => Container(
-              color: _heroImages[i]['color'] as Color,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (i == 0)
-                    CachedNetworkImage(
-                      imageUrl: store.image,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Center(
-                        child: Text(_heroImages[i]['emoji'] as String,
-                          style: const TextStyle(fontSize: 80)),
-                      ),
-                    )
-                  else
-                    Center(
-                      child: Text(_heroImages[i]['emoji'] as String,
-                        style: const TextStyle(fontSize: 80)),
-                    ),
-                  // 그라디언트 오버레이
+          // 배경 이미지
+          CachedNetworkImage(
+            imageUrl: store.image,
+            fit: BoxFit.cover,
+            errorWidget: (_, __, ___) => Container(
+              color: _navy,
+              child: const Center(child: Text('🏪', style: TextStyle(fontSize: 70))),
+            ),
+          ),
+          // 그라디언트
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x88000000), Color(0xDD000000)],
+                stops: [0.3, 1.0],
+              ),
+            ),
+          ),
+          // 상단 헤더 행
+          Positioned(
+            top: topPad + 8, left: 12, right: 12,
+            child: Row(children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _border),
+                  ),
+                  child: const Icon(Icons.arrow_back_ios_new, color: _textPri, size: 16),
+                ),
+              ),
+              const Expanded(
+                child: Center(
+                  child: Text('점포 상세',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _border),
+                  ),
+                  child: const Text('관리', style: TextStyle(fontSize: 13, color: _textPri, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ]),
+          ),
+          // 배너 하단 텍스트
+          Positioned(
+            bottom: 18, left: 18, right: 18,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _accent.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _accent.withOpacity(0.5)),
+                  ),
+                  child: const Text('점포 공개 페이지',
+                    style: TextStyle(fontSize: 10, color: _accent, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 6),
+                Text(store.name,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, height: 1.2)),
+                const SizedBox(height: 5),
+                Row(children: [
                   Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
-                        stops: const [0.4, 1.0],
-                      ),
+                      color: _orange.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(5),
                     ),
+                    child: Text(store.badge,
+                      style: const TextStyle(fontSize: 10, color: _orange, fontWeight: FontWeight.w700)),
                   ),
-                  // 라벨
-                  Positioned(
-                    bottom: 12, left: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _border),
-                      ),
-                      child: Text(_heroImages[i]['label'] as String,
-                        style: const TextStyle(color: _textSec, fontSize: 11),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 뒤로 버튼
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8, left: 12,
-            child: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 38, height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _border),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new, color: _textPri, size: 18),
-              ),
-            ),
-          ),
-
-          // 페이지 인디케이터
-          Positioned(
-            bottom: 12, right: 16,
-            child: Row(
-              children: List.generate(_heroImages.length, (i) => Container(
-                width: i == _heroIdx ? 18 : 6,
-                height: 6,
-                margin: const EdgeInsets.only(left: 4),
-                decoration: BoxDecoration(
-                  color: i == _heroIdx ? _accent : Colors.white.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              )),
-            ),
-          ),
-
-          // 배지
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 8, right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: store.type == 'certified' ? _orange : _accent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(store.badge,
-                style: const TextStyle(
-                  color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
-              ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.place_outlined, color: _textSec, size: 13),
+                  const SizedBox(width: 3),
+                  Text(store.distance, style: const TextStyle(fontSize: 12, color: _textSec)),
+                  const SizedBox(width: 10),
+                  Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 13),
+                  const SizedBox(width: 3),
+                  Text(store.rating.toString(),
+                    style: const TextStyle(fontSize: 12, color: _textSec)),
+                ]),
+              ],
             ),
           ),
         ],
@@ -413,354 +400,427 @@ class _StoreDetailScreenState extends State<StoreDetailScreen>
     );
   }
 
-  // ── 점포명 + 평점 ──
-  Widget _buildTitle(Store store) {
-    return Container(
-      color: _card,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(store.name,
-            style: const TextStyle(
-              fontSize: 22, fontWeight: FontWeight.w800, color: _textPri),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Text('⭐', style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 4),
-              Text('${store.rating}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _accent),
-              ),
-              Text(' · 방문 ${store.visits}회 · 문의 ${store.inquiries}건',
-                style: const TextStyle(fontSize: 12, color: _textSec),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6, runSpacing: 6,
-            children: store.tags.map((t) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _bg,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _border),
-              ),
-              child: Text(t,
-                style: const TextStyle(fontSize: 11, color: _textSec)),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── 빠른 액션 ──
+  // ── 빠른 액션 3버튼 (전화하기 / 길찾기 / 네비게이션) ──
   Widget _buildQuickActions(BuildContext context, Store store) {
     return Container(
-      color: _bg,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _ActionBtn(icon: Icons.phone, label: '전화',
-            color: _green,
+          _quickBtn(context, Icons.phone_rounded, '전화하기', false,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('전화: ${store.phone}')))),
-          _ActionBtn(icon: Icons.directions, label: '길찾기',
-            color: _accent,
+              SnackBar(backgroundColor: _green, content: Text('☎ ${store.phone} 연결 중...')))),
+          const SizedBox(width: 8),
+          _quickBtn(context, Icons.directions_rounded, '길찾기', false,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('길찾기: ${store.address}')))),
-          _ActionBtn(icon: Icons.share, label: '공유',
-            color: const Color(0xFF8B5CF6),
+              SnackBar(backgroundColor: _accent, content: Text('🗺 ${store.address} 경로 안내')))),
+          const SizedBox(width: 8),
+          _quickBtn(context, Icons.navigation_rounded, '네비게이션', true,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('공유 링크 복사됨')))),
-          _ActionBtn(icon: Icons.bookmark_border, label: '저장',
-            color: _orange,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('점포 저장 완료')))),
+              const SnackBar(backgroundColor: Color(0xFF1E3A5F), content: Text('🧭 네비게이션 실행 중...')))),
         ],
       ),
     );
   }
 
-  // ── AI 소개글 ──
-  Widget _buildAiIntro(Store store) {
+  Widget _quickBtn(BuildContext context, IconData icon, String label, bool filled, {required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          decoration: BoxDecoration(
+            color: filled ? const Color(0xFF0D2040) : _card,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: filled ? _accent.withOpacity(0.5) : _border,
+              width: filled ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 15,
+                color: filled ? _accent : _textSec),
+              const SizedBox(width: 5),
+              Text(label,
+                style: TextStyle(
+                  fontSize: 12, fontWeight: FontWeight.w700,
+                  color: filled ? _accent : _textPri)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 점포 기본 정보 ──
+  Widget _buildBasicInfo(Store store) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0D2040), Color(0xFF0D1B2A)],
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-        ),
+        color: _card,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: _border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _accent.withOpacity(0.4)),
-                ),
-                child: const Row(children: [
-                  Text('🤖', style: TextStyle(fontSize: 10)),
-                  SizedBox(width: 4),
-                  Text('AI 생성 소개글',
-                    style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w700)),
-                ]),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          // AI 소개글 전체 표시 (접기/펼치기 없음)
-          Text(store.desc,
-            style: const TextStyle(
-              fontSize: 14, color: _textSec, height: 1.7),
-          ),
+          const Text('점포 기본 정보',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPri)),
+          const SizedBox(height: 2),
+          const Text('주소 · 영업시간 · 소개',
+            style: TextStyle(fontSize: 11, color: _textSec)),
+          const SizedBox(height: 12),
+          // 2x2 그리드
+          Row(children: [
+            _infoCell('카테고리', store.tags.join(' · ')),
+            const SizedBox(width: 8),
+            _infoCell('영업시간', store.hours),
+          ]),
           const SizedBox(height: 8),
-          const Text('✅ 이 문구가 잠금화면 이미지 위에 전체 노출됩니다',
-            style: TextStyle(fontSize: 11, color: Color(0xFF10B981))),
+          Row(children: [
+            _infoCell('전화번호', store.phone),
+            const SizedBox(width: 8),
+            _infoCell('방문/문의', '${store.visits} / ${store.inquiries}'),
+          ]),
+          const SizedBox(height: 12),
+          // 소개글
+          Text(store.desc,
+            style: const TextStyle(fontSize: 13, color: _textSec, height: 1.6)),
         ],
       ),
     );
   }
 
-  // ── 탭바 ──
+  Widget _infoCell(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: _navy,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: _border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+              style: const TextStyle(fontSize: 10, color: _textSec)),
+            const SizedBox(height: 4),
+            Text(value,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _textPri),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 탭 바 ──
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.only(top: 16),
-      color: _card,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      height: 42,
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
       child: TabBar(
         controller: _tabCtrl,
+        indicator: BoxDecoration(
+          color: _accent.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _accent.withOpacity(0.5)),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
         labelColor: _accent,
         unselectedLabelColor: _textSec,
-        indicatorColor: _accent,
-        indicatorWeight: 2,
-        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         tabs: const [
-          Tab(text: '서비스'),
-          Tab(text: '기본 정보'),
+          Tab(text: '대표 서비스'),
+          Tab(text: '정보'),
           Tab(text: '리뷰'),
         ],
-        onTap: (_) => setState(() {}),
       ),
     );
   }
 
-  // ── 탭 컨텐츠 ──
+  // ── 탭 콘텐츠 ──
   Widget _buildTabContent(BuildContext context, Store store) {
-    return Container(
-      color: _card,
-      child: [
-        _buildServiceTab(store),
-        _buildInfoTab(store),
-        _buildReviewTab(),
-      ][_tabCtrl.index],
-    );
-  }
-
-  Widget _buildServiceTab(Store store) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: store.services.map((sv) => Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: _bg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _border),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(sv.name,
-                      style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600, color: _textPri)),
-                    const SizedBox(height: 4),
-                    Text(sv.desc,
-                      style: const TextStyle(fontSize: 12, color: _textSec)),
-                  ],
-                ),
-              ),
-              Text(sv.price,
-                style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: _accent)),
-            ],
-          ),
-        )).toList(),
-      ),
-    );
-  }
-
-  Widget _buildInfoTab(Store store) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+    return SizedBox(
+      height: _tabHeight(store),
+      child: TabBarView(
+        controller: _tabCtrl,
         children: [
-          _DarkInfoRow(icon: Icons.location_on_outlined,  label: '주소',     text: store.address),
-          _DarkInfoRow(icon: Icons.access_time,           label: '영업시간',  text: store.hours),
-          _DarkInfoRow(icon: Icons.phone_outlined,        label: '전화번호',  text: store.phone),
-          _DarkInfoRow(icon: Icons.category_outlined,     label: '업종',     text: store.category),
+          _buildServiceTab(context, store),
+          _buildInfoTab(store),
+          _buildReviewTab(),
         ],
       ),
     );
   }
 
-  Widget _buildReviewTab() {
-    final reviews = [
-      {'name': '김*현', 'rating': 5, 'date': '2024.12.15',
-       'text': '친절하고 빠른 서비스! 덕분에 차량 상태가 훨씬 좋아졌어요.'},
-      {'name': '박*수', 'rating': 4, 'date': '2024.12.10',
-       'text': '가격 대비 만족스러운 서비스였습니다. 다음에 또 방문할 것 같아요.'},
-      {'name': '이*민', 'rating': 5, 'date': '2024.12.05',
-       'text': '전문적인 진단과 꼼꼼한 정비 덕분에 안심하고 운전할 수 있게 됐어요!'},
-    ];
+  double _tabHeight(Store store) {
+    // 서비스 탭 높이 (항목당 약 130px + 쿠폰 섹션 120px)
+    final serviceH = store.services.length * 130.0 + 140.0;
+    return serviceH > 500 ? serviceH : 500;
+  }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: reviews.map((r) => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: _bg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: _border),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+  // ── 대표 서비스 탭 ──
+  Widget _buildServiceTab(BuildContext context, Store store) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 섹션 타이틀
+            const Text('대표 상품 · 서비스',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPri)),
+            const SizedBox(height: 2),
+            const Text('업종별 핵심 항목만 맞춤 구성',
+              style: TextStyle(fontSize: 11, color: _textSec)),
+            const SizedBox(height: 12),
+            // 서비스 카드들
+            ...store.services.map((sv) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text((r['name'] as String)[0],
-                        style: const TextStyle(color: _accent, fontWeight: FontWeight.w700)),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(r['name'] as String,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPri)),
-                        Text(r['date'] as String,
-                          style: const TextStyle(fontSize: 11, color: _textSec)),
-                      ],
-                    ),
-                  ),
                   Row(
-                    children: List.generate(5, (i) => Icon(
-                      i < (r['rating'] as int) ? Icons.star : Icons.star_border,
-                      size: 14,
-                      color: const Color(0xFFFBBF24),
-                    )),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(sv.name,
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _textPri)),
+                            const SizedBox(height: 4),
+                            Text(sv.desc,
+                              style: const TextStyle(fontSize: 12, color: _textSec)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(sv.price,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _accent)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(backgroundColor: _accent.withOpacity(0.9),
+                          content: Text('${sv.name} 진행 요청이 접수되었습니다.',
+                            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)))),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D2040),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        side: BorderSide(color: _accent.withOpacity(0.4)),
+                      ),
+                      child: const Text('이 항목 진행하기',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(r['text'] as String,
-                style: const TextStyle(fontSize: 13, color: _textSec, height: 1.5)),
-            ],
-          ),
-        )).toList(),
+            )).toList(),
+            // 쿠폰 섹션
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('쿠폰 받기',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _textPri)),
+                  const SizedBox(height: 2),
+                  const Text('점포페이지 안에서 바로 저장 후 쿠폰함으로 이동',
+                    style: TextStyle(fontSize: 11, color: _textSec)),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      color: _navy,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: _border, width: 1),
+                    ),
+                    child: const Center(
+                      child: Text('현재 발급된 쿠폰이 없습니다.',
+                        style: TextStyle(fontSize: 13, color: _textSec)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── 하단 견적 버튼 ──
-  Widget _buildBottomBar(BuildContext context) {
+  // ── 정보 탭 ──
+  Widget _buildInfoTab(Store store) {
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          _DarkInfoRow(icon: Icons.location_on_outlined, label: '주소',    text: store.address),
+          _DarkInfoRow(icon: Icons.access_time,          label: '영업시간', text: store.hours),
+          _DarkInfoRow(icon: Icons.phone_outlined,       label: '전화번호', text: store.phone),
+          _DarkInfoRow(icon: Icons.category_outlined,    label: '업종',    text: store.category),
+          _DarkInfoRow(icon: Icons.people_outline,       label: '방문',    text: '${store.visits}회'),
+          _DarkInfoRow(icon: Icons.question_answer_outlined, label: '문의', text: '${store.inquiries}건'),
+        ]),
+      ),
+    );
+  }
+
+  // ── 리뷰 탭 ──
+  Widget _buildReviewTab() {
+    final reviews = [
+      {'name': '김*현', 'rating': 5, 'date': '2025.03.15', 'text': '친절하고 빠른 서비스! 덕분에 차량 상태가 훨씬 좋아졌어요.'},
+      {'name': '박*수', 'rating': 4, 'date': '2025.03.10', 'text': '가격 대비 만족스러운 서비스였습니다. 다음에 또 방문할 것 같아요.'},
+      {'name': '이*민', 'rating': 5, 'date': '2025.02.28', 'text': '전문적인 진단과 꼼꼼한 정비 덕분에 안심하고 운전할 수 있게 됐어요!'},
+    ];
+    return SingleChildScrollView(
+      physics: const NeverScrollableScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: reviews.map((r) => Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.2), shape: BoxShape.circle),
+                child: Center(child: Text((r['name'] as String)[0],
+                  style: const TextStyle(color: _accent, fontWeight: FontWeight.w700))),
+              ),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(r['name'] as String,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPri)),
+                Text(r['date'] as String,
+                  style: const TextStyle(fontSize: 11, color: _textSec)),
+              ])),
+              Row(children: List.generate(5, (i) => Icon(
+                i < (r['rating'] as int) ? Icons.star : Icons.star_border,
+                size: 14, color: const Color(0xFFFBBF24),
+              ))),
+            ]),
+            const SizedBox(height: 10),
+            Text(r['text'] as String,
+              style: const TextStyle(fontSize: 13, color: _textSec, height: 1.5)),
+          ]),
+        )).toList()),
+      ),
+    );
+  }
+
+  // ── 하단 고정 버튼: 전화걸기 + 1:1 채팅 (항상 표시) ──
+  Widget _buildBottomBar(BuildContext context, Store store) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
       decoration: BoxDecoration(
         color: _card,
-        border: Border(top: BorderSide(color: _border)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: _accent),
-                foregroundColor: _accent,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('쿠폰 받기', style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/quote-request'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('견적 요청하기',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-            ),
-          ),
+        border: Border(top: BorderSide(color: _border, width: 1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, -4)),
         ],
       ),
+      child: Row(children: [
+        // 전화걸기 버튼
+        Expanded(
+          child: GestureDetector(
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: _green,
+                content: Row(children: [
+                  const Icon(Icons.phone, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
+                  Text('${store.phone} 연결 중...', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                ]),
+              )),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.phone_rounded, color: _green, size: 18),
+                const SizedBox(width: 6),
+                Text('전화걸기',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _green)),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // 1:1 채팅 버튼
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/chat',
+              arguments: {'storeName': store.name, 'storeId': store.id}),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: _accent.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3)),
+                ],
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+                Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 18),
+                SizedBox(width: 6),
+                Text('1:1 문의 채팅',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+              ]),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
 
-class _ActionBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionBtn({required this.icon, required this.label,
-    required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.4)),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 6),
-          Text(label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
-        ],
-      ),
-    );
-  }
-}
 
 class _DarkInfoRow extends StatelessWidget {
   final IconData icon;
