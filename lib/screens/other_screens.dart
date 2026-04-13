@@ -2174,175 +2174,662 @@ class _PickerOption extends StatelessWidget {
 }
 
 // ==================== 뉴스 ====================
-class NewsScreen extends StatelessWidget {
+class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
+  @override
+  State<NewsScreen> createState() => _NewsScreenState();
+}
+
+class _NewsScreenState extends State<NewsScreen> {
+  static const _bg    = Color(0xFF020810);
+  static const _card  = Color(0xFF0D1B2A);
+  static const _accent = Color(0xFF4FC3F7);
+  static const _orange = Color(0xFFFF6B35);
+  static const _border = Color(0xFF1E3A5F);
+  static const _textPri = Colors.white;
+  static const _textSec = Color(0xFFB0BEC5);
+
+  int _selCat = 0;
+  final List<String> _cats = ['전체', '자동차 소식', '전기차', '정비 팁', 'MOINCAR'];
+  final List<Color> _catColors = [
+    Color(0xFF4FC3F7), Color(0xFF0288D1), Color(0xFF10B981),
+    Color(0xFFFF6B35), Color(0xFF9B7CFF),
+  ];
+
+  final List<Map<String, dynamic>> _allNews = [
+    {
+      'title': '중고차 성능점검 수요, 올해 30% 급증',
+      'summary': '사고이력·성능점검표 확인 의무화 논의로 소비자 관심 폭발. 중고차 플랫폼들도 AI 분석 강화에 나섰다.',
+      'category': '자동차 소식',
+      'source': '모인카 뉴스',
+      'time': '2시간 전',
+      'readTime': '3분',
+      'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=80',
+      'hot': true,
+    },
+    {
+      'title': '2025 전기차 보조금 개편 완벽 정리',
+      'summary': '국고보조금 최대 650만원, 지자체 추가 보조 가능. 승용·SUV 별 지원 기준 및 신청 방법 상세 안내.',
+      'category': '전기차',
+      'source': '자동차 경제',
+      'time': '5시간 전',
+      'readTime': '5분',
+      'image': 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=600&q=80',
+      'hot': true,
+    },
+    {
+      'title': '봄철 필수! 타이어 공기압·마모도 셀프 체크법',
+      'summary': '겨울철 저온으로 공기압 저하된 타이어 그대로면 위험. 10분이면 끝나는 타이어 안전 점검 순서.',
+      'category': '정비 팁',
+      'source': 'MOINCAR 정비팀',
+      'time': '1일 전',
+      'readTime': '4분',
+      'image': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80',
+      'hot': false,
+    },
+    {
+      'title': 'MOINCAR 인증 점포 전국 200호점 달성',
+      'summary': '2025년 상반기 기준 전국 200개 점포 인증 완료. 고객 신뢰도 향상과 서비스 품질 기준 강화.',
+      'category': 'MOINCAR',
+      'source': 'MOINCAR 공식',
+      'time': '2일 전',
+      'readTime': '2분',
+      'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+      'hot': false,
+    },
+    {
+      'title': '수입차 엔진오일, 국산 오일 사용해도 될까?',
+      'summary': '제조사 권장 규격만 맞으면 국산 오일도 OK. 다만 점도·인증 규격 반드시 확인해야.',
+      'category': '정비 팁',
+      'source': '카닥 테크',
+      'time': '3일 전',
+      'readTime': '6분',
+      'image': 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80',
+      'hot': false,
+    },
+    {
+      'title': '테슬라 모델Y, 국내 전기차 판매 1위 유지',
+      'summary': '연속 3개월 판매 1위. 보조금 혜택·충전 인프라 확장이 핵심 요인으로 분석.',
+      'category': '전기차',
+      'source': '오토데일리',
+      'time': '4일 전',
+      'readTime': '3분',
+      'image': 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=600&q=80',
+      'hot': false,
+    },
+  ];
+
+  List<Map<String, dynamic>> get _filteredNews {
+    if (_selCat == 0) return _allNews;
+    final cat = _cats[_selCat];
+    return _allNews.where((n) => n['category'] == cat).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final news = [
-      {'title': '중고차 성능점검 확인 수요 확대', 'category': '자동차 소식', 'time': '2시간 전', 'image': 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80'},
-      {'title': '2025년 전기차 보조금 변경 사항 정리', 'category': '전기차·친환경', 'time': '5시간 전', 'image': 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=300&q=80'},
-      {'title': '봄철 타이어 관리 필수 체크리스트', 'category': '차량 정비', 'time': '1일 전', 'image': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=300&q=80'},
-      {'title': 'MOINCAR 인증 점포 확대 안내', 'category': 'MOINCAR 소식', 'time': '2일 전', 'image': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&q=80'},
-    ];
-
+    final filtered = _filteredNews;
     return Scaffold(
-      backgroundColor: AppColors.bgLight,
-      body: Column(
-        children: [
-          SafeArea(
-            bottom: false,
-            child: AppHeader(showBack: true, title: '자동차 뉴스', notifCount: AppState().notificationCount),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: news.length,
-              itemBuilder: (_, i) {
-                final n = news[i];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+      backgroundColor: _bg,
+      body: Column(children: [
+        // 상단바
+        SafeArea(
+          bottom: false,
+          child: AppHeader(showBack: true, title: '자동차 뉴스', notifCount: AppState().notificationCount),
+        ),
+
+        // 카테고리 탭
+        SizedBox(
+          height: 44,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            itemCount: _cats.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final sel = _selCat == i;
+              return GestureDetector(
+                onTap: () => setState(() => _selCat = i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
+                    color: sel ? _catColors[i] : _card,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: sel ? _catColors[i] : _border,
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                        child: Image.network(
-                          n['image'] as String,
-                          width: 90,
-                          height: 90,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            width: 90, height: 90,
-                            color: AppColors.bgGray,
-                            child: const Icon(Icons.article, color: AppColors.textMuted),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(n['category'] as String,
-                                  style: const TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(n['title'] as String,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(n['time'] as String,
-                                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(_cats[i],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                      color: sel ? Colors.black : _textSec,
+                    )),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 뉴스 목록
+        Expanded(
+          child: filtered.isEmpty
+            ? const Center(
+                child: Text('해당 카테고리 뉴스가 없습니다.',
+                  style: TextStyle(color: _textSec, fontSize: 14)),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
+                itemCount: filtered.length,
+                itemBuilder: (_, i) {
+                  final n = filtered[i];
+                  final isHot = n['hot'] as bool;
+                  final catIdx = _cats.indexOf(n['category'] as String);
+                  final catColor = catIdx >= 0 ? _catColors[catIdx] : _accent;
+
+                  // 첫 번째 뉴스는 큰 카드
+                  if (i == 0 && _selCat == 0) {
+                    return _buildHeroCard(n, catColor, isHot);
+                  }
+                  return _buildNewsCard(n, catColor, isHot);
+                },
+              ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildHeroCard(Map<String, dynamic> n, Color catColor, bool isHot) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _border),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // 이미지 영역
+          Stack(children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Image.network(
+                n['image'] as String,
+                width: double.infinity,
+                height: 180,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 180, color: const Color(0xFF1A2A40),
+                  child: const Icon(Icons.newspaper, color: _textSec, size: 40)),
+              ),
+            ),
+            // 그라데이션 오버레이
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.5)],
                   ),
-                );
-              },
+                ),
+              ),
+            ),
+            // HOT 뱃지
+            if (isHot)
+              Positioned(top: 12, left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _orange, borderRadius: BorderRadius.circular(6)),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('🔥', style: TextStyle(fontSize: 10)),
+                    SizedBox(width: 3),
+                    Text('HOT', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w900)),
+                  ]),
+                ),
+              ),
+          ]),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: catColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: catColor.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(n['category'] as String,
+                    style: TextStyle(fontSize: 10, color: catColor, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 8),
+                Text(n['source'] as String,
+                  style: const TextStyle(fontSize: 10, color: _textSec)),
+                const Spacer(),
+                const Icon(Icons.access_time_outlined, size: 11, color: _textSec),
+                const SizedBox(width: 2),
+                Text('${n['readTime']} 읽기',
+                  style: const TextStyle(fontSize: 10, color: _textSec)),
+              ]),
+              const SizedBox(height: 8),
+              Text(n['title'] as String,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _textPri, height: 1.3)),
+              const SizedBox(height: 6),
+              Text(n['summary'] as String,
+                style: const TextStyle(fontSize: 12, color: _textSec, height: 1.5),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 10),
+              Row(children: [
+                Text(n['time'] as String,
+                  style: const TextStyle(fontSize: 11, color: _textSec)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                  ),
+                  child: const Text('자세히 보기',
+                    style: TextStyle(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildNewsCard(Map<String, dynamic> n, Color catColor, bool isHot) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _border),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // 썸네일
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              n['image'] as String,
+              width: 86, height: 86,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 86, height: 86, color: const Color(0xFF1A2A40),
+                child: const Icon(Icons.newspaper, color: _textSec, size: 28)),
             ),
           ),
-        ],
+          const SizedBox(width: 12),
+          // 텍스트
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: catColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: catColor.withValues(alpha: 0.3)),
+                ),
+                child: Text(n['category'] as String,
+                  style: TextStyle(fontSize: 9, color: catColor, fontWeight: FontWeight.w700)),
+              ),
+              if (isHot) ...[
+                const SizedBox(width: 4),
+                const Text('🔥', style: TextStyle(fontSize: 10)),
+              ],
+            ]),
+            const SizedBox(height: 5),
+            Text(n['title'] as String,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri, height: 1.3),
+              maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text(n['summary'] as String,
+              style: const TextStyle(fontSize: 11, color: _textSec, height: 1.4),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text(n['source'] as String,
+                style: const TextStyle(fontSize: 10, color: _textSec)),
+              const SizedBox(width: 6),
+              const Text('·', style: TextStyle(color: _textSec, fontSize: 10)),
+              const SizedBox(width: 6),
+              Text(n['time'] as String,
+                style: const TextStyle(fontSize: 10, color: _textSec)),
+              const Spacer(),
+              const Icon(Icons.access_time_outlined, size: 10, color: _textSec),
+              const SizedBox(width: 2),
+              Text('${n['readTime']}', style: const TextStyle(fontSize: 10, color: _textSec)),
+            ]),
+          ])),
+        ]),
       ),
     );
   }
 }
 
 // ==================== 긴급서비스 ====================
-class EmergencyScreen extends StatelessWidget {
+class EmergencyScreen extends StatefulWidget {
   const EmergencyScreen({super.key});
+  @override
+  State<EmergencyScreen> createState() => _EmergencyScreenState();
+}
+
+class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProviderStateMixin {
+  static const _bg    = Color(0xFF020810);
+  static const _card  = Color(0xFF0D1B2A);
+  static const _red   = Color(0xFFFF4444);
+  static const _orange = Color(0xFFFF6B35);
+  static const _accent = Color(0xFF4FC3F7);
+  static const _border = Color(0xFF1E3A5F);
+  static const _textPri = Colors.white;
+  static const _textSec = Color(0xFFB0BEC5);
+
+  late TabController _tabCtrl;
+
+  // 보험사 긴급출동 번호
+  final List<Map<String, dynamic>> _insurers = [
+    {'name': '삼성화재', 'emoji': '🔵', 'color': Color(0xFF1565C0), 'phone': '1588-5114', 'sub': '24시간 긴급출동'},
+    {'name': '현대해상', 'emoji': '🟢', 'color': Color(0xFF2E7D32), 'phone': '1588-5656', 'sub': '24시간 긴급출동'},
+    {'name': 'KB손해보험', 'emoji': '🟡', 'color': Color(0xFFF57F17), 'phone': '1544-0070', 'sub': '24시간 긴급출동'},
+    {'name': 'DB손해보험', 'emoji': '🔴', 'color': Color(0xFFC62828), 'phone': '1588-0100', 'sub': '24시간 긴급출동'},
+    {'name': '메리츠화재', 'emoji': '🟠', 'color': Color(0xFFE65100), 'phone': '1566-7711', 'sub': '24시간 긴급출동'},
+    {'name': 'AXA손해보험', 'emoji': '🔷', 'color': Color(0xFF00796B), 'phone': '1566-1234', 'sub': '24시간 긴급출동'},
+    {'name': '롯데손해보험', 'emoji': '🟣', 'color': Color(0xFF6A1B9A), 'phone': '1588-3344', 'sub': '24시간 긴급출동'},
+    {'name': '한화손해보험', 'emoji': '🌙', 'color': Color(0xFF37474F), 'phone': '1566-8000', 'sub': '24시간 긴급출동'},
+    {'name': '흥국화재', 'emoji': '⭕', 'color': Color(0xFF880E4F), 'phone': '1588-2288', 'sub': '24시간 긴급출동'},
+    {'name': '캐롯손해보험', 'emoji': '🥕', 'color': Color(0xFFBF360C), 'phone': '1566-1566', 'sub': '24시간 긴급출동'},
+    {'name': '하나손해보험', 'emoji': '💚', 'color': Color(0xFF1B5E20), 'phone': '1566-3000', 'sub': '24시간 긴급출동'},
+    {'name': '무비', 'emoji': '🚗', 'color': Color(0xFF0D47A1), 'phone': '1800-0700', 'sub': '24시간 긴급출동'},
+  ];
+
+  // 가까운 파트너 점포
+  final List<Map<String, dynamic>> _partners = [
+    {'name': 'MOINCAR 인증 정비센터', 'distance': '1.2km', 'phone': '02-1234-5678', 'services': ['배터리', '타이어', '견인'], 'badge': 'MOINCAR'},
+    {'name': '강남 24시 자동차 출동', 'distance': '2.3km', 'phone': '010-9876-5432', 'services': ['방전', '잠금', '연료'], 'badge': '파트너'},
+    {'name': '서울모터스 긴급출동팀', 'distance': '3.1km', 'phone': '02-3456-7890', 'services': ['타이어', '견인', '정비'], 'badge': '인증'},
+    {'name': '현대자동차 강남점 출동', 'distance': '3.8km', 'phone': '02-5678-9012', 'services': ['공식', '보증', '24시'], 'badge': '공식'},
+    {'name': '수입차 전문 긴급출동', 'distance': '4.5km', 'phone': '010-1111-2222', 'services': ['수입차', '배터리', '견인'], 'badge': '파트너'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       body: Column(
         children: [
+          // 상단바
           SafeArea(
             bottom: false,
-            child: AppHeader(showBack: true, title: '긴급서비스', notifCount: AppState().notificationCount),
+            child: AppHeader(showBack: true, title: '긴급출동', notifCount: AppState().notificationCount),
           ),
+
+          // SOS 배너
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF7B1E2A), Color(0xFF4A0E14)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _red.withValues(alpha: 0.4)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: _red.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _red.withValues(alpha: 0.5)),
+                ),
+                child: const Center(child: Text('🚨', style: TextStyle(fontSize: 24))),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('긴급출동 SOS',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white)),
+                const SizedBox(height: 3),
+                const Text('배터리 방전 · 타이어 펑크 · 시동불량 · 잠금',
+                  style: TextStyle(fontSize: 11, color: Color(0xFFFFB3B3), height: 1.3)),
+              ])),
+              GestureDetector(
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Color(0xFFFF4444),
+                    content: Text('🚨 긴급출동 요청이 접수되었습니다!\n잠시만 기다려주세요.',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                    duration: Duration(seconds: 3),
+                  )),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('📞', style: TextStyle(fontSize: 18)),
+                    Text('SOS', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w900)),
+                  ]),
+                ),
+              ),
+            ]),
+          ),
+
+          // 탭바
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border),
+            ),
+            child: TabBar(
+              controller: _tabCtrl,
+              indicator: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)]),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorPadding: const EdgeInsets.all(3),
+              labelColor: Colors.black,
+              unselectedLabelColor: _textSec,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              dividerColor: Colors.transparent,
+              tabs: const [
+                Tab(text: '🏢 보험사 긴급출동'),
+                Tab(text: '📍 가까운 파트너'),
+              ],
+            ),
+          ),
+
+          // 탭 컨텐츠
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.danger.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.danger.withOpacity(0.3)),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('🚨', style: TextStyle(fontSize: 48)),
-                        const SizedBox(height: 12),
-                        const Text('긴급출동 서비스',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.danger),
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [
+                // ─ 보험사 탭 ─
+                ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  itemCount: _insurers.length,
+                  itemBuilder: (_, i) {
+                    final ins = _insurers[i];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _card,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _border),
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: (ins['color'] as Color).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: (ins['color'] as Color).withValues(alpha: 0.4)),
+                          ),
+                          child: Center(child: Text(ins['emoji'] as String,
+                            style: const TextStyle(fontSize: 20))),
                         ),
-                        const SizedBox(height: 8),
-                        const Text('배터리 방전, 타이어 펑크, 시동불량 등\n긴급 상황에서 도움을 드립니다.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('긴급출동 요청이 접수되었습니다. 잠시만 기다려주세요.')),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.danger,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(ins['name'] as String,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _textPri)),
+                          const SizedBox(height: 2),
+                          Text(ins['sub'] as String,
+                            style: const TextStyle(fontSize: 11, color: _textSec)),
+                        ])),
+                        GestureDetector(
+                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: _card,
+                              content: Text('📞 ${ins['name']}: ${ins['phone']}',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            )),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: _red.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _red.withValues(alpha: 0.4)),
                             ),
-                            child: const Text('긴급출동 요청하기',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-                            ),
+                            child: Column(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.phone, size: 16, color: _red),
+                              const SizedBox(height: 2),
+                              Text(ins['phone'] as String,
+                                style: const TextStyle(fontSize: 11, color: _red, fontWeight: FontWeight.w800)),
+                            ]),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ...['배터리 방전', '타이어 펑크', '시동 불량', '연료 부족', '잠금 해제'].map((service) {
-                    return ListTile(
-                      leading: Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.danger.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.build, color: AppColors.danger, size: 20),
-                      ),
-                      title: Text(service, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-                      onTap: () {},
+                      ]),
                     );
-                  }),
-                ],
-              ),
+                  },
+                ),
+
+                // ─ 파트너 점포 탭 ─
+                ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                  itemCount: _partners.length,
+                  itemBuilder: (_, i) {
+                    final p = _partners[i];
+                    final services = p['services'] as List<String>;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _card,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _border),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: _orange.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(p['badge'] as String,
+                              style: const TextStyle(fontSize: 10, color: _orange, fontWeight: FontWeight.w700)),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(p['name'] as String,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri))),
+                          Row(children: [
+                            const Icon(Icons.location_on_outlined, size: 12, color: _textSec),
+                            const SizedBox(width: 2),
+                            Text(p['distance'] as String,
+                              style: const TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w700)),
+                          ]),
+                        ]),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6, runSpacing: 4,
+                          children: services.map((s) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _accent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _accent.withValues(alpha: 0.3)),
+                            ),
+                            child: Text(s, style: const TextStyle(fontSize: 10, color: _accent)),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: _card,
+                                  content: Text('📞 ${p['name']}: ${p['phone']}',
+                                    style: const TextStyle(color: Colors.white)),
+                                )),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _red.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(9),
+                                  border: Border.all(color: _red.withValues(alpha: 0.35)),
+                                ),
+                                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                  Icon(Icons.phone, size: 14, color: _red),
+                                  SizedBox(width: 4),
+                                  Text('전화걸기', style: TextStyle(fontSize: 12, color: _red, fontWeight: FontWeight.w700)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('점포 상세 정보로 이동합니다.'),
+                                )),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: _accent.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(9),
+                                  border: Border.all(color: _accent.withValues(alpha: 0.35)),
+                                ),
+                                child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                  Icon(Icons.store_outlined, size: 14, color: _accent),
+                                  SizedBox(width: 4),
+                                  Text('점포 보기', style: TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w700)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        ]),
+                      ]),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -6159,5 +6646,959 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+}
+
+// ==================== 이동리워드 ====================
+class RewardScreen extends StatefulWidget {
+  const RewardScreen({super.key});
+  @override
+  State<RewardScreen> createState() => _RewardScreenState();
+}
+
+class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMixin {
+  // ── 모인카 컬러 ──
+  static const _bg     = Color(0xFF020810);
+  static const _card   = Color(0xFF0D1B2A);
+  static const _accent = Color(0xFF4FC3F7);
+  static const _orange = Color(0xFFFF6B35);
+  static const _purple = Color(0xFF9B7CFF);
+  static const _green  = Color(0xFF10B981);
+  static const _gold   = Color(0xFFFBBF24);
+  static const _border = Color(0xFF1E3A5F);
+  static const _textPri = Colors.white;
+  static const _textSec = Color(0xFFB0BEC5);
+
+  // ── 탭 ──
+  late TabController _tabCtrl;
+  int _modeIdx = 0; // 0=걷기, 1=이동수단
+
+  // ── 적립 상태 ──
+  int _todaySteps    = 0;
+  int _todayDistance = 0; // 미터 단위
+  int _todayPoints   = 0;
+  int _totalPoints   = 132;
+
+  // 걷기: 100보 = 1P, 최대 10000보(100P/일)
+  // 이동: 500m = 1P, 최대 50000m(100P + 50P = 최대 50P/일)
+  int get _walkPoints  => (_todaySteps / 100).floor().clamp(0, 100);
+  int get _movePoints  => (_todayDistance / 500).floor().clamp(0, 50);
+
+  // ── 광고 상태 ──
+  // 6P마다 광고 1회, 하루 25회 최대
+  // 패턴: 5초, 5초, 5초, 15초 반복 → 25번째는 30초
+  int _adCount    = 0;  // 오늘 본 광고 수
+  int _adTrigPts  = 0;  // 광고 트리거 기준 포인트
+  bool _adPlaying = false;
+  int _adRemain   = 0;
+  late AnimationController _adCtrl;
+
+  // ── 보물상자 ──
+  int _chestPts     = 0; // 상자에 쌓인 포인트 (터치로 적립)
+  int _maxChestDay  = 50;
+  bool _chestOpen   = false;
+  final List<_FloatPoint> _floats = [];
+  late AnimationController _chestCtrl;
+
+  // ── 히스토리 탭 ──
+  int _histIdx = 0;
+  final _histTabs = ['일', '주', '월', '연'];
+
+  // 광고 패턴: 인덱스 기준 (0-indexed), 4번마다 15초, 24번은 30초
+  int _adDuration(int adIdx) {
+    if (adIdx == 24) return 30; // 마지막 25번째
+    if ((adIdx + 1) % 4 == 0) return 15;
+    return 5;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
+    _adCtrl   = AnimationController(vsync: this, duration: const Duration(seconds: 1));
+    _chestCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    _adCtrl.dispose();
+    _chestCtrl.dispose();
+    super.dispose();
+  }
+
+  void _addPoints(int pts) {
+    setState(() {
+      _todayPoints += pts;
+      _totalPoints += pts;
+    });
+    // 광고 트리거: 6P 적립마다
+    while (_todayPoints - _adTrigPts >= 6 && _adCount < 25 && !_adPlaying) {
+      _adTrigPts += 6;
+      _playAd();
+      break;
+    }
+  }
+
+  void _playAd() {
+    if (_adCount >= 25) return;
+    final dur = _adDuration(_adCount);
+    setState(() {
+      _adPlaying = true;
+      _adRemain  = dur;
+      _adCount++;
+    });
+    // 1초마다 카운트다운
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      setState(() => _adRemain--);
+      if (_adRemain <= 0) {
+        setState(() => _adPlaying = false);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  void _tapChest() {
+    if (_chestPts >= _maxChestDay) return;
+    setState(() {
+      _chestPts++;
+      _totalPoints++;
+      _todayPoints++;
+      _chestOpen = true;
+      _floats.add(_FloatPoint());
+    });
+    _chestCtrl.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) setState(() {
+        _chestOpen = false;
+        _floats.removeWhere((f) => f.isDone);
+      });
+    });
+    // 광고 트리거 체크
+    while (_todayPoints - _adTrigPts >= 6 && _adCount < 25 && !_adPlaying) {
+      _adTrigPts += 6;
+      _playAd();
+      break;
+    }
+  }
+
+  // 시뮬레이션: 걷기 +100보
+  void _simWalk() {
+    if (_todaySteps >= 10000) return;
+    final before = _walkPoints;
+    setState(() => _todaySteps = (_todaySteps + 100).clamp(0, 10000));
+    final after = _walkPoints;
+    if (after > before) _addPoints(after - before);
+  }
+
+  // 시뮬레이션: 이동 +500m
+  void _simMove() {
+    if (_todayDistance >= 50000) return;
+    final before = _movePoints;
+    setState(() => _todayDistance = (_todayDistance + 500).clamp(0, 50000));
+    final after = _movePoints;
+    if (after > before) _addPoints(after - before);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: Stack(children: [
+        Column(children: [
+          SafeArea(
+            bottom: false,
+            child: AppHeader(showBack: true, title: '이동리워드', notifCount: AppState().notificationCount),
+          ),
+
+          // 탭바
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            decoration: BoxDecoration(
+              color: _card, borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border),
+            ),
+            child: TabBar(
+              controller: _tabCtrl,
+              indicator: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF9B7CFF), Color(0xFF4FC3F7)]),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorPadding: const EdgeInsets.all(3),
+              labelColor: Colors.black,
+              unselectedLabelColor: _textSec,
+              labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+              dividerColor: Colors.transparent,
+              tabs: const [Tab(text: '🚶 걷기·이동 적립'), Tab(text: '📊 통계·교환')],
+            ),
+          ),
+
+          Expanded(
+            child: TabBarView(
+              controller: _tabCtrl,
+              children: [_buildMainTab(), _buildStatsTab()],
+            ),
+          ),
+        ]),
+
+        // 광고 오버레이
+        if (_adPlaying) _buildAdOverlay(),
+
+        // 플로팅 포인트 애니메이션
+        ..._floats.map((f) => _buildFloat(f)),
+      ]),
+    );
+  }
+
+  // ── 메인 탭 ──
+  Widget _buildMainTab() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+      children: [
+        // 총 포인트 카드
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+              colors: [Color(0xFF1A1040), Color(0xFF0A1628)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _purple.withValues(alpha: 0.4)),
+          ),
+          child: Column(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('🎁 누적 포인트',
+                style: TextStyle(fontSize: 13, color: _textSec, fontWeight: FontWeight.w600)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _gold.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _gold.withValues(alpha: 0.4)),
+                ),
+                child: Text('오늘 ${_todayPoints}P',
+                  style: const TextStyle(fontSize: 11, color: _gold, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('$_totalPoints',
+                style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: _textPri,
+                  shadows: [Shadow(color: Color(0xFF9B7CFF), blurRadius: 10)])),
+              const SizedBox(width: 6),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text('P', style: TextStyle(fontSize: 20, color: _purple, fontWeight: FontWeight.w800)),
+              ),
+              const Spacer(),
+              Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('광고 $_adCount/25회', style: const TextStyle(fontSize: 10, color: _textSec)),
+                const SizedBox(height: 2),
+                Text('오늘 한도 150P', style: const TextStyle(fontSize: 10, color: _textSec)),
+              ]),
+            ]),
+            const SizedBox(height: 12),
+            // 전체 진행 바
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (_todayPoints / 150).clamp(0.0, 1.0),
+                backgroundColor: _border,
+                valueColor: const AlwaysStoppedAnimation(_purple),
+                minHeight: 6,
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 14),
+
+        // 모드 선택 (걷기 / 이동수단)
+        Row(children: [
+          _modeBtn(0, '🚶 걷기 모드'),
+          const SizedBox(width: 8),
+          _modeBtn(1, '🚗 이동 모드'),
+        ]),
+        const SizedBox(height: 14),
+
+        // 걷기 적립 카드
+        if (_modeIdx == 0) _buildWalkCard(),
+        if (_modeIdx == 1) _buildMoveCard(),
+
+        const SizedBox(height: 14),
+
+        // 보물상자
+        _buildChestCard(),
+
+        const SizedBox(height: 14),
+
+        // 광고 안내
+        _buildAdGuide(),
+
+        const SizedBox(height: 14),
+
+        // 선물 교환
+        _buildGiftSection(),
+      ],
+    );
+  }
+
+  Widget _modeBtn(int idx, String label) {
+    final sel = _modeIdx == idx;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _modeIdx = idx),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: sel ? _purple.withValues(alpha: 0.2) : _card,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: sel ? _purple : _border, width: sel ? 1.5 : 1),
+          ),
+          child: Center(child: Text(label,
+            style: TextStyle(
+              fontSize: 13, fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+              color: sel ? _purple : _textSec,
+            ))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalkCard() {
+    final pts = _walkPoints;
+    final progress = (_todaySteps / 10000).clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('👟', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('걷기 포인트', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _textPri)),
+              Text('100보 = 1P · 최대 10,000보(100P/일)', style: TextStyle(fontSize: 10, color: _textSec)),
+            ]),
+          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('$pts P', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _green)),
+            Text('$_todaySteps 보', style: const TextStyle(fontSize: 11, color: _textSec)),
+          ]),
+        ]),
+        const SizedBox(height: 12),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('$_todaySteps보', style: const TextStyle(fontSize: 11, color: _textSec)),
+          Text('10,000보', style: const TextStyle(fontSize: 11, color: _textSec)),
+        ]),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress, backgroundColor: _border,
+            valueColor: const AlwaysStoppedAnimation(_green),
+            minHeight: 8,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // 시뮬레이션 버튼
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _todaySteps >= 10000 ? null : _simWalk,
+            icon: const Text('👟', style: TextStyle(fontSize: 14)),
+            label: Text(_todaySteps >= 10000 ? '오늘 걷기 한도 완료!' : '+100보 (테스트)',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _todaySteps >= 10000 ? _border : _green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildMoveCard() {
+    final pts = _movePoints;
+    final distKm = (_todayDistance / 1000).toStringAsFixed(1);
+    final progress = (_todayDistance / 50000).clamp(0.0, 1.0);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('🚗', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('이동 포인트', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _textPri)),
+              Text('속도 >10km/h · 500m = 1P · 최대 50km(50P/일)', style: TextStyle(fontSize: 10, color: _textSec)),
+            ]),
+          ),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('$pts P', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _orange)),
+            Text('$distKm km', style: const TextStyle(fontSize: 11, color: _textSec)),
+          ]),
+        ]),
+        const SizedBox(height: 12),
+        // 속도 표시
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: _orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _orange.withValues(alpha: 0.3)),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text('현재 속도', style: TextStyle(fontSize: 12, color: _textSec)),
+            Text('${_todayDistance > 0 ? "35.2" : "0.0"} km/h',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
+                color: _todayDistance > 0 ? _orange : _textSec)),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text('$distKm km', style: const TextStyle(fontSize: 11, color: _textSec)),
+          const Text('50.0 km', style: TextStyle(fontSize: 11, color: _textSec)),
+        ]),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress, backgroundColor: _border,
+            valueColor: const AlwaysStoppedAnimation(_orange),
+            minHeight: 8,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _todayDistance >= 50000 ? null : _simMove,
+            icon: const Text('🚗', style: TextStyle(fontSize: 14)),
+            label: Text(_todayDistance >= 50000 ? '오늘 이동 한도 완료!' : '+500m (테스트)',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _todayDistance >= 50000 ? _border : _orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildChestCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1040), Color(0xFF0D1620)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _gold.withValues(alpha: 0.4)),
+      ),
+      child: Column(children: [
+        Row(children: [
+          const Text('💎', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          const Text('보물상자 터치 적립',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _textPri)),
+          const Spacer(),
+          Text('$_chestPts / $_maxChestDay P',
+            style: const TextStyle(fontSize: 12, color: _gold, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 4),
+        const Align(
+          alignment: Alignment.centerLeft,
+          child: Text('터치 1회 = 1P · 최대 50P/일 · 빠른 터치 가능',
+            style: TextStyle(fontSize: 10, color: _textSec)),
+        ),
+        const SizedBox(height: 14),
+        // 보물상자 버튼
+        GestureDetector(
+          onTap: _chestPts < _maxChestDay ? _tapChest : null,
+          child: AnimatedBuilder(
+            animation: _chestCtrl,
+            builder: (_, __) {
+              final scale = 1.0 + (0.15 * (1 - _chestCtrl.value).abs() *
+                (_chestCtrl.isAnimating ? 1 : 0));
+              return Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 100, height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: _chestPts >= _maxChestDay
+                        ? [_border, _card]
+                        : [_gold.withValues(alpha: 0.3), _gold.withValues(alpha: 0.05)],
+                    ),
+                    border: Border.all(
+                      color: _chestPts >= _maxChestDay ? _border : _gold.withValues(alpha: 0.6),
+                      width: 2,
+                    ),
+                    boxShadow: _chestPts < _maxChestDay ? [
+                      BoxShadow(color: _gold.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 3),
+                    ] : [],
+                  ),
+                  child: Center(child: Text(
+                    _chestPts >= _maxChestDay ? '🔒' : (_chestOpen ? '💰' : '🎁'),
+                    style: const TextStyle(fontSize: 44),
+                  )),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          _chestPts >= _maxChestDay ? '오늘 한도를 채웠습니다! 내일 다시 도전하세요.' : '상자를 터치하여 포인트를 획득하세요!',
+          style: TextStyle(fontSize: 11, color: _chestPts >= _maxChestDay ? _textSec : _gold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: (_chestPts / _maxChestDay).clamp(0.0, 1.0),
+            backgroundColor: _border,
+            valueColor: const AlwaysStoppedAnimation(_gold),
+            minHeight: 6,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildAdGuide() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('📺', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          const Text('광고 시청 스케줄',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri)),
+          const Spacer(),
+          Text('$_adCount / 25회',
+            style: const TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 8),
+        const Text('6P 적립마다 광고 1회 재생됩니다.',
+          style: TextStyle(fontSize: 11, color: _textSec)),
+        const SizedBox(height: 8),
+        // 광고 패턴 시각화
+        Row(children: List.generate(25, (i) {
+          final done = i < _adCount;
+          final dur = _adDuration(i);
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1),
+              height: 24,
+              decoration: BoxDecoration(
+                color: done
+                  ? (dur == 30 ? _purple : dur == 15 ? _orange : _accent).withValues(alpha: 0.8)
+                  : _border,
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: done
+                ? null
+                : Center(child: Text(
+                    dur == 30 ? '30' : dur == 15 ? '15' : '5',
+                    style: const TextStyle(fontSize: 7, color: _textSec))),
+            ),
+          );
+        })),
+        const SizedBox(height: 6),
+        Row(children: [
+          _adLegend(_accent, '5초'),
+          const SizedBox(width: 10),
+          _adLegend(_orange, '15초'),
+          const SizedBox(width: 10),
+          _adLegend(_purple, '30초'),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _adLegend(Color c, String label) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 10, height: 10, color: c.withValues(alpha: 0.8),
+        margin: const EdgeInsets.only(right: 3)),
+      Text(label, style: const TextStyle(fontSize: 9, color: _textSec)),
+    ]);
+  }
+
+  Widget _buildGiftSection() {
+    final gifts = [
+      {'name': 'CU 편의점', 'emoji': '🏪', 'price': 50, 'color': Color(0xFF1565C0)},
+      {'name': 'GS25', 'emoji': '🏬', 'price': 50, 'color': Color(0xFF2E7D32)},
+      {'name': '스타벅스', 'emoji': '☕', 'price': 100, 'color': Color(0xFF00695C)},
+      {'name': 'SK주유소', 'emoji': '⛽', 'price': 200, 'color': Color(0xFFE65100)},
+    ];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card, borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Row(children: [
+          Text('🎁', style: TextStyle(fontSize: 14)),
+          SizedBox(width: 6),
+          Text('포인트 선물 교환',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri)),
+        ]),
+        const SizedBox(height: 4),
+        const Text('보유 포인트를 다양한 혜택으로 교환하세요.',
+          style: TextStyle(fontSize: 11, color: _textSec)),
+        const SizedBox(height: 12),
+        GridView.count(
+          shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10,
+          childAspectRatio: 2.5,
+          children: gifts.map((g) {
+            final canUse = _totalPoints >= (g['price'] as int);
+            return GestureDetector(
+              onTap: canUse ? () => _useGift(g) : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: canUse
+                    ? (g['color'] as Color).withValues(alpha: 0.1)
+                    : _bg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: canUse
+                      ? (g['color'] as Color).withValues(alpha: 0.4)
+                      : _border,
+                  ),
+                ),
+                child: Row(children: [
+                  Text(g['emoji'] as String, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(g['name'] as String,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                        color: canUse ? _textPri : _textSec)),
+                    Text('${g['price']}P',
+                      style: TextStyle(fontSize: 10,
+                        color: canUse ? (g['color'] as Color) : _textSec)),
+                  ])),
+                ]),
+              ),
+            );
+          }).toList(),
+        ),
+      ]),
+    );
+  }
+
+  void _useGift(Map<String, dynamic> g) {
+    final price = g['price'] as int;
+    if (_totalPoints < price) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('${g['emoji']} ${g['name']} 교환',
+          style: const TextStyle(color: _textPri, fontWeight: FontWeight.w800, fontSize: 16)),
+        content: Text('${price}P를 사용하여 교환하시겠습니까?\n잔여: ${_totalPoints - price}P',
+          style: const TextStyle(color: _textSec, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(color: _textSec))),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _totalPoints -= price);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: _green,
+                  content: Text('🎁 ${g['name']} 교환 완료!',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                ));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _green),
+            child: const Text('교환하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 통계 탭 ──
+  Widget _buildStatsTab() {
+    final weekData = [45, 72, 88, 61, 95, 110, _todayPoints.clamp(0, 150)];
+    final days = ['월', '화', '수', '목', '금', '토', '일'];
+    final maxVal = weekData.reduce((a, b) => a > b ? a : b).toDouble();
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+      children: [
+        // 기간 탭
+        Container(
+          decoration: BoxDecoration(
+            color: _card, borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _border),
+          ),
+          child: Row(
+            children: List.generate(_histTabs.length, (i) {
+              final sel = _histIdx == i;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _histIdx = i),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: sel ? _accent : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(_histTabs[i],
+                      style: TextStyle(
+                        fontSize: 12, fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                        color: sel ? Colors.black : _textSec,
+                      ),
+                      textAlign: TextAlign.center),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // 바 차트
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _card, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('📈 주간 포인트 현황',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri)),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 140,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(7, (i) {
+                  final val = weekData[i].toDouble();
+                  final h = maxVal > 0 ? (val / maxVal) * 120 : 0.0;
+                  final isToday = i == 6;
+                  return Expanded(
+                    child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      Text('${weekData[i]}', style: TextStyle(fontSize: 9,
+                        color: isToday ? _gold : _textSec, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 3),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 500),
+                        width: double.infinity,
+                        height: h,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                            colors: isToday
+                              ? [_gold, _gold.withValues(alpha: 0.6)]
+                              : [_accent, _accent.withValues(alpha: 0.4)],
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(days[i], style: TextStyle(fontSize: 10,
+                        color: isToday ? _gold : _textSec,
+                        fontWeight: isToday ? FontWeight.w800 : FontWeight.w400)),
+                    ]),
+                  );
+                }),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+
+        // 건강 지표
+        Row(children: [
+          _statCard('🦵', '연속 활동', '3일', _orange),
+          const SizedBox(width: 10),
+          _statCard('⚡', '평균 속도', '4.2km/h', _green),
+          const SizedBox(width: 10),
+          _statCard('🏆', '건강 점수', '82점', _purple),
+        ]),
+        const SizedBox(height: 12),
+
+        // 적립 히스토리
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _card, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('📋 최근 적립 내역',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: _textPri)),
+            const SizedBox(height: 10),
+            ...[
+              {'icon': '🚶', 'text': '걷기 적립', 'sub': '3,200보', 'pts': '+32P', 'time': '오늘 14:22'},
+              {'icon': '🚗', 'text': '이동 적립', 'sub': '12.5km', 'pts': '+25P', 'time': '오늘 11:05'},
+              {'icon': '🎁', 'text': '보물상자', 'sub': '터치 적립', 'pts': '+15P', 'time': '오늘 09:30'},
+              {'icon': '📺', 'text': '광고 시청', 'sub': '15초 광고', 'pts': '+0P', 'time': '어제 20:11'},
+            ].map((h) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(children: [
+                Container(width: 36, height: 36,
+                  decoration: BoxDecoration(color: _bg, shape: BoxShape.circle,
+                    border: Border.all(color: _border)),
+                  child: Center(child: Text(h['icon']!, style: const TextStyle(fontSize: 16)))),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(h['text']!, style: const TextStyle(fontSize: 13, color: _textPri, fontWeight: FontWeight.w600)),
+                  Text('${h['sub']} · ${h['time']}', style: const TextStyle(fontSize: 10, color: _textSec)),
+                ])),
+                Text(h['pts']!,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900,
+                    color: h['pts']!.startsWith('+') ? _green : _textSec)),
+              ]),
+            )).toList(),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  Widget _statCard(String emoji, String label, String value, Color c) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _card, borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: Column(children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: c)),
+          Text(label, style: const TextStyle(fontSize: 9, color: _textSec)),
+        ]),
+      ),
+    );
+  }
+
+  // ── 광고 오버레이 ──
+  Widget _buildAdOverlay() {
+    final adIdx = _adCount - 1;
+    final dur = _adDuration(adIdx);
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.9),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _border),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              // 광고 배지
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _orange.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: _orange.withValues(alpha: 0.4)),
+                ),
+                child: Text('📺 광고 ${_adCount}/${25} · ${dur}초 광고',
+                  style: const TextStyle(fontSize: 11, color: _orange, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 20),
+              // 광고 영역
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_border, _card],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text('🚗', style: TextStyle(fontSize: 48)),
+                  SizedBox(height: 8),
+                  Text('MOINCAR 광고', style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 4),
+                  Text('인증 점포에서 최고의 서비스를!', style: TextStyle(color: _textSec, fontSize: 12)),
+                ])),
+              ),
+              const SizedBox(height: 20),
+              // 카운트다운
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _accent, width: 3),
+                  ),
+                  child: Center(child: Text('$_adRemain',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _accent))),
+                ),
+                const SizedBox(width: 10),
+                const Text('초 후 닫힘',
+                  style: TextStyle(fontSize: 13, color: _textSec)),
+              ]),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildFloat(_FloatPoint f) {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOut,
+      left: MediaQuery.of(context).size.width / 2 - 20,
+      top: MediaQuery.of(context).size.height * 0.55 - (f.isDone ? 80 : 20),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 700),
+        opacity: f.isDone ? 0 : 1,
+        child: const Text('+1P',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _gold,
+            shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
+      ),
+    );
+  }
+}
+
+class _FloatPoint {
+  bool isDone = false;
+  _FloatPoint() {
+    Future.delayed(const Duration(milliseconds: 700), () => isDone = true);
   }
 }

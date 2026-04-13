@@ -1475,7 +1475,13 @@ class _HomeScreenState extends State<HomeScreen>
           final aColor = item['aColor'] as Color;
           return Expanded(
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                final idx = e.key;
+                if (idx == 0) Navigator.pushNamed(context, '/emergency');
+                else if (idx == 1) Navigator.pushNamed(context, '/car-price');
+                else if (idx == 2) Navigator.pushNamed(context, '/news');
+                else if (idx == 3) Navigator.pushNamed(context, '/reward');
+              },
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 padding: const EdgeInsets.fromLTRB(4, 22, 4, 22),

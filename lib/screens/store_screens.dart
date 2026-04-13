@@ -248,6 +248,30 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   static const _textPri = Colors.white;
   static const _textSec = Color(0xFFB0BEC5);
 
+  // ── 이모지 반응 상태 ──
+  static const _emojis = ['👍','❤️','😊','🔥','👏','🤔'];
+  static const _emojiLabels = ['좋아요','최고','만족','뜨거워','박수','고민중'];
+  final List<int> _emojiCounts = [12, 8, 15, 5, 9, 3];
+  int? _myEmojiIdx; // 내가 선택한 이모지
+
+  // ── 리뷰 상태 ──
+  final List<Map<String, dynamic>> _reviews = [
+    {'name': '김*현', 'rating': 5, 'date': '2025.03.15', 'text': '친절하고 빠른 서비스! 덕분에 차량 상태가 훨씬 좋아졌어요.', 'verified': true},
+    {'name': '박*수', 'rating': 4, 'date': '2025.03.10', 'text': '가격 대비 만족스러운 서비스였습니다. 다음에 또 방문할 것 같아요.', 'verified': true},
+    {'name': '이*민', 'rating': 5, 'date': '2025.02.28', 'text': '전문적인 진단과 꼼꼼한 정비 덕분에 안심하고 운전할 수 있게 됐어요!', 'verified': true},
+  ];
+  bool _showReviewForm = false;
+  int _myRating = 5;
+  final _reviewCtrl = TextEditingController();
+  bool _hasReceiptOrPayment = false; // 영수증/결제 인증 여부
+  bool _receiptAttached = false;
+
+  @override
+  void dispose() {
+    _reviewCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final storeId = ModalRoute.of(context)?.settings.arguments as int? ?? 1;
@@ -272,6 +296,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             SliverToBoxAdapter(child: _buildAiIntro(store)),
             SliverToBoxAdapter(child: _buildBasicInfo(store)),
             SliverToBoxAdapter(child: _buildMapSection(store)),
+            SliverToBoxAdapter(child: _buildEmojiReactionSection()),
             SliverToBoxAdapter(child: _buildReviewSection()),
             SliverToBoxAdapter(child: _buildServiceSection(context, store)),
             SliverToBoxAdapter(child: SizedBox(height: bottomPad + 100)),
@@ -677,34 +702,303 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
     );
   }
 
+  // ── 이모지 반응 섹션 ──
+  Widget _buildEmojiReactionSection() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('😄', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          const Text('이 점포 어떠셨나요?',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPri)),
+          const Spacer(),
+          if (_myEmojiIdx != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _green.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _green.withValues(alpha: 0.4)),
+              ),
+              child: Text('${_emojis[_myEmojiIdx!]} 선택됨',
+                style: const TextStyle(fontSize: 11, color: _green, fontWeight: FontWeight.w700)),
+            ),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 80,
+          child: Row(
+            children: List.generate(_emojis.length, (i) {
+              final selected = _myEmojiIdx == i;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (_myEmojiIdx == i) {
+                        _emojiCounts[i]--;
+                        _myEmojiIdx = null;
+                      } else {
+                        if (_myEmojiIdx != null) _emojiCounts[_myEmojiIdx!]--;
+                        _myEmojiIdx = i;
+                        _emojiCounts[i]++;
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selected ? _accent.withValues(alpha: 0.2) : _card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selected ? _accent : _border,
+                        width: selected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text(_emojis[i], style: TextStyle(fontSize: selected ? 22 : 18)),
+                      const SizedBox(height: 4),
+                      Text('${_emojiCounts[i]}',
+                        style: TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w700,
+                          color: selected ? _accent : _textSec,
+                        )),
+                      Text(_emojiLabels[i],
+                        style: TextStyle(
+                          fontSize: 9, color: selected ? _accent : _textSec,
+                        )),
+                    ]),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ]),
+    );
+  }
+
   // ── 리뷰 섹션 ──
   Widget _buildReviewSection() {
-    final reviews = [
-      {'name': '김*현', 'rating': 5, 'date': '2025.03.15', 'text': '친절하고 빠른 서비스! 덕분에 차량 상태가 훨씬 좋아졌어요.'},
-      {'name': '박*수', 'rating': 4, 'date': '2025.03.10', 'text': '가격 대비 만족스러운 서비스였습니다. 다음에 또 방문할 것 같아요.'},
-      {'name': '이*민', 'rating': 5, 'date': '2025.02.28', 'text': '전문적인 진단과 꼼꼼한 정비 덕분에 안심하고 운전할 수 있게 됐어요!'},
-    ];
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Row(children: [
-            const Icon(Icons.rate_review_outlined, color: _accent, size: 16),
-            const SizedBox(width: 6),
-            const Text('이용 후기',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPri)),
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        // 헤더 + 리뷰 쓰기 버튼
+        Row(children: [
+          const Icon(Icons.rate_review_outlined, color: _accent, size: 16),
+          const SizedBox(width: 6),
+          const Text('이용 후기',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: _textPri)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+            child: Text('${_reviews.length}건',
+              style: const TextStyle(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => setState(() => _showReviewForm = !_showReviewForm),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-              child: Text('${reviews.length}건',
-                style: const TextStyle(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(_showReviewForm ? Icons.close : Icons.edit_outlined,
+                  size: 12, color: Colors.white),
+                const SizedBox(width: 4),
+                Text(_showReviewForm ? '닫기' : '리뷰 쓰기',
+                  style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w700)),
+              ]),
             ),
-          ]),
-        ),
-        ...reviews.map((r) => Container(
+          ),
+        ]),
+        const SizedBox(height: 10),
+
+        // 리뷰 작성 폼
+        if (_showReviewForm) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1E38),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _accent.withValues(alpha: 0.4)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // 별점 선택
+              Row(children: [
+                const Text('별점', style: TextStyle(fontSize: 13, color: _textSec, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 10),
+                ...List.generate(5, (i) => GestureDetector(
+                  onTap: () => setState(() => _myRating = i + 1),
+                  child: Icon(
+                    i < _myRating ? Icons.star : Icons.star_outline,
+                    size: 24, color: const Color(0xFFFBBF24),
+                  ),
+                )),
+                const SizedBox(width: 8),
+                Text('$_myRating점', style: const TextStyle(fontSize: 13, color: Color(0xFFFBBF24), fontWeight: FontWeight.w700)),
+              ]),
+              const SizedBox(height: 12),
+
+              // 텍스트 입력
+              TextField(
+                controller: _reviewCtrl,
+                maxLines: 4,
+                style: const TextStyle(color: _textPri, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: '이용 경험을 자세히 작성해 주세요.\n(최소 10자 이상)',
+                  hintStyle: TextStyle(color: _textSec.withValues(alpha: 0.6), fontSize: 12),
+                  filled: true,
+                  fillColor: _card,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: _border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: _accent),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 영수증/결제내역 첨부 섹션
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _receiptAttached ? _green.withValues(alpha: 0.6) : _border,
+                  ),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(Icons.receipt_long_outlined,
+                      size: 14, color: _receiptAttached ? _green : _accent),
+                    const SizedBox(width: 6),
+                    Text(_receiptAttached ? '✅ 영수증 첨부 완료' : '영수증 또는 결제내역 첨부',
+                      style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700,
+                        color: _receiptAttached ? _green : _accent,
+                      )),
+                    const Spacer(),
+                    if (_receiptAttached)
+                      GestureDetector(
+                        onTap: () => setState(() => _receiptAttached = false),
+                        child: const Text('취소', style: TextStyle(fontSize: 11, color: Color(0xFFFF6B6B))),
+                      ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(
+                    _receiptAttached
+                      ? '인증 완료! 리뷰를 작성하고 등록하세요.'
+                      : '방문 영수증 또는 앱 결제내역을 첨부하면\n인증 리뷰로 표시됩니다.',
+                    style: TextStyle(fontSize: 11, color: _textSec.withValues(alpha: 0.8), height: 1.4),
+                  ),
+                  if (!_receiptAttached) ...[
+                    const SizedBox(height: 10),
+                    Row(children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _receiptAttached = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D2040),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _border),
+                            ),
+                            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(Icons.photo_camera_outlined, size: 14, color: _accent),
+                              SizedBox(width: 4),
+                              Text('사진 촬영', style: TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w600)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _receiptAttached = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D2040),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _border),
+                            ),
+                            child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Icon(Icons.image_outlined, size: 14, color: _accent),
+                              SizedBox(width: 4),
+                              Text('갤러리 선택', style: TextStyle(fontSize: 12, color: _accent, fontWeight: FontWeight.w600)),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ],
+                ]),
+              ),
+              const SizedBox(height: 12),
+
+              // 등록 버튼
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final text = _reviewCtrl.text.trim();
+                    if (text.length < 10) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Color(0xFF1E3A5F),
+                          content: Text('리뷰는 10자 이상 작성해 주세요.', style: TextStyle(color: Colors.white)),
+                        ));
+                      return;
+                    }
+                    setState(() {
+                      _reviews.insert(0, {
+                        'name': '나',
+                        'rating': _myRating,
+                        'date': '2025.04.13',
+                        'text': text,
+                        'verified': _receiptAttached,
+                      });
+                      _showReviewForm = false;
+                      _reviewCtrl.clear();
+                      _receiptAttached = false;
+                      _myRating = 5;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Color(0xFF10B981),
+                        content: Text('✅ 리뷰가 등록되었습니다.', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('리뷰 등록하기',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black)),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // 리뷰 목록
+        ..._reviews.map((r) => Container(
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -716,14 +1010,29 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.2), shape: BoxShape.circle),
+                  color: _accent.withValues(alpha: 0.2), shape: BoxShape.circle),
                 child: Center(child: Text((r['name'] as String)[0],
                   style: const TextStyle(color: _accent, fontWeight: FontWeight.w700))),
               ),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(r['name'] as String,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPri)),
+                Row(children: [
+                  Text(r['name'] as String,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: _textPri)),
+                  if (r['verified'] == true) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: _green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: _green.withValues(alpha: 0.4)),
+                      ),
+                      child: const Text('인증',
+                        style: TextStyle(fontSize: 9, color: _green, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ]),
                 Text(r['date'] as String,
                   style: const TextStyle(fontSize: 11, color: _textSec)),
               ])),
