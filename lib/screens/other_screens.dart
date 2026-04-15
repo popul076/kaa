@@ -2371,7 +2371,7 @@ class _NewsScreenState extends State<NewsScreen> {
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   gradient: LinearGradient(
                     begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.5)],
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
                   ),
                 ),
               ),
@@ -2398,9 +2398,9 @@ class _NewsScreenState extends State<NewsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: catColor.withValues(alpha: 0.15),
+                    color: catColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: catColor.withValues(alpha: 0.4)),
+                    border: Border.all(color: catColor.withOpacity(0.4)),
                   ),
                   child: Text(n['category'] as String,
                     style: TextStyle(fontSize: 10, color: catColor, fontWeight: FontWeight.w700)),
@@ -2429,9 +2429,9 @@ class _NewsScreenState extends State<NewsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _accent.withValues(alpha: 0.15),
+                    color: _accent.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                    border: Border.all(color: _accent.withOpacity(0.4)),
                   ),
                   child: const Text('자세히 보기',
                     style: TextStyle(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
@@ -2475,9 +2475,9 @@ class _NewsScreenState extends State<NewsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: catColor.withValues(alpha: 0.15),
+                  color: catColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: catColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: catColor.withOpacity(0.3)),
                 ),
                 child: Text(n['category'] as String,
                   style: TextStyle(fontSize: 9, color: catColor, fontWeight: FontWeight.w700)),
@@ -2593,15 +2593,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                 colors: [Color(0xFF7B1E2A), Color(0xFF4A0E14)],
               ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _red.withValues(alpha: 0.4)),
+              border: Border.all(color: _red.withOpacity(0.4)),
             ),
             child: Row(children: [
               Container(
                 width: 56, height: 56,
                 decoration: BoxDecoration(
-                  color: _red.withValues(alpha: 0.2),
+                  color: _red.withOpacity(0.2),
                   shape: BoxShape.circle,
-                  border: Border.all(color: _red.withValues(alpha: 0.5)),
+                  border: Border.all(color: _red.withOpacity(0.5)),
                 ),
                 child: const Center(child: Text('🚨', style: TextStyle(fontSize: 24))),
               ),
@@ -2685,9 +2685,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                         Container(
                           width: 44, height: 44,
                           decoration: BoxDecoration(
-                            color: (ins['color'] as Color).withValues(alpha: 0.15),
+                            color: (ins['color'] as Color).withOpacity(0.15),
                             shape: BoxShape.circle,
-                            border: Border.all(color: (ins['color'] as Color).withValues(alpha: 0.4)),
+                            border: Border.all(color: (ins['color'] as Color).withOpacity(0.4)),
                           ),
                           child: Center(child: Text(ins['emoji'] as String,
                             style: const TextStyle(fontSize: 20))),
@@ -2710,9 +2710,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                             decoration: BoxDecoration(
-                              color: _red.withValues(alpha: 0.15),
+                              color: _red.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: _red.withValues(alpha: 0.4)),
+                              border: Border.all(color: _red.withOpacity(0.4)),
                             ),
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
                               const Icon(Icons.phone, size: 16, color: _red),
@@ -2747,9 +2747,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _orange.withValues(alpha: 0.15),
+                              color: _orange.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: _orange.withValues(alpha: 0.4)),
+                              border: Border.all(color: _orange.withOpacity(0.4)),
                             ),
                             child: Text(p['badge'] as String,
                               style: const TextStyle(fontSize: 10, color: _orange, fontWeight: FontWeight.w700)),
@@ -2770,9 +2770,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                           children: services.map((s) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _accent.withValues(alpha: 0.1),
+                              color: _accent.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: _accent.withValues(alpha: 0.3)),
+                              border: Border.all(color: _accent.withOpacity(0.3)),
                             ),
                             child: Text(s, style: const TextStyle(fontSize: 10, color: _accent)),
                           )).toList(),
@@ -2790,9 +2790,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: _red.withValues(alpha: 0.12),
+                                  color: _red.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(color: _red.withValues(alpha: 0.35)),
+                                  border: Border.all(color: _red.withOpacity(0.35)),
                                 ),
                                 child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                                   Icon(Icons.phone, size: 14, color: _red),
@@ -2812,9 +2812,9 @@ class _EmergencyScreenState extends State<EmergencyScreen> with SingleTickerProv
                               child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 decoration: BoxDecoration(
-                                  color: _accent.withValues(alpha: 0.12),
+                                  color: _accent.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(color: _accent.withValues(alpha: 0.35)),
+                                  border: Border.all(color: _accent.withOpacity(0.35)),
                                 ),
                                 child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                                   Icon(Icons.store_outlined, size: 14, color: _accent),
@@ -6867,7 +6867,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
               colors: [Color(0xFF1A1040), Color(0xFF0A1628)],
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _purple.withValues(alpha: 0.4)),
+            border: Border.all(color: _purple.withOpacity(0.4)),
           ),
           child: Column(children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -6876,9 +6876,9 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: _gold.withValues(alpha: 0.15),
+                  color: _gold.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _gold.withValues(alpha: 0.4)),
+                  border: Border.all(color: _gold.withOpacity(0.4)),
                 ),
                 child: Text('오늘 ${_todayPoints}P',
                   style: const TextStyle(fontSize: 11, color: _gold, fontWeight: FontWeight.w700)),
@@ -6955,7 +6955,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: sel ? _purple.withValues(alpha: 0.2) : _card,
+            color: sel ? _purple.withOpacity(0.2) : _card,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: sel ? _purple : _border, width: sel ? 1.5 : 1),
           ),
@@ -7058,9 +7058,9 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: _orange.withValues(alpha: 0.1),
+            color: _orange.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: _orange.withValues(alpha: 0.3)),
+            border: Border.all(color: _orange.withOpacity(0.3)),
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             const Text('현재 속도', style: TextStyle(fontSize: 12, color: _textSec)),
@@ -7112,7 +7112,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
           colors: [Color(0xFF1A1040), Color(0xFF0D1620)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _gold.withValues(alpha: 0.4)),
+        border: Border.all(color: _gold.withOpacity(0.4)),
       ),
       child: Column(children: [
         Row(children: [
@@ -7148,14 +7148,14 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
                     gradient: RadialGradient(
                       colors: _chestPts >= _maxChestDay
                         ? [_border, _card]
-                        : [_gold.withValues(alpha: 0.3), _gold.withValues(alpha: 0.05)],
+                        : [_gold.withOpacity(0.3), _gold.withOpacity(0.05)],
                     ),
                     border: Border.all(
-                      color: _chestPts >= _maxChestDay ? _border : _gold.withValues(alpha: 0.6),
+                      color: _chestPts >= _maxChestDay ? _border : _gold.withOpacity(0.6),
                       width: 2,
                     ),
                     boxShadow: _chestPts < _maxChestDay ? [
-                      BoxShadow(color: _gold.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 3),
+                      BoxShadow(color: _gold.withOpacity(0.3), blurRadius: 20, spreadRadius: 3),
                     ] : [],
                   ),
                   child: Center(child: Text(
@@ -7218,7 +7218,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
               height: 24,
               decoration: BoxDecoration(
                 color: done
-                  ? (dur == 30 ? _purple : dur == 15 ? _orange : _accent).withValues(alpha: 0.8)
+                  ? (dur == 30 ? _purple : dur == 15 ? _orange : _accent).withOpacity(0.8)
                   : _border,
                 borderRadius: BorderRadius.circular(3),
               ),
@@ -7244,7 +7244,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
 
   Widget _adLegend(Color c, String label) {
     return Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 10, height: 10, color: c.withValues(alpha: 0.8),
+      Container(width: 10, height: 10, color: c.withOpacity(0.8),
         margin: const EdgeInsets.only(right: 3)),
       Text(label, style: const TextStyle(fontSize: 9, color: _textSec)),
     ]);
@@ -7286,12 +7286,12 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: canUse
-                    ? (g['color'] as Color).withValues(alpha: 0.1)
+                    ? (g['color'] as Color).withOpacity(0.1)
                     : _bg,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: canUse
-                      ? (g['color'] as Color).withValues(alpha: 0.4)
+                      ? (g['color'] as Color).withOpacity(0.4)
                       : _border,
                   ),
                 ),
@@ -7423,8 +7423,8 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter, end: Alignment.topCenter,
                             colors: isToday
-                              ? [_gold, _gold.withValues(alpha: 0.6)]
-                              : [_accent, _accent.withValues(alpha: 0.4)],
+                              ? [_gold, _gold.withOpacity(0.6)]
+                              : [_accent, _accent.withOpacity(0.4)],
                           ),
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -7515,7 +7515,7 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
     final dur = _adDuration(adIdx);
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withValues(alpha: 0.9),
+        color: Colors.black.withOpacity(0.9),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -7530,9 +7530,9 @@ class _RewardScreenState extends State<RewardScreen> with TickerProviderStateMix
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _orange.withValues(alpha: 0.2),
+                  color: _orange.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: _orange.withValues(alpha: 0.4)),
+                  border: Border.all(color: _orange.withOpacity(0.4)),
                 ),
                 child: Text('📺 광고 ${_adCount}/${25} · ${dur}초 광고',
                   style: const TextStyle(fontSize: 11, color: _orange, fontWeight: FontWeight.w700)),

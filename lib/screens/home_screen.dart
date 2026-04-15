@@ -594,7 +594,7 @@ class _HomeScreenState extends State<HomeScreen>
             width: 9, height: 9,
             decoration: BoxDecoration(
               color: _accent, shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: _accent.withValues(alpha: 0.6), blurRadius: 7)],
+              boxShadow: [BoxShadow(color: _accent.withOpacity(0.6), blurRadius: 7)],
             ),
           ),
           const SizedBox(width: 8),
@@ -624,9 +624,9 @@ class _HomeScreenState extends State<HomeScreen>
           color: _isSearchActive ? const Color(0xFF0D1E3C) : _s1,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _isSearchActive ? _accent.withValues(alpha: 0.6) : _br),
+            color: _isSearchActive ? _accent.withOpacity(0.6) : _br),
           boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+              color: Colors.black.withOpacity(0.2), blurRadius: 4)],
         ),
         child: Row(children: [
           const SizedBox(width: 14),
@@ -677,7 +677,7 @@ class _HomeScreenState extends State<HomeScreen>
               margin: const EdgeInsets.only(right: 10),
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: _isSearchActive ? _accent.withValues(alpha: 0.15) : Colors.transparent,
+                color: _isSearchActive ? _accent.withOpacity(0.15) : Colors.transparent,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Icon(Icons.mic_rounded,
@@ -724,9 +724,9 @@ class _HomeScreenState extends State<HomeScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _accent.withValues(alpha: 0.15),
+                      color: _accent.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                      border: Border.all(color: _accent.withOpacity(0.4)),
                     ),
                     child: const Row(children: [
                       Text('🤖', style: TextStyle(fontSize: 12)),
@@ -748,7 +748,7 @@ class _HomeScreenState extends State<HomeScreen>
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _isListening
-                      ? const Color(0xFF4FC3F7).withValues(alpha: 0.6)
+                      ? const Color(0xFF4FC3F7).withOpacity(0.6)
                       : const Color(0xFF1E3A5F)),
                 ),
                 child: Center(
@@ -788,7 +788,7 @@ class _HomeScreenState extends State<HomeScreen>
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A3A6E).withValues(alpha: 0.5),
+                        color: const Color(0xFF1A3A6E).withOpacity(0.5),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: const Color(0xFF1E3A5F)),
                       ),
@@ -814,7 +814,7 @@ class _HomeScreenState extends State<HomeScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _isListening
-                      ? const Color(0xFF4FC3F7).withValues(alpha: 0.2)
+                      ? const Color(0xFF4FC3F7).withOpacity(0.2)
                       : const Color(0xFF1A3A6E),
                     border: Border.all(
                       color: _isListening
@@ -882,8 +882,8 @@ class _HomeScreenState extends State<HomeScreen>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.15),
-                        Colors.black.withValues(alpha: 0.75),
+                        Colors.black.withOpacity(0.15),
+                        Colors.black.withOpacity(0.75),
                       ],
                     ),
                   ),
@@ -912,8 +912,8 @@ class _HomeScreenState extends State<HomeScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                         decoration: BoxDecoration(
-                          color: _accent.withValues(alpha: 0.2),
-                          border: Border.all(color: _accent.withValues(alpha: 0.5)),
+                          color: _accent.withOpacity(0.2),
+                          border: Border.all(color: _accent.withOpacity(0.5)),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(b['tag'] as String,
@@ -935,9 +935,9 @@ class _HomeScreenState extends State<HomeScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                            border: Border.all(color: Colors.white.withOpacity(0.3)),
                           ),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Text('바로가기', style: GoogleFonts.notoSansKr(
@@ -1291,7 +1291,7 @@ class _HomeScreenState extends State<HomeScreen>
                 color: _s1,
                 border: Border.all(color: _br, width: 1.5),
                 boxShadow: [BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
+                    color: Colors.black.withOpacity(0.3),
                     blurRadius: 6, offset: const Offset(0, 2))],
               ),
               child: Center(
@@ -1302,7 +1302,7 @@ class _HomeScreenState extends State<HomeScreen>
                           color: const Color(0xFF1565C0),
                           borderRadius: BorderRadius.circular(6),
                           boxShadow: [BoxShadow(
-                            color: const Color(0xFF1E88E5).withValues(alpha: 0.5),
+                            color: const Color(0xFF1E88E5).withOpacity(0.5),
                             blurRadius: 6,
                           )],
                         ),
@@ -1387,9 +1387,9 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: _s1,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                border: Border.all(color: _br.withOpacity(0.5)),
                 boxShadow: [BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
+                    color: Colors.black.withOpacity(0.35),
                     blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1409,15 +1409,15 @@ class _HomeScreenState extends State<HomeScreen>
                     Positioned.fill(child: Container(
                       decoration: BoxDecoration(gradient: LinearGradient(
                           begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, _bg.withValues(alpha: 0.55)])),
+                          colors: [Colors.transparent, _bg.withOpacity(0.55)])),
                     )),
                     Positioned(top: 10, left: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _bg.withValues(alpha: 0.85),
+                          color: _bg.withOpacity(0.85),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _accent.withValues(alpha: 0.35)),
+                          border: Border.all(color: _accent.withOpacity(0.35)),
                         ),
                         child: Text(s['tag'] as String,
                             style: GoogleFonts.notoSansKr(
@@ -1488,15 +1488,15 @@ class _HomeScreenState extends State<HomeScreen>
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: aColor.withValues(alpha: 0.35)),
+                  border: Border.all(color: aColor.withOpacity(0.35)),
                 ),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Container(
                     width: 56, height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.black.withValues(alpha: 0.2),
-                      border: Border.all(color: aColor.withValues(alpha: 0.4)),
+                      color: Colors.black.withOpacity(0.2),
+                      border: Border.all(color: aColor.withOpacity(0.4)),
                     ),
                     child: Icon(item['icon'] as IconData, color: aColor, size: 28),
                   ),
@@ -1525,7 +1525,7 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: const Color(0xFF050E1E),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _br.withValues(alpha: 0.4)),
+        border: Border.all(color: _br.withOpacity(0.4)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -1535,14 +1535,14 @@ class _HomeScreenState extends State<HomeScreen>
               fit: BoxFit.cover,
               errorBuilder: (c, e, s) => const SizedBox())),
           Positioned.fill(
-              child: Container(color: Colors.black.withValues(alpha: 0.45))),
+              child: Container(color: Colors.black.withOpacity(0.45))),
           Positioned.fill(child: Center(child: Container(
             width: 20, height: 20,
             decoration: BoxDecoration(
               color: _accent, shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: _accent.withValues(alpha: 0.3), blurRadius: 0, spreadRadius: 7),
-                BoxShadow(color: _accent.withValues(alpha: 0.15), blurRadius: 0, spreadRadius: 15),
+                BoxShadow(color: _accent.withOpacity(0.3), blurRadius: 0, spreadRadius: 7),
+                BoxShadow(color: _accent.withOpacity(0.15), blurRadius: 0, spreadRadius: 15),
               ],
             ),
           ))),
@@ -1554,9 +1554,9 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
               decoration: BoxDecoration(
-                color: _bg.withValues(alpha: 0.9),
+                color: _bg.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                border: Border.all(color: _br.withOpacity(0.5)),
               ),
               child: Row(children: [
                 Text('📍  반경 5km 이내',
@@ -1566,7 +1566,7 @@ class _HomeScreenState extends State<HomeScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: _accentS, borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                    border: Border.all(color: _accent.withOpacity(0.4)),
                   ),
                   child: Text('10개 업체',
                       style: GoogleFonts.notoSansKr(
@@ -1586,8 +1586,8 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         width: 38, height: 38,
         decoration: BoxDecoration(
-          color: _bg.withValues(alpha: 0.85), shape: BoxShape.circle,
-          border: Border.all(color: _accent.withValues(alpha: 0.4)),
+          color: _bg.withOpacity(0.85), shape: BoxShape.circle,
+          border: Border.all(color: _accent.withOpacity(0.4)),
         ),
         child: Center(child: Text(emoji, style: const TextStyle(fontSize: 18))),
       ),
@@ -1629,9 +1629,9 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: _s1,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                border: Border.all(color: _br.withOpacity(0.5)),
                 boxShadow: [BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
+                    color: Colors.black.withOpacity(0.35),
                     blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1650,15 +1650,15 @@ class _HomeScreenState extends State<HomeScreen>
                     Positioned.fill(child: Container(
                       decoration: BoxDecoration(gradient: LinearGradient(
                           begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, _bg.withValues(alpha: 0.5)])),
+                          colors: [Colors.transparent, _bg.withOpacity(0.5)])),
                     )),
                     Positioned(top: 12, left: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: _bg.withValues(alpha: 0.85),
+                          color: _bg.withOpacity(0.85),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: _accent.withValues(alpha: 0.35)),
+                          border: Border.all(color: _accent.withOpacity(0.35)),
                         ),
                         child: Text(s['badge'] as String,
                             style: GoogleFonts.notoSansKr(
@@ -1713,15 +1713,15 @@ class _HomeScreenState extends State<HomeScreen>
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  _bg.withValues(alpha: 0.0),
-                  _bg.withValues(alpha: 0.95),
+                  _bg.withOpacity(0.0),
+                  _bg.withOpacity(0.95),
                 ],
               ),
             ),
             child: Center(
               child: Icon(
                 Icons.chevron_right_rounded,
-                color: _t2.withValues(alpha: 0.6),
+                color: _t2.withOpacity(0.6),
                 size: 32,
               ),
             ),
@@ -1745,7 +1745,7 @@ class _HomeScreenState extends State<HomeScreen>
           begin: Alignment.topLeft, end: Alignment.bottomRight,
           colors: [Color(0xFF071428), Color(0xFF0D2040), Color(0xFF071428)],
         ),
-        border: Border.all(color: _accentS.withValues(alpha: 0.5)),
+        border: Border.all(color: _accentS.withOpacity(0.5)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
@@ -1754,7 +1754,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(width: 130, height: 130,
                 decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _accent.withValues(alpha: 0.06)))),
+                    color: _accent.withOpacity(0.06)))),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
             child: Row(children: [
@@ -1764,9 +1764,9 @@ class _HomeScreenState extends State<HomeScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _accent.withValues(alpha: 0.12),
+                    color: _accent.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: _accent.withValues(alpha: 0.3)),
+                    border: Border.all(color: _accent.withOpacity(0.3)),
                   ),
                   child: Text('한국자동차협회 KAA',
                       style: GoogleFonts.notoSansKr(
@@ -1784,7 +1784,7 @@ class _HomeScreenState extends State<HomeScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: _accent.withValues(alpha: 0.4)),
+                    side: BorderSide(color: _accent.withOpacity(0.4)),
                   ),
                   elevation: 0,
                 ),
@@ -1831,9 +1831,9 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: _s1,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _br.withValues(alpha: 0.5)),
+                border: Border.all(color: _br.withOpacity(0.5)),
                 boxShadow: [BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
+                    color: Colors.black.withOpacity(0.35),
                     blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1904,9 +1904,9 @@ class _HomeScreenState extends State<HomeScreen>
           decoration: BoxDecoration(
             color: _s1,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _br.withValues(alpha: 0.5)),
+            border: Border.all(color: _br.withOpacity(0.5)),
             boxShadow: [BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: Colors.black.withOpacity(0.35),
                 blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1925,15 +1925,15 @@ class _HomeScreenState extends State<HomeScreen>
                 Positioned.fill(child: Container(
                   decoration: BoxDecoration(gradient: LinearGradient(
                       begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, _bg.withValues(alpha: 0.5)])),
+                      colors: [Colors.transparent, _bg.withOpacity(0.5)])),
                 )),
                 Positioned(top: 12, left: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _bg.withValues(alpha: 0.85),
+                      color: _bg.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _accent.withValues(alpha: 0.35)),
+                      border: Border.all(color: _accent.withOpacity(0.35)),
                     ),
                     child: Text(s['badge'] as String,
                         style: GoogleFonts.notoSansKr(
@@ -1944,7 +1944,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _bg.withValues(alpha: 0.85),
+                      color: _bg.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1994,7 +1994,7 @@ class _HomeScreenState extends State<HomeScreen>
             decoration: BoxDecoration(
               color: _s2,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _br.withValues(alpha: 0.5)),
+              border: Border.all(color: _br.withOpacity(0.5)),
             ),
             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(
@@ -2044,7 +2044,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
 
-        Container(height: 1, color: _br.withValues(alpha: 0.3)),
+        Container(height: 1, color: _br.withOpacity(0.3)),
 
         // 정보 영역
         Padding(
@@ -2058,7 +2058,7 @@ class _HomeScreenState extends State<HomeScreen>
             _linkRow(['소비자분쟁해결기준']),
 
             const SizedBox(height: 18),
-            Container(height: 1, color: _br.withValues(alpha: 0.25)),
+            Container(height: 1, color: _br.withOpacity(0.25)),
             const SizedBox(height: 16),
 
             Text('(사)한국자동차협회',
@@ -2074,7 +2074,7 @@ class _HomeScreenState extends State<HomeScreen>
             _infoRow('대표전화',      '02-3482-7433'),
 
             const SizedBox(height: 16),
-            Container(height: 1, color: _br.withValues(alpha: 0.25)),
+            Container(height: 1, color: _br.withOpacity(0.25)),
             const SizedBox(height: 14),
 
             Text('대표 고객센터',
@@ -2090,7 +2090,7 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
                   color: _s2, borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: _br.withValues(alpha: 0.5)),
+                  border: Border.all(color: _br.withOpacity(0.5)),
                 ),
                 child: Text('평일 운영',
                     style: GoogleFonts.notoSansKr(fontSize: 11, color: _t3)),
@@ -2102,10 +2102,10 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 3),
             Text('주말 및 공휴일 휴무',
                 style: GoogleFonts.notoSansKr(
-                    fontSize: 12, color: _t3.withValues(alpha: 0.7))),
+                    fontSize: 12, color: _t3.withOpacity(0.7))),
 
             const SizedBox(height: 16),
-            Container(height: 1, color: _br.withValues(alpha: 0.25)),
+            Container(height: 1, color: _br.withOpacity(0.25)),
             const SizedBox(height: 14),
 
             Text('공식 채널',
@@ -2125,18 +2125,18 @@ class _HomeScreenState extends State<HomeScreen>
             ]),
 
             const SizedBox(height: 16),
-            Container(height: 1, color: _br.withValues(alpha: 0.2)),
+            Container(height: 1, color: _br.withOpacity(0.2)),
             const SizedBox(height: 12),
 
             Text(
               '(사)한국자동차협회는 통신판매중개자로 거래 당사자가 아니므로,\n'
               '판매자가 등록한 상품 및 거래에 대해 책임을 지지 않습니다.',
               style: GoogleFonts.notoSansKr(
-                  fontSize: 10, color: _t3.withValues(alpha: 0.6), height: 1.8),
+                  fontSize: 10, color: _t3.withOpacity(0.6), height: 1.8),
             ),
 
             const SizedBox(height: 12),
-            Container(height: 1, color: _br.withValues(alpha: 0.2)),
+            Container(height: 1, color: _br.withOpacity(0.2)),
             const SizedBox(height: 10),
 
             // 저작권 + 이동리워드
@@ -2144,7 +2144,7 @@ class _HomeScreenState extends State<HomeScreen>
               Expanded(
                 child: Text('ⓒ 한국자동차협회 All Rights Reserved.',
                     style: GoogleFonts.notoSansKr(
-                        fontSize: 10, color: _t3.withValues(alpha: 0.5))),
+                        fontSize: 10, color: _t3.withOpacity(0.5))),
               ),
               GestureDetector(
                 onTap: () {},
@@ -2154,7 +2154,7 @@ class _HomeScreenState extends State<HomeScreen>
                     color: const Color(0xFF1A1040),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFF6B4EFF).withValues(alpha: 0.5)),
+                        color: const Color(0xFF6B4EFF).withOpacity(0.5)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.card_giftcard_outlined,
@@ -2217,9 +2217,9 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       width: 40, height: 40,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
+        border: Border.all(color: color.withOpacity(0.45)),
       ),
       child: Center(child: Text(label,
           style: GoogleFonts.notoSansKr(
@@ -2303,9 +2303,9 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: _accent.withValues(alpha: 0.08),
+                    color: _accent.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _accent.withValues(alpha: 0.25)),
+                    border: Border.all(color: _accent.withOpacity(0.25)),
                   ),
                   child: Row(children: [
                     const Icon(Icons.my_location, color: Color(0xFF4FC3F7), size: 18),
@@ -2374,9 +2374,9 @@ class _HomeScreenState extends State<HomeScreen>
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: _accent.withValues(alpha: 0.08),
+        color: _accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withValues(alpha: 0.3)),
+        border: Border.all(color: _accent.withOpacity(0.3)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -2395,7 +2395,7 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: _accentS,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _accent.withValues(alpha: 0.35)),
+        border: Border.all(color: _accent.withOpacity(0.35)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -2413,9 +2413,9 @@ class _HomeScreenState extends State<HomeScreen>
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
-        color: _accent.withValues(alpha: 0.08),
+        color: _accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _accent.withValues(alpha: 0.3)),
+        border: Border.all(color: _accent.withOpacity(0.3)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -2434,7 +2434,7 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: _accentS,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _accent.withValues(alpha: 0.35)),
+        border: Border.all(color: _accent.withOpacity(0.35)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -2453,7 +2453,7 @@ class _NavyGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF050E1E));
     final p = Paint()
-      ..color = const Color(0xFF142244).withValues(alpha: 0.5)
+      ..color = const Color(0xFF142244).withOpacity(0.5)
       ..strokeWidth = 0.5;
     const sp = 28.0;
     for (double x = 0; x < size.width; x += sp) {
@@ -2463,7 +2463,7 @@ class _NavyGridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
     }
     final road = Paint()
-      ..color = const Color(0xFF1A3A6E).withValues(alpha: 0.35)
+      ..color = const Color(0xFF1A3A6E).withOpacity(0.35)
       ..strokeWidth = 3;
     canvas.drawLine(Offset(0, size.height * 0.5), Offset(size.width, size.height * 0.5), road);
     canvas.drawLine(Offset(size.width * 0.4, 0), Offset(size.width * 0.4, size.height), road);

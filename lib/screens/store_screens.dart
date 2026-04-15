@@ -717,9 +717,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: _green.withValues(alpha: 0.15),
+                color: _green.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _green.withValues(alpha: 0.4)),
+                border: Border.all(color: _green.withOpacity(0.4)),
               ),
               child: Text('${_emojis[_myEmojiIdx!]} 선택됨',
                 style: const TextStyle(fontSize: 11, color: _green, fontWeight: FontWeight.w700)),
@@ -750,7 +750,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 3),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      color: selected ? _accent.withValues(alpha: 0.2) : _card,
+                      color: selected ? _accent.withOpacity(0.2) : _card,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: selected ? _accent : _border,
@@ -795,7 +795,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+              color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
             child: Text('${_reviews.length}건',
               style: const TextStyle(fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
           ),
@@ -828,7 +828,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF0A1E38),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _accent.withValues(alpha: 0.4)),
+              border: Border.all(color: _accent.withOpacity(0.4)),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // 별점 선택
@@ -854,7 +854,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                 style: const TextStyle(color: _textPri, fontSize: 13),
                 decoration: InputDecoration(
                   hintText: '이용 경험을 자세히 작성해 주세요.\n(최소 10자 이상)',
-                  hintStyle: TextStyle(color: _textSec.withValues(alpha: 0.6), fontSize: 12),
+                  hintStyle: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 12),
                   filled: true,
                   fillColor: _card,
                   border: OutlineInputBorder(
@@ -877,7 +877,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                   color: _card,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: _receiptAttached ? _green.withValues(alpha: 0.6) : _border,
+                    color: _receiptAttached ? _green.withOpacity(0.6) : _border,
                   ),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -902,7 +902,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                     _receiptAttached
                       ? '인증 완료! 리뷰를 작성하고 등록하세요.'
                       : '방문 영수증 또는 앱 결제내역을 첨부하면\n인증 리뷰로 표시됩니다.',
-                    style: TextStyle(fontSize: 11, color: _textSec.withValues(alpha: 0.8), height: 1.4),
+                    style: TextStyle(fontSize: 11, color: _textSec.withOpacity(0.8), height: 1.4),
                   ),
                   if (!_receiptAttached) ...[
                     const SizedBox(height: 10),
@@ -1010,7 +1010,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: _accent.withValues(alpha: 0.2), shape: BoxShape.circle),
+                  color: _accent.withOpacity(0.2), shape: BoxShape.circle),
                 child: Center(child: Text((r['name'] as String)[0],
                   style: const TextStyle(color: _accent, fontWeight: FontWeight.w700))),
               ),
@@ -1024,9 +1024,9 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                       decoration: BoxDecoration(
-                        color: _green.withValues(alpha: 0.15),
+                        color: _green.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: _green.withValues(alpha: 0.4)),
+                        border: Border.all(color: _green.withOpacity(0.4)),
                       ),
                       child: const Text('인증',
                         style: TextStyle(fontSize: 9, color: _green, fontWeight: FontWeight.w700)),
