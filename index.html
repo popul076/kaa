@@ -3,902 +3,1295 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MOINCAR v44 미리보기</title>
+<title>MOINCAR v14 앱 미리보기</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Noto Sans KR',sans-serif;}
-:root{
-  --bg:#020810;--s1:#071428;--s2:#0D1E3C;--br:#1A3050;
-  --accent:#4FC3F7;--accentS:#1A3A6E;--t1:#E8F4FF;--t2:#7AB0D4;--t3:#3A6080;
-}
-
-body{background:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:30px 0;}
+html,body{height:100%;background:#0a0a14;}
+body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px 0 60px;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,195,247,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,195,247,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
 
 /* ── 폰 프레임 ── */
-.phone{width:390px;height:844px;background:var(--bg);border-radius:44px;border:3px solid #333;overflow:hidden;position:relative;box-shadow:0 0 60px rgba(79,195,247,0.15),0 20px 60px rgba(0,0,0,0.8);}
-.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:34px;background:var(--bg);border-radius:0 0 20px 20px;z-index:200;}
-
-/* ── 화면 전환 ── */
-.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);overflow:hidden;}
+.phone{width:390px;height:844px;background:#020810;border-radius:46px;border:2px solid #222;overflow:hidden;position:relative;box-shadow:0 0 80px rgba(79,195,247,0.1),0 30px 80px rgba(0,0,0,0.9);z-index:1;flex-shrink:0;}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#020810;border-radius:0 0 20px 20px;z-index:300;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;background:#020810;overflow:hidden;}
 .screen.active{display:flex;}
 
-/* ══════════════════════════════
-   인트로 화면
-══════════════════════════════ */
-#s-intro{background:linear-gradient(160deg,#020810 0%,#071428 60%,#0D1E3C 100%);justify-content:space-between;padding:60px 28px 48px;}
-.intro-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(13,30,60,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(13,30,60,0.4) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
-.intro-glow1{position:absolute;top:-120px;left:-100px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(79,195,247,0.07),transparent 70%);pointer-events:none;}
-.intro-glow2{position:absolute;bottom:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(79,195,247,0.05),transparent 70%);pointer-events:none;}
-.intro-top{position:relative;text-align:center;padding-top:20px;}
-.intro-logo{width:120px;margin-bottom:4px;}
-.intro-sub{color:var(--accent);font-size:11px;letter-spacing:2px;margin-bottom:36px;}
-.intro-divider{width:40px;height:2px;background:var(--accent);border-radius:1px;margin:0 auto 30px;box-shadow:0 0 8px rgba(79,195,247,0.4);}
-.intro-title{color:var(--t1);font-size:28px;font-weight:900;line-height:1.35;letter-spacing:-0.5px;margin-bottom:14px;}
-.intro-desc{color:var(--t3);font-size:14px;line-height:1.7;margin-bottom:40px;}
-.intro-chips{display:flex;gap:10px;justify-content:center;margin-bottom:44px;}
-.intro-chip{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;align-items:center;gap:5px;}
-.intro-chip span:first-child{font-size:20px;}
-.intro-chip span:last-child{color:var(--t3);font-size:11px;font-weight:500;}
-.intro-bottom{position:relative;}
-.btn-primary{width:100%;height:54px;background:var(--accentS);border:1px solid rgba(79,195,247,0.4);border-radius:14px;color:var(--accent);font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.5px;}
-.intro-login-row{display:flex;justify-content:center;gap:6px;margin-top:14px;}
-.intro-login-row span:first-child{color:var(--t3);font-size:13px;}
-.intro-login-link{color:var(--accent);font-size:13px;font-weight:700;text-decoration:underline;cursor:pointer;}
+/* ── 컬러 변수 ── */
+:root{
+  --bg:#020810;--card:#0D1B2A;--navy:#0A1628;--s1:#071428;--s2:#0D1E3C;--br:#1E3A5F;
+  --accent:#4FC3F7;--accentD:#1A3A6E;--green:#10B981;--orange:#FF6B35;--gold:#FBBF24;
+  --purple:#9B7CFF;--red:#EF4444;--t1:#E8F4FF;--t2:#B0BEC5;--t3:#3A6080;
+}
 
-/* ══════════════════════════════
-   간편 로그인 화면
-══════════════════════════════ */
-#s-login{padding:0;}
-.login-header{display:flex;align-items:center;gap:12px;padding:54px 20px 0;}
-.back-btn{color:var(--t2);font-size:14px;cursor:pointer;padding:4px;}
-.login-body{padding:32px 24px;}
-.login-title{color:var(--t1);font-size:24px;font-weight:900;margin-bottom:8px;}
-.login-desc{color:var(--t3);font-size:14px;line-height:1.6;margin-bottom:40px;}
-.social-btn{width:100%;height:54px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 20px;gap:14px;margin-bottom:12px;position:relative;}
-.social-btn .s-label{flex:1;text-align:center;}
-.social-btn .s-arr{color:inherit;opacity:0.6;font-size:18px;}
-.btn-kakao{background:#FEE500;color:#3A1D1D;}
-.btn-naver{background:#03C75A;color:#fff;}
-.btn-google{background:#fff;color:#333;border:1px solid #ddd;}
-.social-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;}
-.kakao-icon{background:#3A1D1D;color:#FEE500;}
-.naver-icon{background:#fff;color:#03C75A;font-size:14px;font-weight:900;}
-.google-icon{background:#f5f5f5;}
-.login-divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
-.login-divider span{color:var(--t3);font-size:12px;white-space:nowrap;}
-.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--br);}
-.login-email-row{display:flex;gap:8px;margin-bottom:12px;}
-.login-email-input{flex:1;background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:0 14px;height:48px;color:var(--t1);font-size:14px;outline:none;}
-.login-email-input::placeholder{color:var(--t3);}
-.login-email-btn{height:48px;padding:0 16px;background:var(--accentS);border:1px solid rgba(79,195,247,0.3);border-radius:12px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
-.login-signup-row{display:flex;justify-content:center;gap:6px;margin-top:20px;}
-.login-signup-row span:first-child{color:var(--t3);font-size:13px;}
-.login-signup-link{color:var(--accent);font-size:13px;font-weight:700;text-decoration:underline;cursor:pointer;}
+/* ══════════════════ 공통 ══════════════════ */
+.btn-back{color:var(--t2);font-size:20px;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:var(--card);border-radius:50%;border:1px solid var(--br);}
+.bnav{position:absolute;bottom:0;left:0;right:0;height:62px;background:var(--bg);border-top:1px solid var(--s2);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px;z-index:100;}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 10px;}
+.ni .ico{font-size:20px;}
+.ni .lbl{font-size:9px;color:var(--t3);font-weight:500;}
+.ni.on .lbl{color:var(--accent);}
 
-/* ══════════════════════════════
-   회원가입 화면 (신규)
-══════════════════════════════ */
-#s-signup{padding:0;overflow-y:auto;}
-.signup-header{display:flex;align-items:center;gap:12px;padding:54px 20px 0;}
-.signup-body{padding:28px 24px 40px;}
-.signup-title{color:var(--t1);font-size:24px;font-weight:900;line-height:1.3;margin-bottom:6px;}
-.signup-desc{color:var(--t3);font-size:13px;margin-bottom:28px;line-height:1.6;}
-.form-group{margin-bottom:18px;}
-.form-label{color:var(--t2);font-size:12px;font-weight:600;margin-bottom:8px;display:block;}
-.form-input{width:100%;background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:14px 16px;color:var(--t1);font-size:14px;outline:none;}
-.form-input:focus{border-color:var(--accent);}
-.form-input::placeholder{color:var(--t3);}
-.form-row{display:flex;gap:8px;}
-.form-row .form-input{flex:1;}
-.verify-btn{height:48px;padding:0 14px;background:var(--s1);border:1px solid var(--br);border-radius:12px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:0;}
-.verify-btn.active{background:var(--accentS);border-color:rgba(79,195,247,0.4);color:var(--accent);}
-.agree-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--s2);}
-.agree-row:last-child{border-bottom:none;}
-.agree-check{width:20px;height:20px;border:2px solid var(--br);border-radius:5px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-.agree-check.on{background:var(--accentS);border-color:var(--accent);}
-.agree-check.on::after{content:'✓';color:var(--accent);font-size:12px;font-weight:700;}
-.agree-text{color:var(--t2);font-size:13px;flex:1;}
-.agree-link{color:var(--accent);font-size:12px;cursor:pointer;text-decoration:underline;}
-.agree-box{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+/* ══════════════════ 인트로 ══════════════════ */
+#s0{background:linear-gradient(160deg,#020810 0%,#071428 60%,#0D1E3C 100%);justify-content:space-between;padding:64px 28px 48px;}
+.ig{position:absolute;inset:0;background-image:linear-gradient(rgba(13,30,60,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(13,30,60,0.4) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;}
+.itop{position:relative;text-align:center;}
+.ilogo{color:var(--accent);font-size:26px;font-weight:900;letter-spacing:-1px;margin-bottom:3px;}
+.isub{color:var(--accent);font-size:9px;letter-spacing:3px;opacity:.6;margin-bottom:24px;}
+.idiv{width:36px;height:2px;background:var(--accent);border-radius:1px;margin:0 auto 22px;box-shadow:0 0 8px rgba(79,195,247,.4);}
+.ititle{color:var(--t1);font-size:26px;font-weight:900;line-height:1.35;letter-spacing:-.5px;margin-bottom:10px;}
+.idesc{color:var(--t3);font-size:13px;line-height:1.7;margin-bottom:28px;}
+.ichips{display:flex;gap:8px;justify-content:center;margin-bottom:30px;}
+.ichip{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.ichip span:first-child{font-size:17px;}
+.ichip span:last-child{color:var(--t3);font-size:9px;font-weight:500;}
+.ibtn{width:100%;height:54px;background:var(--accentD);border:1px solid rgba(79,195,247,.4);border-radius:14px;color:var(--accent);font-size:16px;font-weight:700;cursor:pointer;}
+.ilink{display:flex;justify-content:center;gap:5px;margin-top:11px;}
+.ilink span{color:var(--t3);font-size:12px;}
+.ilink a{color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;}
 
-/* ══════════════════════════════
-   관심사 선택 화면
-══════════════════════════════ */
-#s-interest{padding:0;overflow-y:auto;}
-.interest-header{display:flex;align-items:center;gap:12px;padding:54px 20px 0;}
-.interest-body{padding:28px 24px;}
-.interest-title{color:var(--t1);font-size:24px;font-weight:900;line-height:1.3;margin-bottom:28px;}
-.interest-section{margin-bottom:24px;}
-.interest-section-title{display:flex;align-items:center;gap:8px;color:var(--t1);font-size:15px;font-weight:700;margin-bottom:6px;}
-.interest-section-desc{color:var(--t3);font-size:12px;margin-bottom:12px;}
-.interest-select-box{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
-.interest-select-val{color:var(--t1);font-size:14px;font-weight:600;}
-.interest-select-arr{color:var(--accent);font-size:12px;}
-.interest-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-.interest-tag{background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:8px 14px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.interest-tag.selected{background:var(--accentS);border-color:var(--accent);color:var(--accent);}
-.interest-subtags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
-.interest-subtag{background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.2);border-radius:8px;padding:6px 10px;color:var(--t2);font-size:11px;cursor:pointer;}
-.interest-subtag.selected{background:rgba(79,195,247,0.15);border-color:var(--accent);color:var(--accent);}
-.interest-start-btn{width:100%;height:54px;background:var(--accentS);border:1px solid rgba(79,195,247,0.4);border-radius:14px;color:var(--accent);font-size:16px;font-weight:700;cursor:pointer;margin:20px 0 40px;}
+/* ══════════════════ 로그인 ══════════════════ */
+#s1{overflow-y:auto;}
+.lhdr{display:flex;align-items:center;padding:54px 16px 0;}
+.lbody{padding:26px 22px;}
+.ltitle{color:var(--t1);font-size:23px;font-weight:900;margin-bottom:7px;}
+.ldesc{color:var(--t3);font-size:12px;line-height:1.6;margin-bottom:28px;}
+.sbtn{width:100%;height:52px;border-radius:14px;border:none;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;padding:0 18px;gap:12px;margin-bottom:10px;}
+.sbtn .slbl{flex:1;text-align:center;}
+.kakao{background:#FEE500;color:#3A1D1D;}
+.naver{background:#03C75A;color:#fff;}
+.google{background:#fff;color:#333;border:1px solid #ddd!important;}
+.sico{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;}
+.ldiv{display:flex;align-items:center;gap:10px;margin:14px 0;}
+.ldiv span{color:var(--t3);font-size:11px;white-space:nowrap;}
+.ldiv::before,.ldiv::after{content:'';flex:1;height:1px;background:var(--br);}
+.linput-row{display:flex;gap:7px;margin-bottom:10px;}
+.linput{flex:1;background:var(--s1);border:1px solid var(--br);border-radius:11px;padding:0 13px;height:44px;color:var(--t1);font-size:13px;outline:none;}
+.linput::placeholder{color:var(--t3);}
+.lconfirm{height:44px;padding:0 13px;background:var(--accentD);border:1px solid rgba(79,195,247,.3);border-radius:11px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
 
-/* ══════════════════════════════
-   점포 여부 팝업
-══════════════════════════════ */
-.popup-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:none;align-items:flex-end;}
-.popup-overlay.show{display:flex;}
-.popup-box{width:100%;background:var(--s1);border-radius:24px 24px 0 0;padding:28px 24px 32px;border-top:1px solid var(--br);position:relative;}
-.popup-close{position:absolute;top:16px;right:16px;color:var(--t3);font-size:20px;cursor:pointer;}
-.popup-icon{font-size:40px;text-align:center;margin-bottom:16px;}
-.popup-title{color:var(--t1);font-size:18px;font-weight:800;margin-bottom:10px;text-align:center;}
-.popup-desc{color:var(--t3);font-size:13px;line-height:1.7;margin-bottom:24px;text-align:center;}
-.popup-highlight{color:var(--accent);font-weight:700;}
-.popup-btn-row{display:flex;flex-direction:column;gap:10px;}
-.popup-btn-ghost{width:100%;height:50px;background:transparent;border:1px solid var(--br);border-radius:14px;color:var(--t2);font-size:14px;font-weight:600;cursor:pointer;}
-.popup-btn-fill{width:100%;height:50px;background:var(--accentS);border:1px solid rgba(79,195,247,0.4);border-radius:14px;color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;}
-
-/* ══════════════════════════════
-   홈 화면
-══════════════════════════════ */
-#s-home{display:none;flex-direction:column;}
-#s-home.active{display:flex;}
-
-/* 상단바 */
-.home-header{position:absolute;top:0;left:0;right:0;z-index:100;transition:transform 0.15s ease-out;}
-
-/* 로고 + 검색창 통합 상단바 */
-.logo-search-bar{height:60px;padding:34px 16px 0;display:flex;align-items:center;gap:10px;background:var(--bg);}
-.home-logo{height:22px;object-fit:contain;flex-shrink:0;}
-.home-logo-text{color:var(--accent);font-size:17px;font-weight:900;letter-spacing:-0.5px;flex-shrink:0;}
-.home-search-wrap{flex:1;background:var(--s1);border:1px solid var(--br);border-radius:10px;height:34px;display:flex;align-items:center;padding:0 10px;gap:6px;}
-.home-search-wrap span{color:var(--t3);font-size:13px;}
-.home-search-ph{color:var(--t3);font-size:12px;flex:1;}
-.home-icons{display:flex;gap:14px;flex-shrink:0;}
-.home-icons span{font-size:19px;cursor:pointer;}
-
-/* 위치 바 */
-.loc-bar{height:40px;padding:0 16px;display:flex;align-items:center;gap:6px;background:var(--s1);border-bottom:1px solid var(--br);}
-.loc-pin{color:var(--accent);font-size:13px;}
-.loc-addr{color:var(--t1);font-size:13px;font-weight:600;flex:1;}
-.loc-arr{color:var(--accent);font-size:11px;}
-.map-btn-small{background:transparent;border:1px solid rgba(79,195,247,0.3);border-radius:8px;padding:5px 10px;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
-
-/* 스크롤 영역 */
-.home-scroll{position:absolute;top:0;left:0;right:0;bottom:60px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
-.home-scroll::-webkit-scrollbar{display:none;}
-.scroll-inner{padding-top:100px;} /* 60+40=100px */
-
+/* ══════════════════ 홈 ══════════════════ */
+#s2{flex-direction:column;}
+#s2.active{display:flex;}
+.hhdr{position:absolute;top:0;left:0;right:0;z-index:100;transition:transform .15s;}
+.hbar{height:62px;padding:34px 14px 0;display:flex;align-items:center;gap:9px;background:var(--bg);}
+.hlogotext{color:var(--accent);font-size:16px;font-weight:900;letter-spacing:-.5px;flex-shrink:0;}
+.hsearch{flex:1;background:var(--s1);border:1px solid var(--br);border-radius:10px;height:33px;display:flex;align-items:center;padding:0 9px;gap:5px;}
+.hsearch span{color:var(--t3);font-size:11px;}
+.hicons{display:flex;gap:13px;flex-shrink:0;}
+.hicons span{font-size:18px;cursor:pointer;}
+.locbar{height:37px;padding:0 14px;display:flex;align-items:center;gap:5px;background:var(--s1);border-bottom:1px solid var(--br);}
+.locbar span.loc{color:var(--t1);font-size:12px;font-weight:600;flex:1;}
+.mapbtn{background:transparent;border:1px solid rgba(79,195,247,.3);border-radius:7px;padding:4px 9px;color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;}
+.hscroll{position:absolute;top:0;left:0;right:0;bottom:62px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+.hscroll::-webkit-scrollbar{display:none;}
+.si{padding-top:99px;}
 /* 배너 */
-.banner-wrap{position:relative;height:200px;overflow:hidden;margin-bottom:18px;}
-.banner-track{display:flex;height:100%;transition:transform 0.5s ease;}
-.banner-slide{min-width:100%;height:100%;position:relative;display:flex;align-items:flex-end;padding:18px;}
-.banner-slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-.b-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,8,16,0.9) 0%,rgba(2,8,16,0.25) 60%,transparent 100%);}
-.b-content{position:relative;z-index:1;}
-.b-tag{display:inline-block;background:rgba(79,195,247,0.18);border:1px solid rgba(79,195,247,0.4);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;margin-bottom:5px;}
-.b-title{color:var(--t1);font-size:19px;font-weight:900;line-height:1.3;}
-.b-sub{color:var(--t2);font-size:12px;margin-top:3px;}
-.banner-dots{position:absolute;bottom:10px;right:14px;display:flex;gap:4px;z-index:2;}
-.b-dot{width:6px;height:6px;border-radius:3px;background:rgba(79,195,247,0.3);transition:all 0.3s;}
-.b-dot.on{width:18px;background:var(--accent);}
-
+.bwrap{position:relative;height:185px;overflow:hidden;margin-bottom:14px;}
+.btrack{display:flex;height:100%;transition:transform .5s ease;}
+.bslide{min-width:100%;height:100%;position:relative;display:flex;align-items:flex-end;padding:14px;}
+.bslide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.bov{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,8,16,.9) 0%,transparent 60%);}
+.bcnt{position:relative;z-index:1;}
+.btag{display:inline-block;background:rgba(79,195,247,.18);border:1px solid rgba(79,195,247,.4);color:var(--accent);font-size:8px;padding:2px 6px;border-radius:5px;margin-bottom:3px;}
+.btitle{color:var(--t1);font-size:17px;font-weight:900;line-height:1.3;}
+.bsub{color:rgba(255,255,255,.75);font-size:10px;margin-top:3px;font-weight:500;}
+.bdots{position:absolute;bottom:7px;right:11px;display:flex;gap:3px;z-index:2;}
+.bdot{width:5px;height:5px;border-radius:3px;background:rgba(79,195,247,.3);transition:all .3s;}
+.bdot.on{width:14px;background:var(--accent);}
 /* 퀵메뉴 */
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px 18px;}
-.quick-item{background:var(--s1);border:1px solid var(--br);border-radius:14px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
-.quick-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
-.quick-label{color:var(--t2);font-size:11px;font-weight:600;text-align:center;line-height:1.3;}
-
+.qgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:0 13px 14px;}
+.qitem{background:var(--s1);border:1px solid var(--br);border-radius:13px;padding:11px 5px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.qico{width:37px;height:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;}
+.qlbl{color:var(--t2);font-size:9px;font-weight:600;text-align:center;line-height:1.3;}
+/* 섹션 */
+.strow{display:flex;align-items:center;justify-content:space-between;padding:0 13px 9px;}
+.stitle{color:var(--t1);font-size:13px;font-weight:800;}
+.smore{color:var(--t3);font-size:10px;cursor:pointer;}
 /* 카테고리 */
-.sec-title-row{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
-.sec-title{color:var(--t1);font-size:15px;font-weight:800;}
-.sec-more{color:var(--t3);font-size:12px;cursor:pointer;}
-.cat-row{display:flex;gap:10px;overflow-x:auto;padding:0 16px 16px;scrollbar-width:none;}
-.cat-row::-webkit-scrollbar{display:none;}
-.cat-item{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:56px;cursor:pointer;}
-.cat-box{width:52px;height:52px;background:var(--s1);border:1px solid var(--br);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;}
-.cat-name{color:var(--t2);font-size:10px;font-weight:500;text-align:center;white-space:nowrap;}
+.catrow{display:flex;gap:7px;overflow-x:auto;padding:0 13px 13px;scrollbar-width:none;}
+.catrow::-webkit-scrollbar{display:none;}
+.catitem{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:50px;cursor:pointer;}
+.catbox{width:46px;height:46px;background:var(--s1);border:1px solid var(--br);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;}
+.catname{color:var(--t2);font-size:9px;font-weight:500;text-align:center;white-space:nowrap;}
+/* 점포카드 */
+.scrow{display:flex;gap:9px;overflow-x:auto;padding:0 13px 4px;scrollbar-width:none;margin-bottom:16px;}
+.scrow::-webkit-scrollbar{display:none;}
+.sc{min-width:142px;background:var(--s1);border:1px solid var(--br);border-radius:13px;overflow:hidden;cursor:pointer;flex-shrink:0;}
+.sc img{width:100%;height:80px;object-fit:cover;}
+.scb{padding:7px 9px;}
+.stag{display:inline-block;background:rgba(79,195,247,.1);color:var(--accent);font-size:7px;padding:2px 5px;border-radius:4px;margin-bottom:2px;}
+.sn{color:var(--t1);font-size:10px;font-weight:700;margin-bottom:1px;}
+.ss{color:var(--t3);font-size:9px;}
+.sd{color:var(--accent);font-size:8px;margin-top:2px;font-weight:600;}
 
-/* 주차장 아이콘 (P 간판 스타일) */
-.parking-icon{width:52px;height:52px;background:var(--s1);border:1px solid var(--br);border-radius:14px;display:flex;align-items:center;justify-content:center;}
-.p-sign{width:34px;height:34px;background:#1565C0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:900;font-style:italic;letter-spacing:-1px;box-shadow:0 0 8px rgba(30,136,229,0.5);}
+/* ══════════════════ 이동리워드 (v14 실제 코드 기반) ══════════════════ */
+#s3{overflow-y:auto;background:var(--bg);}
+/* 상단바 */
+.rtopbar{display:flex;align-items:center;gap:10px;padding:50px 14px 10px;background:var(--navy);border-bottom:1px solid var(--br);}
+.rtitle-col{flex:1;}
+.rtitle-col .main{color:var(--t1);font-size:15px;font-weight:900;}
+.rtitle-col .sub{color:var(--accent);font-size:10px;font-weight:600;margin-top:1px;}
+.rpts-badge{padding:6px 12px;background:linear-gradient(135deg,#1A1040,#0D1628);border-radius:20px;border:1px solid rgba(155,124,255,.4);display:flex;align-items:center;gap:4px;}
+.rpts-badge span.star{font-size:12px;}
+.rpts-badge span.val{color:var(--t1);font-size:13px;font-weight:900;}
+/* 상태 패널 – 걷기 */
+.rscroll{flex:1;overflow-y:auto;padding:14px;scrollbar-width:none;}
+.rscroll::-webkit-scrollbar{display:none;}
+.statpanel{padding:14px;border-radius:18px;margin-bottom:12px;border:1.5px solid;}
+.statpanel.walk{background:linear-gradient(135deg,rgba(16,185,129,.15),#0D1B2A);border-color:rgba(16,185,129,.4);}
+.statpanel.drive{background:linear-gradient(135deg,rgba(255,107,53,.15),#0D1B2A);border-color:rgba(255,107,53,.4);}
+.sp-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.sp-ico{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid;}
+.sp-ico.walk{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);}
+.sp-ico.drive{background:rgba(255,107,53,.15);border-color:rgba(255,107,53,.5);}
+.sp-info{flex:1;}
+.sp-mode{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.sp-badge{padding:3px 8px;border-radius:7px;font-size:11px;font-weight:900;}
+.sp-badge.walk{background:rgba(16,185,129,.2);color:var(--green);}
+.sp-badge.drive{background:rgba(255,107,53,.2);color:var(--orange);}
+.sp-steps-badge{padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);color:var(--accent);}
+.sp-detail{color:var(--t2);font-size:11px;}
+/* 걷기/이동 바 */
+.sp-bars{display:flex;flex-direction:column;gap:7px;}
+.sp-bar-row{display:flex;align-items:center;gap:8px;}
+.sp-bar-ico{font-size:14px;width:18px;text-align:center;}
+.sp-bar-fill{flex:1;}
+.sp-bar-meta{display:flex;justify-content:space-between;margin-bottom:3px;}
+.sp-bar-meta span{font-size:9px;color:var(--t2);}
+.pbg{height:5px;background:var(--br);border-radius:3px;overflow:hidden;}
+.pfill{height:100%;border-radius:3px;transition:width .4s;}
+/* 활동 카드 */
+.actcard{padding:14px;background:var(--card);border-radius:15px;border:1px solid var(--br);margin-bottom:12px;}
+.actcard-title{display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.actcard-title .tt{color:var(--t1);font-size:13px;font-weight:800;}
+.act-mode-badge{padding:3px 8px;border-radius:7px;font-size:9px;font-weight:800;margin-left:auto;}
+.act-mode-badge.walk{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:var(--green);}
+.act-mode-badge.drive{background:rgba(255,107,53,.15);border:1px solid rgba(255,107,53,.4);color:var(--orange);}
+.act-row{display:flex;gap:8px;margin-bottom:10px;}
+.act-half{flex:1;padding:12px;border-radius:11px;cursor:pointer;transition:opacity .2s;}
+.act-half.active-walk{background:linear-gradient(135deg,rgba(16,185,129,.15),var(--navy));border:1px solid rgba(16,185,129,.4);}
+.act-half.inactive{background:var(--bg);border:1px solid #2a2a3a;opacity:.38;}
+.act-half.active-drive{background:linear-gradient(135deg,rgba(255,107,53,.15),var(--navy));border:1px solid rgba(255,107,53,.4);}
+.ah-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ah-emo{font-size:19px;}
+.ah-pts{font-size:14px;font-weight:900;}
+.ah-pts.walk{color:var(--green);}
+.ah-pts.drive{color:var(--orange);}
+.ah-pts.dim{color:var(--t2);}
+.ah-name{color:var(--t1);font-size:12px;font-weight:800;margin-bottom:1px;}
+.ah-sub{color:var(--t2);font-size:10px;margin-bottom:7px;}
+.ah-hint{text-align:center;font-size:9px;font-weight:700;margin-top:5px;}
+/* 칼로리 배너 */
+.cal-banner{padding:10px 13px;background:rgba(124,45,18,.3);border-radius:9px;border:1px solid rgba(239,68,68,.3);display:flex;justify-content:space-around;align-items:center;}
+.cal-item{text-align:center;}
+.cal-item .cico{font-size:15px;}
+.cal-item .cval{color:var(--t1);font-size:12px;font-weight:900;}
+.cal-item .clbl{color:var(--t2);font-size:8px;margin-top:1px;}
+.vdiv{width:1px;height:34px;background:var(--br);}
+/* 보물상자 */
+.chest-card{padding:16px;border-radius:20px;margin-bottom:12px;position:relative;overflow:hidden;}
+.chest-card.active{background:linear-gradient(135deg,#1A1040,#0D1620);border:1.5px solid rgba(251,191,36,.55);box-shadow:0 0 18px rgba(251,191,36,.18);}
+.chest-card.empty{background:linear-gradient(135deg,#1A1A2E,#0D1020);border:1px solid var(--br);}
+.cc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;}
+.cc-hl{display:flex;align-items:center;gap:5px;}
+.cc-hl span.ico{font-size:13px;}
+.cc-hl span.t{color:var(--t1);font-size:13px;font-weight:900;}
+.cc-hr{text-align:right;}
+.cc-hr .pts{color:var(--gold);font-size:12px;font-weight:900;}
+.cc-hr .wait{font-size:9px;font-weight:700;}
+.cc-hr .wait.have{color:var(--green);}
+.cc-hr .wait.none{color:var(--t2);}
+.cc-hint{font-size:9px;margin-bottom:16px;}
+.cc-hint.active{color:var(--gold);}
+.cc-hint.empty{color:var(--orange);}
+.cc-hint.full{color:var(--t2);}
+/* 상자 원형 */
+.cc-circle-wrap{display:flex;justify-content:center;margin-bottom:18px;}
+.cc-circle{width:150px;height:150px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:68px;cursor:pointer;transition:transform .1s;border:2.5px solid;}
+.cc-circle.active{background:radial-gradient(circle,rgba(251,191,36,.35),rgba(251,191,36,.06));border-color:rgba(251,191,36,.7);box-shadow:0 0 24px rgba(251,191,36,.3);}
+.cc-circle.empty{background:radial-gradient(circle,rgba(42,40,32,.5),#1a1a1a);border-color:#4a4030;}
+.cc-circle.full{background:radial-gradient(circle,#2a2a3a,#1a1a28);border-color:var(--br);}
+.cc-circle:active{transform:scale(.9);}
+/* 진행바 */
+.cc-progress{margin-bottom:6px;}
+.cc-prog-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.cc-prog-row span{color:var(--t2);font-size:9px;}
+.cc-progbar{height:9px;background:var(--br);border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.cc-progfill{height:100%;border-radius:5px;background:var(--gold);transition:width .3s;}
+.cc-progfill.full{background:var(--t2);}
+/* 광고 25칸 */
+.cc-adbar{display:flex;gap:2px;margin-bottom:3px;}
+.cc-adbar span{flex:1;height:5px;border-radius:2px;}
+.cc-adbar span.done-5{background:var(--accent);}
+.cc-adbar span.done-15{background:var(--orange);}
+.cc-adbar span.done-30{background:var(--purple);}
+.cc-adbar span.undone{background:rgba(30,58,95,.5);}
+.cc-adlegend{display:flex;justify-content:space-between;align-items:center;}
+.cc-adlegend .cnt{color:var(--t2);font-size:8px;}
+.cc-adlegend .lg{display:flex;gap:5px;align-items:center;}
+.adleg{display:flex;align-items:center;gap:2px;}
+.adleg .dot{width:7px;height:7px;border-radius:50%;}
+.adleg span{color:var(--t2);font-size:8px;}
+/* 코인 파티클 */
+.coin{position:absolute;pointer-events:none;font-size:22px;z-index:999;animation:coinUp .95s ease-out forwards;}
+.coin-plus{position:absolute;pointer-events:none;color:var(--gold);font-size:13px;font-weight:900;text-shadow:0 0 6px rgba(251,191,36,.6);z-index:999;animation:coinUp .95s ease-out forwards;}
+@keyframes coinUp{0%{opacity:1;transform:translateY(0) scale(1);}55%{opacity:1;transform:translateY(-110px) scale(1.1);}100%{opacity:0;transform:translateY(-155px) scale(.8);}}
+/* 기프트 섹션 (업스톤 스타일) */
+.gift-wrap{padding:14px;background:#F0F2F5;border-radius:15px;border:1px solid #E0E4EA;margin-bottom:12px;}
+.gift-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;}
+.gift-header .gtitle{font-size:14px;font-weight:900;color:#1A1A2E;}
+.gift-pts-badge{padding:4px 10px;background:rgba(251,191,36,.15);border-radius:20px;border:1px solid rgba(251,191,36,.5);color:#B8860B;font-size:10px;font-weight:800;}
+.gift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 4px;}
+.gift-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+.gift-circle{width:62px;height:62px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.15);transition:transform .12s;}
+.gift-circle:active{transform:scale(.9);}
+.gift-circle span{font-size:26px;}
+.gift-bname{color:#3A3A4A;font-size:9px;font-weight:700;text-align:center;}
+/* 기간 차트 */
+.period-chart{background:var(--card);border-radius:15px;border:1px solid var(--br);padding:14px;margin-bottom:12px;}
+.period-tabs{display:flex;gap:0;background:var(--s1);border-radius:9px;padding:3px;margin-bottom:12px;}
+.ptab{flex:1;height:28px;border-radius:6px;border:none;background:transparent;color:var(--t3);font-size:10px;font-weight:600;cursor:pointer;}
+.ptab.on{background:var(--accentD);color:var(--accent);}
+.chart-area{display:flex;align-items:flex-end;gap:5px;height:75px;margin-bottom:7px;}
+.cbar{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.cbar-fill{width:100%;border-radius:3px 3px 0 0;transition:height .4s;}
+.cbar-fill.today{background:linear-gradient(to top,var(--accent),rgba(79,195,247,.4));}
+.cbar-fill.past{background:var(--accentD);border:1px solid rgba(79,195,247,.15);}
+.cbar-val{color:var(--t2);font-size:7px;}
+.cbar-lbl{color:var(--t3);font-size:7px;}
+/* 기프트 팝업 */
+.gift-popup{position:absolute;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;}
+.gift-popup.show{display:flex;}
+.gpbox{width:300px;background:var(--s1);border:1px solid var(--br);border-radius:20px;padding:24px 20px;text-align:center;position:relative;}
+.gp-close{position:absolute;top:11px;right:14px;color:var(--t2);font-size:20px;cursor:pointer;}
+.gp-circle{width:78px;height:78px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.gp-circle span{font-size:38px;}
+.gp-brand{color:var(--t1);font-size:17px;font-weight:900;margin-bottom:3px;}
+.gp-pts{color:var(--gold);font-size:13px;font-weight:700;margin-bottom:12px;}
+.gp-info{color:var(--t2);font-size:11px;line-height:1.7;margin-bottom:14px;}
+.gp-btn{width:100%;height:44px;background:var(--accentD);border:1px solid rgba(79,195,247,.4);border-radius:11px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;}
 
-/* 추천 점포 */
-.store-row{display:flex;gap:12px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none;margin-bottom:20px;}
-.store-row::-webkit-scrollbar{display:none;}
-.store-card{min-width:155px;background:var(--s1);border:1px solid var(--br);border-radius:14px;overflow:hidden;cursor:pointer;flex-shrink:0;}
-.store-card img{width:100%;height:88px;object-fit:cover;}
-.store-card-body{padding:10px;}
-.s-tag{display:inline-block;background:rgba(79,195,247,0.1);color:var(--accent);font-size:9px;padding:2px 6px;border-radius:4px;margin-bottom:4px;}
-.s-name{color:var(--t1);font-size:12px;font-weight:700;margin-bottom:2px;}
-.s-sub{color:var(--t3);font-size:10px;}
-.s-dist{color:var(--accent);font-size:10px;margin-top:4px;font-weight:600;}
+/* ══════════════════ 내차시세 ══════════════════ */
+#s4{overflow-y:auto;}
+.phdr{display:flex;align-items:center;gap:9px;padding:50px 14px 12px;}
+.phdr-title{color:var(--t1);font-size:14px;font-weight:800;flex:1;}
+.phdr-action{color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.2);border-radius:8px;padding:4px 9px;}
+.sbox{margin:0 14px 10px;background:var(--s1);border:1px solid var(--br);border-radius:15px;padding:14px;}
+.sbox-title{color:var(--t1);font-size:12px;font-weight:800;margin-bottom:11px;}
+.flbl{color:var(--t2);font-size:10px;font-weight:600;margin-bottom:5px;display:block;}
+.finput{width:100%;background:rgba(2,8,16,.5);border:1px solid var(--br);border-radius:9px;padding:10px 12px;color:var(--t1);font-size:12px;outline:none;margin-bottom:9px;}
+.finput::placeholder{color:var(--t3);}
+.fselwrap{position:relative;margin-bottom:9px;}
+.fselwrap select{width:100%;background:rgba(2,8,16,.5);border:1px solid var(--br);border-radius:9px;padding:10px 12px;color:var(--t1);font-size:12px;outline:none;appearance:none;cursor:pointer;}
+.fselwrap select option{background:#071428;}
+.fselwrap::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--accent);pointer-events:none;font-size:10px;}
+/* 사진 업로드 */
+.photo-add-btn{width:52px;height:52px;border-radius:8px;background:var(--s2);border:1.5px dashed var(--br);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--t3);flex-shrink:0;}
+.photo-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:7px;}
+.photo-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--br);}
+.photo-note{color:var(--t3);font-size:9px;}
+/* 신청내역 */
+.app-toggle{margin:0 14px 9px;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.2);border-radius:11px;padding:9px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;}
+.app-toggle span{color:var(--accent);font-size:11px;font-weight:700;}
+.app-list{margin:0 14px 10px;display:flex;flex-direction:column;gap:7px;}
+.aitem{background:var(--s1);border:1px solid var(--br);border-radius:13px;padding:11px 13px;}
+.aitem-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.aid{color:var(--t3);font-size:9px;}
+.astatus{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;}
+.wait{background:rgba(255,152,0,.15);color:#FF9800;}
+.done{background:rgba(16,185,129,.15);color:var(--green);}
+.cancel{background:rgba(239,68,68,.15);color:var(--red);}
+.acar{color:var(--t1);font-size:12px;font-weight:700;}
+.adate{color:var(--t3);font-size:9px;margin-top:1px;}
+.adealer{color:var(--t2);font-size:9px;margin-top:3px;}
+.submit-btn{width:calc(100% - 28px);height:48px;margin:0 14px 14px;background:var(--accentD);border:1px solid rgba(79,195,247,.4);border-radius:13px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;}
 
-/* 지도 박스 */
-.map-box{margin:0 16px 20px;background:#050E1E;border:1px solid rgba(26,48,80,0.4);border-radius:20px;height:180px;overflow:hidden;position:relative;}
-.map-grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(13,30,60,0.4) 1px,transparent 1px),linear-gradient(90deg,rgba(13,30,60,0.4) 1px,transparent 1px);background-size:32px 32px;}
-.map-dim{position:absolute;inset:0;background:rgba(0,0,0,0.2);}
-.map-center-dot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
-.map-dot{width:20px;height:20px;background:var(--accent);border-radius:50%;box-shadow:0 0 0 7px rgba(79,195,247,0.25),0 0 0 15px rgba(79,195,247,0.1);}
-.map-pin{position:absolute;font-size:18px;}
-.map-footer{position:absolute;bottom:14px;left:14px;right:14px;background:rgba(7,20,40,0.92);border:1px solid var(--br);border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
-.map-footer-t{color:var(--t1);font-size:12px;font-weight:700;}
-.map-footer-s{color:var(--t3);font-size:10px;margin-top:2px;}
-.map-open-btn{background:var(--accentS);border:1px solid rgba(79,195,247,0.3);border-radius:8px;color:var(--accent);font-size:11px;padding:7px 12px;font-weight:700;cursor:pointer;}
+/* ══════════════════ 점포관리자 ══════════════════ */
+#s5{overflow-y:auto;}
+.mhdr{display:flex;align-items:center;gap:9px;padding:50px 14px 12px;}
+.mhdr-title{color:var(--t1);font-size:14px;font-weight:800;flex:1;}
+.mbadge{background:rgba(155,124,255,.15);border:1px solid rgba(155,124,255,.3);border-radius:20px;padding:3px 9px;color:var(--purple);font-size:9px;font-weight:700;}
+/* 점포 상태 */
+.store-stat-card{margin:0 14px 11px;background:linear-gradient(135deg,#0E1C3A,#071428);border:1px solid rgba(155,124,255,.2);border-radius:17px;padding:14px;}
+.ssc-top{display:flex;align-items:center;gap:9px;margin-bottom:11px;}
+.ssc-img{width:52px;height:52px;border-radius:11px;object-fit:cover;border:1px solid var(--br);}
+.ssc-name{color:var(--t1);font-size:13px;font-weight:800;}
+.ssc-cat{color:var(--t3);font-size:10px;margin-top:2px;}
+.ssc-open{color:var(--green);font-size:9px;margin-top:3px;}
+.ssc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.ssg{text-align:center;background:rgba(2,8,16,.4);border:1px solid var(--br);border-radius:9px;padding:7px 5px;}
+.ssg-val{color:var(--accent);font-size:15px;font-weight:900;}
+.ssg-lbl{color:var(--t3);font-size:8px;margin-top:1px;}
+/* 잠금화면 */
+.lkcard{margin:0 14px 11px;background:linear-gradient(135deg,#1A1040,#0D0828);border:1px solid rgba(155,124,255,.25);border-radius:17px;padding:13px 14px;}
+.lkcard-title{color:var(--purple);font-size:11px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:5px;}
+.lk-preview{background:#000;border-radius:10px;height:74px;position:relative;overflow:hidden;margin-bottom:9px;}
+.lk-preview img{width:100%;height:100%;object-fit:cover;opacity:.5;}
+.lk-text{position:absolute;left:10px;right:10px;top:50%;transform:translateY(-50%);color:#fff;font-size:9px;font-weight:600;line-height:1.5;}
+.lk-toggle-row{display:flex;align-items:center;justify-content:space-between;}
+.lk-toggle-row span{color:var(--t2);font-size:10px;}
+.toggle{width:34px;height:19px;background:var(--purple);border-radius:10px;position:relative;cursor:pointer;}
+.toggle-t{width:15px;height:15px;background:#fff;border-radius:50%;position:absolute;top:2px;right:2px;}
+/* 관리 메뉴 */
+.mgrid{margin:0 14px 11px;display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
+.mitem{background:var(--s1);border:1px solid var(--br);border-radius:13px;padding:12px;cursor:pointer;position:relative;}
+.mitem-ico{font-size:22px;margin-bottom:5px;}
+.mitem-name{color:var(--t1);font-size:11px;font-weight:700;}
+.mitem-sub{color:var(--t3);font-size:9px;margin-top:2px;}
+.mbadge2{position:absolute;top:9px;right:9px;border-radius:7px;padding:2px 6px;font-size:8px;font-weight:700;}
+.mbadge2.red{background:var(--red);color:#fff;}
+.mbadge2.grn{background:var(--green);color:#fff;}
+.mbadge2.pur{background:var(--purple);color:#fff;}
+/* 점포 사진 */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:5px;}
+.pgrid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;}
+.pgrid .padd{aspect-ratio:1;border:1.5px dashed var(--br);border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--t3);font-size:9px;gap:3px;cursor:pointer;}
 
-/* 인근 점포 */
-.nearby-list{padding:0 16px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-.nearby-item{background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;cursor:pointer;}
-.nearby-thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;}
-.nearby-info{flex:1;min-width:0;}
-.n-badge{display:inline-block;background:rgba(79,195,247,0.1);color:var(--accent);font-size:9px;padding:2px 6px;border-radius:4px;margin-bottom:3px;}
-.n-badge.moincar{background:rgba(155,124,255,0.1);color:#9B7CFF;}
-.n-name{color:var(--t1);font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.n-sub{color:var(--t3);font-size:11px;margin-top:2px;}
-.n-emoji{font-size:22px;flex-shrink:0;}
+/* ══════════════════ 점포상세 ══════════════════ */
+#s6{overflow-y:auto;}
+.dhero{position:relative;height:175px;overflow:hidden;flex-shrink:0;}
+.dhero img{width:100%;height:100%;object-fit:cover;}
+.dhero-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(2,8,16,.95) 0%,transparent 60%);}
+.dhero-back{position:absolute;top:48px;left:13px;width:30px;height:30px;background:rgba(2,8,16,.6);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;}
+.dhero-cnt{position:absolute;bottom:12px;left:13px;right:13px;}
+.dtag{display:inline-block;background:rgba(79,195,247,.2);border:1px solid rgba(79,195,247,.4);color:var(--accent);font-size:8px;padding:2px 7px;border-radius:4px;margin-bottom:4px;}
+.dname{color:#fff;font-size:17px;font-weight:900;}
+.dsub{color:rgba(255,255,255,.6);font-size:10px;margin-top:1px;}
+.dtabs{display:flex;border-bottom:1px solid var(--br);flex-shrink:0;}
+.dtab{flex:1;text-align:center;padding:9px 0;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;}
+.dtab.on{color:var(--accent);border-bottom-color:var(--accent);}
+.dbody{padding:11px 13px;flex:1;overflow-y:auto;}
+.dinfo-row{display:flex;align-items:flex-start;gap:7px;margin-bottom:9px;}
+.dinfo-ico{font-size:13px;width:24px;text-align:center;flex-shrink:0;padding-top:1px;}
+.dinfo-val{color:var(--t2);font-size:11px;line-height:1.5;}
+.dcta{display:flex;gap:7px;margin-bottom:11px;}
+.dcta-btn{flex:1;height:42px;border-radius:11px;font-size:11px;font-weight:700;cursor:pointer;border:none;}
+.dcta-call{background:var(--green);color:#fff;}
+.dcta-rsv{background:var(--accentD);border:1px solid rgba(79,195,247,.4)!important;color:var(--accent);}
+.dsvc{display:flex;flex-direction:column;gap:5px;}
+.dsvc-item{background:var(--s1);border:1px solid var(--br);border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:7px;}
+.dsvc-name{flex:1;color:var(--t1);font-size:11px;font-weight:600;}
+.dsvc-price{color:var(--accent);font-size:11px;font-weight:700;}
+.dphoto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
+.dphoto-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;}
 
-/* 사업자 정보 */
-.biz-footer{padding:20px 16px 30px;border-top:1px solid var(--s2);}
-.biz-footer p{color:var(--t3);font-size:10px;line-height:1.9;}
-
-/* 하단 네비 */
-.bottom-nav{position:absolute;bottom:0;left:0;right:0;height:60px;background:var(--bg);border-top:1px solid var(--s2);display:flex;align-items:center;justify-content:space-around;padding-bottom:4px;z-index:100;transition:transform 0.3s;}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 12px;}
-.nav-item .ni{font-size:20px;}
-.nav-item .nl{font-size:9px;color:var(--t3);font-weight:500;}
-.nav-item.active .nl{color:var(--accent);}
-
-/* ══════════════════════════════
-   점포등록 공통
-══════════════════════════════ */
-.reg-header{display:flex;align-items:center;gap:12px;padding:54px 20px 16px;}
-.reg-header-title{color:var(--t1);font-size:15px;font-weight:700;}
-.reg-body{padding:8px 24px 40px;}
-.reg-big-title{color:var(--t1);font-size:22px;font-weight:900;line-height:1.3;margin-bottom:24px;}
-.form-select{width:100%;background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:14px 16px;color:var(--t1);font-size:14px;margin-bottom:0;outline:none;appearance:none;cursor:pointer;}
-.form-select option{background:var(--s1);color:var(--t1);}
-.select-wrap{position:relative;margin-bottom:16px;}
-.select-wrap::after{content:'▾';position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--accent);pointer-events:none;font-size:12px;}
-.form-hint{color:var(--t3);font-size:11px;margin-bottom:20px;line-height:1.5;}
-
-/* 점포등록 AI */
-#s-reg2{padding:0;overflow-y:auto;}
-.ai-body{padding:40px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;}
-.ai-avatar{width:80px;height:80px;background:linear-gradient(135deg,var(--accentS),#0A2040);border:2px solid rgba(79,195,247,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;box-shadow:0 0 24px rgba(79,195,247,0.2);}
-.ai-greeting{color:var(--t2);font-size:14px;margin-bottom:10px;}
-.ai-main-title{color:var(--t1);font-size:22px;font-weight:900;line-height:1.35;margin-bottom:20px;}
-.ai-desc{color:var(--t3);font-size:13px;line-height:1.7;margin-bottom:32px;}
-.step-row{display:flex;gap:8px;width:100%;margin-bottom:32px;}
-.step-item{flex:1;background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:12px 8px;text-align:center;}
-.step-num{color:var(--accent);font-size:10px;font-weight:700;margin-bottom:6px;}
-.step-icon{font-size:20px;margin-bottom:6px;}
-.step-text{color:var(--t3);font-size:10px;line-height:1.4;}
-
-/* 점포등록 사진 */
-#s-reg3,#s-reg4,#s-reg5{padding:0;overflow-y:auto;}
-.photo-header{display:flex;align-items:center;gap:12px;padding:54px 20px 16px;}
-.photo-step-bar{display:flex;gap:6px;padding:0 20px 20px;}
-.pstep{flex:1;height:4px;background:var(--br);border-radius:2px;transition:background 0.3s;}
-.pstep.done{background:var(--accent);}
-.pstep.active{background:var(--accent);opacity:0.6;}
-.photo-body{padding:0 20px 40px;}
-.photo-sec-title{color:var(--t1);font-size:16px;font-weight:800;margin-bottom:6px;}
-.photo-sec-sub{color:var(--t3);font-size:12px;line-height:1.5;margin-bottom:20px;}
-.photo-url-label{color:var(--t2);font-size:12px;font-weight:600;margin-bottom:8px;}
-.photo-url-input{width:100%;background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:12px;outline:none;margin-bottom:12px;}
-.photo-url-input::placeholder{color:var(--t3);}
-.photo-btn-row{display:flex;gap:8px;margin-bottom:16px;}
-.photo-cam-btn{flex:1;height:44px;background:var(--accentS);border:1px solid rgba(79,195,247,0.3);border-radius:10px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;}
-.photo-gal-btn{flex:1;height:44px;background:var(--s1);border:1px solid var(--br);border-radius:10px;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;}
-.photo-preview{width:100%;height:160px;background:var(--s1);border:1px solid var(--br);border-radius:12px;overflow:hidden;position:relative;margin-bottom:20px;}
-.photo-preview img{width:100%;height:100%;object-fit:cover;}
-
-/* 점포등록 AI 결과 */
-#s-reg6{padding:0;overflow-y:auto;}
-.result-header{display:flex;align-items:center;gap:12px;padding:54px 20px 16px;}
-.result-body{padding:0 20px 40px;}
-.result-tag{display:inline-block;background:rgba(79,195,247,0.1);border:1px solid rgba(79,195,247,0.3);color:var(--accent);font-size:11px;padding:4px 10px;border-radius:6px;margin-bottom:12px;}
-.result-title{color:var(--t1);font-size:18px;font-weight:900;margin-bottom:6px;}
-.result-sub{color:var(--t3);font-size:13px;line-height:1.5;margin-bottom:20px;}
-.result-field{margin-bottom:14px;}
-.result-field-label{color:var(--t3);font-size:11px;margin-bottom:6px;}
-.result-field-val{width:100%;background:var(--s1);border:1px solid var(--br);border-radius:10px;padding:12px 14px;color:var(--t1);font-size:13px;font-weight:600;outline:none;}
-
-/* 점포등록 최종 사진 */
-#s-reg7{padding:0;overflow-y:auto;}
-.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:20px;}
-.photo-grid-item{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;background:var(--s1);border:1px solid var(--br);}
-.photo-grid-item img{width:100%;height:100%;object-fit:cover;}
-.photo-grid-add{display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--t3);cursor:pointer;}
-.reg-bottom-row{display:flex;gap:10px;margin-top:16px;}
-.reg-outline-btn{flex:1;height:50px;background:transparent;border:1px solid var(--br);border-radius:12px;color:var(--t2);font-size:13px;font-weight:600;cursor:pointer;}
-.reg-fill-btn{flex:1;height:50px;background:var(--accentS);border:1px solid rgba(79,195,247,0.4);border-radius:12px;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;}
-
-/* ── 공통 버튼 ── */
-.btn-next{width:100%;height:54px;background:var(--accentS);border:1px solid rgba(79,195,247,0.4);border-radius:14px;color:var(--accent);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;}
-.btn-back{color:var(--t2);font-size:22px;cursor:pointer;line-height:1;}
-
-/* 점포등록 1 */
-#s-reg1{padding:0;overflow-y:auto;}
-
-/* APK 다운로드 고정 버튼 */
-.apk-fab{position:fixed;bottom:28px;right:24px;background:linear-gradient(135deg,#1A3A6E,#0D2A4A);border:1px solid rgba(79,195,247,0.4);border-radius:16px;padding:12px 18px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(79,195,247,0.2);z-index:999;transition:transform 0.2s;}
-.apk-fab:hover{transform:translateY(-2px);}
-.apk-fab .ficon{font-size:26px;}
-.apk-fab-t{color:var(--accent);font-size:13px;font-weight:800;}
-.apk-fab-s{color:var(--t2);font-size:10px;margin-top:1px;}
+/* ══════════════════ 사이드 네비 ══════════════════ */
+.sidenav{position:fixed;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:3px;z-index:1000;}
+.snbtn{background:rgba(7,20,40,.92);border:1px solid var(--br);border-radius:7px;padding:5px 7px;color:var(--t2);font-size:8px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;text-align:center;}
+.snbtn:hover,.snbtn.on{background:var(--accentD);border-color:rgba(79,195,247,.4);color:var(--accent);}
+/* 상단 타이틀 */
+.ptitle{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:rgba(7,20,40,.96);border:1px solid var(--br);border-radius:11px;padding:5px 13px;color:var(--t1);font-size:11px;font-weight:700;z-index:1000;white-space:nowrap;display:flex;align-items:center;gap:7px;}
+.ver{background:var(--accentD);border:1px solid rgba(79,195,247,.3);border-radius:5px;padding:1px 6px;color:var(--accent);font-size:8px;font-weight:700;}
+/* 토스트 */
+.toast{position:absolute;bottom:75px;left:50%;transform:translateX(-50%);background:#1A3A6E;border:1px solid rgba(79,195,247,.4);border-radius:9px;padding:8px 16px;color:var(--accent);font-size:11px;font-weight:700;z-index:999;white-space:nowrap;pointer-events:none;animation:fadeToast 2s ease forwards;}
+@keyframes fadeToast{0%,70%{opacity:1;}100%{opacity:0;}}
 </style>
 </head>
 <body>
 
+<!-- 사이드 네비 -->
+<div class="sidenav">
+  <div class="snbtn on" onclick="go(0)">🏠 인트로</div>
+  <div class="snbtn" onclick="go(1)">🔑 로그인</div>
+  <div class="snbtn" onclick="go(2)">🏡 홈</div>
+  <div class="snbtn" onclick="go(3)">🎁 이동리워드</div>
+  <div class="snbtn" onclick="go(4)">💰 내차시세</div>
+  <div class="snbtn" onclick="go(5)">🏪 점포관리</div>
+  <div class="snbtn" onclick="go(6)">📋 점포상세</div>
+</div>
+<div class="ptitle">MOINCAR 앱 미리보기 <span class="ver">v14</span></div>
+
 <div class="phone" id="phone">
-  <div class="notch"></div>
+<div class="notch"></div>
 
-  <!-- ══ 인트로 ══ -->
-  <div class="screen active" id="s-intro">
-    <div class="intro-grid"></div>
-    <div class="intro-glow1"></div>
-    <div class="intro-glow2"></div>
-    <div class="intro-top">
-      <img class="intro-logo" src="assets/images/moincar_logo.png"
-        onerror="this.style.display='none';document.querySelector('.intro-logo-fb').style.display='block'" alt="MOINCAR">
-      <div class="intro-logo-fb" style="display:none;color:#4FC3F7;font-size:22px;font-weight:900;letter-spacing:-1px;margin-bottom:4px;">MOINCAR</div>
-      <div class="intro-sub">mobility international car</div>
-      <div class="intro-divider"></div>
-      <div class="intro-title">모든 자동차 서비스,<br>한 곳에서 간편하게</div>
-      <div class="intro-desc">정비·세차·중고차·검사까지<br>내 주변 모든 자동차 서비스를<br>MOINCAR에서 한 번에 이용하세요</div>
-      <div class="intro-chips">
-        <div class="intro-chip"><span>📍</span><span>위치기반</span></div>
-        <div class="intro-chip"><span>🤖</span><span>AI 점포</span></div>
-        <div class="intro-chip"><span>🚗</span><span>중고차</span></div>
-      </div>
-    </div>
-    <div class="intro-bottom">
-      <button class="btn-primary" onclick="go('s-login')">시작하기</button>
-      <div class="intro-login-row">
-        <span>이미 계정이 있으신가요?&nbsp;</span>
-        <span class="intro-login-link" onclick="go('s-login')">로그인</span>
-      </div>
+<!-- ══ 0. 인트로 ══ -->
+<div class="screen" id="s0">
+  <div class="ig"></div>
+  <div style="position:absolute;top:-100px;left:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(79,195,247,.07),transparent 70%);pointer-events:none"></div>
+  <div class="itop">
+    <div class="ilogo">MOINCAR</div>
+    <div class="isub">MOBILITY INTERNATIONAL CAR</div>
+    <div class="idiv"></div>
+    <div class="ititle">모든 자동차 서비스,<br>한 곳에서 간편하게</div>
+    <div class="idesc">정비·세차·중고차·검사까지<br>내 주변 모든 자동차 서비스를<br>MOINCAR에서 한 번에 이용하세요</div>
+    <div class="ichips">
+      <div class="ichip"><span>📍</span><span>위치기반</span></div>
+      <div class="ichip"><span>🤖</span><span>AI 점포</span></div>
+      <div class="ichip"><span>🎁</span><span>이동리워드</span></div>
+      <div class="ichip"><span>🚗</span><span>내차시세</span></div>
     </div>
   </div>
+  <div style="position:relative">
+    <button class="ibtn" onclick="go(1)">시작하기</button>
+    <div class="ilink"><span>이미 계정이 있으신가요?&nbsp;</span><a onclick="go(1)">로그인</a></div>
+  </div>
+</div>
 
-  <!-- ══ 간편 로그인 ══ -->
-  <div class="screen" id="s-login">
-    <div class="login-header">
-      <span class="btn-back" onclick="go('s-intro')">←</span>
+<!-- ══ 1. 로그인 ══ -->
+<div class="screen" id="s1">
+  <div class="lhdr"><span class="btn-back" onclick="go(0)">←</span></div>
+  <div class="lbody">
+    <div class="ltitle">간편 로그인</div>
+    <div class="ldesc">카카오·네이버·구글로 빠르게 로그인하고<br>MOINCAR 서비스를 시작하세요.</div>
+    <button class="sbtn kakao" onclick="go(2)"><div class="sico" style="background:#3A1D1D;color:#FEE500">K</div><span class="slbl">카카오로 로그인</span><span style="opacity:.6">›</span></button>
+    <button class="sbtn naver" onclick="go(2)"><div class="sico" style="background:#03C75A;color:#fff">N</div><span class="slbl">네이버로 로그인</span><span style="opacity:.6">›</span></button>
+    <button class="sbtn google" onclick="go(2)"><div class="sico" style="background:#f0f0f0">🌐</div><span class="slbl">구글로 로그인</span><span style="color:#999;opacity:.6">›</span></button>
+    <div class="ldiv"><span>또는</span></div>
+    <div class="linput-row">
+      <input class="linput" placeholder="이메일 주소 입력">
+      <button class="lconfirm" onclick="go(2)">확인</button>
     </div>
-    <div class="login-body">
-      <div class="login-title">간편 로그인</div>
-      <div class="login-desc">카카오, 네이버, 구글로 빠르게 로그인하고<br>MOINCAR 서비스를 시작하세요.</div>
-      <button class="social-btn btn-kakao" onclick="go('s-interest')">
-        <div class="social-icon kakao-icon">K</div>
-        <span class="s-label">카카오로 로그인</span>
-        <span class="s-arr">›</span>
-      </button>
-      <button class="social-btn btn-naver" onclick="go('s-interest')">
-        <div class="social-icon naver-icon">N</div>
-        <span class="s-label">네이버로 로그인</span>
-        <span class="s-arr">›</span>
-      </button>
-      <button class="social-btn btn-google" onclick="go('s-interest')">
-        <div class="social-icon google-icon">🌐</div>
-        <span class="s-label">구글로 로그인</span>
-        <span class="s-arr" style="color:#999">›</span>
-      </button>
-      <div class="login-divider"><span>또는</span></div>
-      <div class="login-email-row">
-        <input class="login-email-input" placeholder="이메일 주소 입력">
-        <button class="login-email-btn verify-btn active" onclick="go('s-interest')">확인</button>
-      </div>
-      <div class="login-signup-row">
-        <span>아직 계정이 없으신가요?&nbsp;</span>
-        <span class="login-signup-link" onclick="go('s-signup')">회원가입</span>
-      </div>
+    <div style="display:flex;justify-content:center;gap:5px;margin-top:14px">
+      <span style="color:var(--t3);font-size:12px">아직 계정이 없으신가요?&nbsp;</span>
+      <a style="color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline" onclick="go(2)">회원가입</a>
     </div>
   </div>
+</div>
 
-  <!-- ══ 회원가입 (신규) ══ -->
-  <div class="screen" id="s-signup">
-    <div class="signup-header">
-      <span class="btn-back" onclick="go('s-login')">←</span>
-      <span style="color:var(--t1);font-size:15px;font-weight:700;flex:1;text-align:center;">회원가입</span>
-      <span style="width:22px"></span>
+<!-- ══ 2. 홈 ══ -->
+<div class="screen active" id="s2">
+  <div class="hhdr" id="hhdr">
+    <div class="hbar">
+      <div class="hlogotext">MOINCAR</div>
+      <div class="hsearch"><span>🔍</span><span>정비소·세차·중고차 검색</span></div>
+      <div class="hicons"><span>🔔</span><span>👤</span></div>
     </div>
-    <div class="signup-body">
-      <div class="signup-title">MOINCAR 회원가입</div>
-      <div class="signup-desc">간단한 정보를 입력하고 내 주변 모든<br>자동차 서비스를 이용하세요.</div>
-
-      <div class="form-group">
-        <label class="form-label">이름</label>
-        <input class="form-input" placeholder="이름 입력">
-      </div>
-      <div class="form-group">
-        <label class="form-label">이메일</label>
-        <div class="form-row">
-          <input class="form-input" placeholder="이메일 주소" style="margin-bottom:0">
-          <button class="verify-btn active" onclick="">인증</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">휴대폰 번호</label>
-        <div class="form-row">
-          <input class="form-input" placeholder="010-0000-0000" style="margin-bottom:0">
-          <button class="verify-btn active">인증</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">비밀번호</label>
-        <input class="form-input" type="password" placeholder="비밀번호 (8자 이상)">
-      </div>
-
-      <div class="agree-box">
-        <div class="agree-row" onclick="toggleAgree(this)">
-          <div class="agree-check on"></div>
-          <span class="agree-text" style="font-weight:700;color:var(--t1);">전체 동의</span>
-        </div>
-        <div class="agree-row" onclick="toggleAgree(this)" style="padding-left:8px;">
-          <div class="agree-check on"></div>
-          <span class="agree-text">[필수] 이용약관 동의</span>
-          <span class="agree-link">보기</span>
-        </div>
-        <div class="agree-row" onclick="toggleAgree(this)" style="padding-left:8px;">
-          <div class="agree-check on"></div>
-          <span class="agree-text">[필수] 개인정보 처리방침</span>
-          <span class="agree-link">보기</span>
-        </div>
-        <div class="agree-row" onclick="toggleAgree(this)" style="padding-left:8px;">
-          <div class="agree-check"></div>
-          <span class="agree-text">[선택] 마케팅 정보 수신</span>
-          <span class="agree-link">보기</span>
-        </div>
-      </div>
-
-      <button class="btn-next" onclick="go('s-interest')" style="margin-top:0;">가입 완료</button>
+    <div class="locbar">
+      <span style="font-size:11px">📍</span>
+      <span class="loc">서울특별시 금천구 가산동</span>
+      <span style="color:var(--accent);font-size:9px">▾</span>
+      <button class="mapbtn">지도</button>
     </div>
   </div>
-
-  <!-- ══ 관심사 선택 ══ -->
-  <div class="screen" id="s-interest" style="overflow-y:auto;">
-    <div class="interest-header">
-      <span class="btn-back" onclick="go('s-login')">←</span>
-    </div>
-    <div class="interest-body">
-      <div class="interest-title">우리 동네와 관심 정보를<br>선택해주세요</div>
-      <div class="interest-section">
-        <div class="interest-section-title">📍 우리 동네 선택</div>
-        <div class="interest-section-desc">내 위치 기반으로 주변 서비스를 보여드립니다.</div>
-        <div class="interest-select-box">
-          <span class="interest-select-val">서울특별시 금천구 가산동</span>
-          <span class="interest-select-arr">▾</span>
+  <div class="hscroll" id="hscroll">
+    <div class="si" id="si">
+      <!-- 배너 -->
+      <div class="bwrap">
+        <div class="btrack" id="bt">
+          <div class="bslide"><img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80" alt=""><div class="bov"></div><div class="bcnt"><div class="btag">🎁 이동 리워드</div><div class="btitle">걸을수록 적립<br>이동 포인트</div><div class="bsub">100보 = 1P, 매일 최대 150P</div></div></div>
+          <div class="bslide"><img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80" alt=""><div class="bov"></div><div class="bcnt"><div class="btag">🏆 MOINCAR 인증</div><div class="btitle">인증 정비센터</div><div class="bsub">인증 점포 방문 시 10% 할인</div></div></div>
+          <div class="bslide"><img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80" alt=""><div class="bov"></div><div class="bcnt"><div class="btag">💰 내차 시세</div><div class="btitle">무료 시세조회</div></div></div>
+          <div class="bslide"><img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&q=80" alt=""><div class="bov"></div><div class="bcnt"><div class="btag">🏅 협회 인증</div><div class="btitle">KAA 인증서 발급</div></div></div>
         </div>
+        <div class="bdots"><div class="bdot on"></div><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div></div>
       </div>
-      <div class="interest-section">
-        <div class="interest-section-title">📋 받아볼 정보 선택</div>
-        <div class="interest-section-desc">관심 있는 카테고리를 선택해주세요.</div>
-        <div class="interest-tags">
-          <div class="interest-tag selected" onclick="this.classList.toggle('selected')">자동차뉴스</div>
-          <div class="interest-tag selected" onclick="this.classList.toggle('selected')">지역이슈</div>
-          <div class="interest-tag" onclick="this.classList.toggle('selected')">중고차정보</div>
-          <div class="interest-tag" onclick="this.classList.toggle('selected')">주유가격</div>
-          <div class="interest-tag" onclick="this.classList.toggle('selected')">정비팁</div>
-          <div class="interest-tag" onclick="this.classList.toggle('selected')">이벤트</div>
-        </div>
+      <!-- 퀵메뉴 -->
+      <div class="qgrid">
+        <div class="qitem" onclick="go(3)"><div class="qico" style="background:#1A1040">🎁</div><div class="qlbl">이동<br>리워드</div></div>
+        <div class="qitem" onclick="go(4)"><div class="qico" style="background:#0D2A4A">💰</div><div class="qlbl">내 차<br>시세</div></div>
+        <div class="qitem"><div class="qico" style="background:#7B1E2A">🚨</div><div class="qlbl">긴급<br>출동</div></div>
+        <div class="qitem"><div class="qico" style="background:#0A1E3A">📰</div><div class="qlbl">자동차<br>뉴스</div></div>
       </div>
-      <button class="interest-start-btn" onclick="showPopup()">MOINCAR 시작하기</button>
+      <!-- 카테고리 -->
+      <div class="strow"><div class="stitle">서비스</div><div class="smore">전체보기</div></div>
+      <div class="catrow">
+        <div class="catitem"><div class="catbox">🔧</div><div class="catname">정비</div></div>
+        <div class="catitem"><div class="catbox">🫧</div><div class="catname">세차</div></div>
+        <div class="catitem"><div class="catbox">🛞</div><div class="catname">타이어</div></div>
+        <div class="catitem" onclick="go(6)"><div class="catbox">🚗</div><div class="catname">중고차</div></div>
+        <div class="catitem"><div class="catbox">🔍</div><div class="catname">검사</div></div>
+        <div class="catitem"><div class="catbox">⛽</div><div class="catname">주유소</div></div>
+        <div class="catitem"><div class="catbox" style="display:flex;align-items:center;justify-content:center"><div style="width:28px;height:28px;background:#1565C0;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:900;font-style:italic">P</div></div><div class="catname">주차장</div></div>
+        <div class="catitem"><div class="catbox">🚙</div><div class="catname">렌트카</div></div>
+      </div>
+      <!-- 추천 점포 -->
+      <div class="strow" style="margin-top:2px"><div class="stitle">추천 점포</div><div class="smore">더보기</div></div>
+      <div class="scrow">
+        <div class="sc" onclick="go(6)"><img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=300&q=80" alt=""><div class="scb"><div class="stag">MOINCAR 인증</div><div class="sn">강남자동차정비센터</div><div class="ss">엔진·미션·판금 전문</div><div class="sd">📍 1.8km</div></div></div>
+        <div class="sc"><img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=300&q=80" alt=""><div class="scb"><div class="stag">인증중고차</div><div class="sn">서울모터스홀딩스</div><div class="ss">수입차·국산차 전문</div><div class="sd">📍 2.4km</div></div></div>
+        <div class="sc"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt=""><div class="scb"><div class="stag">공식딜러</div><div class="sn">현대자동차 강남점</div><div class="ss">신차·인증중고·시승</div><div class="sd">📍 3.0km</div></div></div>
+      </div>
+      <div style="padding:14px 13px;border-top:1px solid var(--s2)"><p style="color:var(--t3);font-size:9px;line-height:1.9">한국자동차협회 | 대표: 홍길동<br>사업자등록번호: 123-45-67890 | 고객센터: 1588-0000</p></div>
     </div>
   </div>
+  <div class="bnav" id="hbnav">
+    <div class="ni active on" onclick="go(2)"><div class="ico">🏠</div><div class="lbl" style="color:var(--accent)">홈</div></div>
+    <div class="ni"><div class="ico">🎟️</div><div class="lbl">쿠폰</div></div>
+    <div class="ni"><div class="ico">✅</div><div class="lbl">협회인증</div></div>
+    <div class="ni" onclick="go(3)"><div class="ico">🎁</div><div class="lbl">리워드</div></div>
+    <div class="ni"><div class="ico">👤</div><div class="lbl">마이</div></div>
+  </div>
+</div>
 
-  <!-- ══ 점포 여부 팝업 ══ -->
-  <div class="popup-overlay" id="storePopup">
-    <div class="popup-box">
-      <span class="popup-close" onclick="hidePopup()">×</span>
-      <div class="popup-icon">🏪</div>
-      <div class="popup-title">자동차 관련 점포가 있으신가요?</div>
-      <div class="popup-desc">
-        점포가 있으시면 지금 등록하세요!<br>
-        매장 사진을 올리면 <span class="popup-highlight">AI가 점포 상세페이지를</span><br>
-        자동으로 만들어 드립니다.<br>
-        <br>
-        <span style="color:var(--t3);font-size:11px;">점포가 없으셔도 일반 사용자로 모든 서비스를 이용하실 수 있습니다.</span>
-      </div>
-      <div class="popup-btn-row">
-        <button class="popup-btn-fill" onclick="go('s-reg1');hidePopup()">📌 매장 등록하기</button>
-        <button class="popup-btn-ghost" onclick="go('s-home');hidePopup()">일반 사용자로 시작</button>
-      </div>
+<!-- ══ 3. 이동리워드 (v14 실제 코드 완전 반영) ══ -->
+<div class="screen" id="s3">
+  <!-- 상단바: 뒤로가기 + 제목 + 총 포인트 배지 -->
+  <div class="rtopbar">
+    <span class="btn-back" onclick="go(2)">←</span>
+    <div class="rtitle-col">
+      <div class="main">이동리워드</div>
+      <div class="sub" id="r-todaySub">오늘 0 P 수령</div>
     </div>
+    <div class="rpts-badge"><span class="star">⭐</span><span class="val" id="r-totalPts">132 P</span></div>
   </div>
 
-  <!-- ══ 홈 화면 ══ -->
-  <div class="screen" id="s-home">
-    <!-- 상단바: 로고 + 검색창 통합 -->
-    <div class="home-header" id="homeHeader">
-      <div class="logo-search-bar">
-        <img class="home-logo" src="assets/images/moincar_logo.png"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="">
-        <div class="home-logo-text" style="display:none">M</div>
-        <div class="home-search-wrap">
-          <span>🔍</span>
-          <span class="home-search-ph">정비소·세차·중고차 검색</span>
+  <div class="rscroll">
+    <!-- 상태 패널 (걷기/차량 자동 감지) -->
+    <div class="statpanel walk" id="r-statpanel">
+      <div class="sp-top">
+        <div class="sp-ico walk" id="r-spico">🚶</div>
+        <div class="sp-info">
+          <div class="sp-mode">
+            <span class="sp-badge walk" id="r-spbadge">걷는 중</span>
+            <span class="sp-steps-badge" id="r-spsteps">0 보</span>
+          </div>
+          <div class="sp-detail" id="r-spdetail">4.5 km/h · 걸음감지 활성</div>
         </div>
-        <div class="home-icons"><span>🔔</span><span>👤</span></div>
       </div>
-      <div class="loc-bar">
-        <span class="loc-pin">📍</span>
-        <span class="loc-addr">서울특별시 금천구 가산동</span>
-        <span class="loc-arr">▾</span>
-        <div class="map-btn-small">지도</div>
-      </div>
-    </div>
-
-    <!-- 스크롤 영역 -->
-    <div class="home-scroll" id="homeScroll">
-      <div class="scroll-inner" id="scrollInner">
-
-        <!-- 배너 -->
-        <div class="banner-wrap">
-          <div class="banner-track" id="bannerTrack">
-            <div class="banner-slide">
-              <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80" alt="">
-              <div class="b-overlay"></div>
-              <div class="b-content"><div class="b-tag">🏆 MOINCAR 인증</div><div class="b-title">MOINCAR 인증<br>정비센터</div><div class="b-sub">인증 점포 방문 시 10% 할인 혜택</div></div>
+      <div class="sp-bars">
+        <!-- 걷기 바 -->
+        <div class="sp-bar-row">
+          <div class="sp-bar-ico">👟</div>
+          <div class="sp-bar-fill">
+            <div class="sp-bar-meta">
+              <span id="r-walkMeta">걷기 0/10,000보</span>
+              <span id="r-walkPts" style="color:var(--green);font-weight:700">0 P</span>
             </div>
-            <div class="banner-slide">
-              <img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80" alt="">
-              <div class="b-overlay"></div>
-              <div class="b-content"><div class="b-tag">📰 자동차 뉴스</div><div class="b-title">중고차 성능점검<br>수요 확대</div><div class="b-sub">사고이력·성능점검표 확인 필수</div></div>
+            <div class="pbg"><div class="pfill" id="r-walkBar" style="width:0%;background:var(--green)"></div></div>
+          </div>
+        </div>
+        <!-- 이동 바 -->
+        <div class="sp-bar-row">
+          <div class="sp-bar-ico">🚗</div>
+          <div class="sp-bar-fill">
+            <div class="sp-bar-meta">
+              <span id="r-driveMeta">이동 0/50km</span>
+              <span id="r-drivePts" style="color:var(--orange);font-weight:700">0 P</span>
             </div>
-            <div class="banner-slide">
-              <img src="https://images.unsplash.com/photo-1565728744382-61accd4aa148?w=600&q=80" alt="">
-              <div class="b-overlay"></div>
-              <div class="b-content"><div class="b-tag">⛽ 주유 정보</div><div class="b-title">오늘의 유가<br>실시간 확인</div><div class="b-sub">전국 주유소 최저가 실시간 비교</div></div>
+            <div class="pbg"><div class="pfill" id="r-driveBar" style="width:0%;background:var(--orange)"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 활동 카드 (걷기/이동 시뮬 버튼) -->
+    <div class="actcard">
+      <div class="actcard-title">
+        <span style="font-size:13px">⚡</span>
+        <span class="tt">오늘의 활동</span>
+        <span class="act-mode-badge walk" id="r-actbadge">🚶 걷기 활성</span>
+      </div>
+      <div class="act-row">
+        <!-- 걷기 -->
+        <div class="act-half active-walk" id="r-walkCard" onclick="simStep()">
+          <div class="ah-top">
+            <span class="ah-emo" id="r-walkEmo">👟</span>
+            <span class="ah-pts walk" id="r-walkCardPts">0 P</span>
+          </div>
+          <div class="ah-name">걷기</div>
+          <div class="ah-sub" id="r-walkSteps">0 보</div>
+          <div class="pbg"><div class="pfill" id="r-walkCardBar" style="width:0%;background:var(--green)"></div></div>
+          <div class="ah-hint" style="color:var(--green)" id="r-walkHint">+100보 탭</div>
+        </div>
+        <!-- 이동 -->
+        <div class="act-half inactive" id="r-driveCard" onclick="simDrive()">
+          <div class="ah-top">
+            <span class="ah-emo">🚗</span>
+            <span class="ah-pts drive dim" id="r-driveCardPts">0 P</span>
+          </div>
+          <div class="ah-name">이동</div>
+          <div class="ah-sub" id="r-driveDist">0.0 km</div>
+          <div class="pbg"><div class="pfill" id="r-driveCardBar" style="width:0%;background:var(--orange)"></div></div>
+          <div class="ah-hint" style="color:#555566" id="r-driveHint">🚶 걷기 중 비활성</div>
+        </div>
+      </div>
+      <!-- 칼로리 배너 -->
+      <div class="cal-banner">
+        <div class="cal-item"><div class="cico">🔥</div><div class="cval" id="r-cal">0 kcal</div><div class="clbl">소모 칼로리</div></div>
+        <div class="vdiv"></div>
+        <div class="cal-item"><div class="cico">⏱️</div><div class="cval" id="r-time">0 분</div><div class="clbl">활동 시간</div></div>
+        <div class="vdiv"></div>
+        <div class="cal-item"><div class="cico">📍</div><div class="cval" id="r-totdist">0.0 km</div><div class="clbl">총 이동거리</div></div>
+      </div>
+    </div>
+
+    <!-- 보물상자 -->
+    <div class="chest-card active" id="r-chest">
+      <div class="cc-header">
+        <div class="cc-hl"><span class="ico">💎</span><span class="t">포인트 수령 상자</span></div>
+        <div class="cc-hr">
+          <div class="pts" id="r-chestPts">0 / 150 P</div>
+          <div class="wait have" id="r-waitPts">대기 50 P</div>
+        </div>
+      </div>
+      <div class="cc-hint active" id="r-chestHint">상자를 터치하면 1P 수령 · 6P마다 광고</div>
+      <div class="cc-circle-wrap">
+        <div class="cc-circle active" id="r-chestCircle" onclick="tapChest(event)">🎁</div>
+      </div>
+      <div class="cc-progress">
+        <div class="cc-prog-row"><span id="r-chestRecv">0 P 수령</span><span>목표 150 P</span></div>
+        <div class="cc-progbar"><div class="cc-progfill" id="r-chestProgBar" style="width:0%"></div></div>
+        <!-- 광고 25칸 -->
+        <div class="cc-adbar" id="r-adbar"></div>
+        <div class="cc-adlegend">
+          <span class="cnt" id="r-adcnt">광고 0/25</span>
+          <div class="lg">
+            <div class="adleg"><div class="dot" style="background:var(--accent)"></div><span>5초</span></div>
+            <div class="adleg"><div class="dot" style="background:var(--orange)"></div><span>15초</span></div>
+            <div class="adleg"><div class="dot" style="background:var(--purple)"></div><span>30초</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 기프트 섹션 (업스톤 스타일: 회색배경 + 흰 원형) -->
+    <div class="gift-wrap">
+      <div class="gift-header">
+        <span class="gtitle">🎁 기프트 교환</span>
+        <span class="gift-pts-badge" id="r-giftBadge">⭐ 132 P 보유</span>
+      </div>
+      <div class="gift-grid">
+        <div class="gift-item" onclick="openGift('CU','🏪',50)"><div class="gift-circle"><span>🏪</span></div><div class="gift-bname">CU</div></div>
+        <div class="gift-item" onclick="openGift('GS25','🏬',50)"><div class="gift-circle"><span>🏬</span></div><div class="gift-bname">GS25</div></div>
+        <div class="gift-item" onclick="openGift('스타벅스','☕',100)"><div class="gift-circle"><span>☕</span></div><div class="gift-bname">스타벅스</div></div>
+        <div class="gift-item" onclick="openGift('SK주유소','⛽',200)"><div class="gift-circle"><span>⛽</span></div><div class="gift-bname">SK주유소</div></div>
+        <div class="gift-item" onclick="openGift('신세계백화점','🏦',300)"><div class="gift-circle"><span>🏦</span></div><div class="gift-bname">신세계백화점</div></div>
+        <div class="gift-item" onclick="openGift('컴포즈커피','☕',50)"><div class="gift-circle"><span>☕</span></div><div class="gift-bname">컴포즈커피</div></div>
+        <div class="gift-item" onclick="openGift('메가커피','🥤',50)"><div class="gift-circle"><span>🥤</span></div><div class="gift-bname">메가커피</div></div>
+        <div class="gift-item" onclick="openGift('맥도날드','🍔',100)"><div class="gift-circle"><span>🍔</span></div><div class="gift-bname">맥도날드</div></div>
+        <div class="gift-item" onclick="openGift('홈플러스','🛒',150)"><div class="gift-circle"><span>🛒</span></div><div class="gift-bname">홈플러스</div></div>
+        <div class="gift-item" onclick="openGift('이마트','🏪',150)"><div class="gift-circle"><span>🏪</span></div><div class="gift-bname">이마트</div></div>
+        <div class="gift-item" onclick="openGift('투썸플레이스','☕',100)"><div class="gift-circle"><span>☕</span></div><div class="gift-bname">투썸플레이스</div></div>
+        <div class="gift-item" onclick="openGift('베스킨라빈스','🍦',100)"><div class="gift-circle"><span>🍦</span></div><div class="gift-bname">베스킨라빈스</div></div>
+      </div>
+    </div>
+
+    <!-- 기간별 차트 -->
+    <div class="period-chart">
+      <div class="period-tabs">
+        <button class="ptab on" onclick="setTab(this,'w')">주간</button>
+        <button class="ptab" onclick="setTab(this,'m')">월간</button>
+        <button class="ptab" onclick="setTab(this,'y')">연간</button>
+      </div>
+      <div class="chart-area" id="r-chart"></div>
+      <div style="color:var(--t3);font-size:9px;text-align:center">이번 주 총 <span style="color:var(--accent);font-weight:700" id="r-chartTotal">342P</span> 획득</div>
+    </div>
+    <div style="height:14px"></div>
+  </div><!-- /rscroll -->
+
+  <!-- 기프트 팝업 -->
+  <div class="gift-popup" id="giftPopup">
+    <div class="gpbox">
+      <span class="gp-close" onclick="closeGift()">×</span>
+      <div class="gp-circle"><span id="gp-emo">☕</span></div>
+      <div class="gp-brand" id="gp-brand">스타벅스</div>
+      <div class="gp-pts" id="gp-pts">100P 필요</div>
+      <div class="gp-info">현재 보유: <span id="gp-have" style="color:var(--accent);font-weight:700">132P</span><br>교환 후 잔여: <span id="gp-remain" style="color:var(--gold);font-weight:700">32P</span></div>
+      <button class="gp-btn" onclick="closeGift()">🎁 교환 신청하기</button>
+    </div>
+  </div>
+
+  <div class="bnav">
+    <div class="ni" onclick="go(2)"><div class="ico">🏠</div><div class="lbl">홈</div></div>
+    <div class="ni"><div class="ico">🎟️</div><div class="lbl">쿠폰</div></div>
+    <div class="ni"><div class="ico">✅</div><div class="lbl">협회인증</div></div>
+    <div class="ni on"><div class="ico">🎁</div><div class="lbl" style="color:var(--accent)">리워드</div></div>
+    <div class="ni"><div class="ico">👤</div><div class="lbl">마이</div></div>
+  </div>
+</div>
+
+<!-- ══ 4. 내차시세조회 ══ -->
+<div class="screen" id="s4">
+  <div class="phdr">
+    <span class="btn-back" onclick="go(2)">←</span>
+    <span class="phdr-title">💰 내차 시세조회</span>
+    <button class="phdr-action" onclick="toggleAppList()">📋 신청내역</button>
+  </div>
+  <!-- 신청내역 (토글) -->
+  <div id="appListWrap" style="display:none">
+    <div class="app-list">
+      <div class="aitem">
+        <div class="aitem-row"><span class="aid">#20240415-001</span><span class="astatus wait">견적 대기</span></div>
+        <div class="acar">현대 아반떼 CN7 2022 · 48,000km</div>
+        <div class="adate">신청일: 2024.04.15</div>
+        <div class="adealer">딜러 연락 대기 중 (3명)</div>
+      </div>
+      <div class="aitem">
+        <div class="aitem-row"><span class="aid">#20240410-003</span><span class="astatus done">견적 완료</span></div>
+        <div class="acar">기아 K5 DL3 2021 · 62,000km</div>
+        <div class="adate">신청일: 2024.04.10</div>
+        <div class="adealer">최고가: 1,650만원 (서울모터스)</div>
+      </div>
+      <div class="aitem">
+        <div class="aitem-row"><span class="aid">#20240402-007</span><span class="astatus cancel">신청 취소</span></div>
+        <div class="acar">BMW 320i G20 2020 · 71,000km</div>
+        <div class="adate">신청일: 2024.04.02</div>
+        <div class="adealer">사용자가 취소</div>
+      </div>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;scrollbar-width:none;padding-bottom:6px">
+    <div class="sbox">
+      <div class="sbox-title">차량 정보 입력</div>
+      <label class="flbl">제조사</label>
+      <div class="fselwrap"><select><option>현대</option><option>기아</option><option>제네시스</option><option>BMW</option><option>벤츠</option></select></div>
+      <label class="flbl">모델</label>
+      <div class="fselwrap"><select><option>아반떼 CN7</option><option>쏘나타 DN8</option><option>그랜저 GN7</option><option>투싼 NX4</option></select></div>
+      <label class="flbl">연식</label>
+      <div class="fselwrap"><select><option>2022년</option><option>2021년</option><option>2020년</option><option>2019년</option></select></div>
+      <label class="flbl">주행거리</label>
+      <input class="finput" placeholder="예: 48000" value="48,000">
+    </div>
+    <div class="sbox">
+      <div class="sbox-title">차량 사진 첨부 <span style="color:var(--t3);font-size:9px;font-weight:400">(최대 5장 · 최대 600px · 품질 45 자동압축)</span></div>
+      <div class="photo-row" id="photoRow">
+        <img class="photo-thumb" src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=120&q=60" alt="">
+        <img class="photo-thumb" src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=120&q=60" alt="">
+        <div class="photo-add-btn" onclick="addPhoto()">＋<span style="font-size:8px">사진추가</span></div>
+      </div>
+      <div class="photo-note">📷 JPEG 자동 압축 적용 (flutter_image_compress quality:45)</div>
+    </div>
+    <div class="sbox">
+      <div class="sbox-title">추가 정보</div>
+      <label class="flbl">사고 이력</label>
+      <div class="fselwrap"><select><option>무사고</option><option>단순 접촉</option><option>1회 사고</option></select></div>
+      <label class="flbl">연락처</label>
+      <input class="finput" value="010-1234-5678">
+      <label class="flbl">요청 사항</label>
+      <input class="finput" placeholder="시세 문의 또는 요청 사항" style="margin-bottom:0">
+    </div>
+    <button class="submit-btn" onclick="submitCarPrice()">🚀 시세 문의 신청하기</button>
+  </div>
+  <div class="bnav">
+    <div class="ni" onclick="go(2)"><div class="ico">🏠</div><div class="lbl">홈</div></div>
+    <div class="ni"><div class="ico">🎟️</div><div class="lbl">쿠폰</div></div>
+    <div class="ni on"><div class="ico">💰</div><div class="lbl" style="color:var(--accent)">시세</div></div>
+    <div class="ni" onclick="go(3)"><div class="ico">🎁</div><div class="lbl">리워드</div></div>
+    <div class="ni"><div class="ico">👤</div><div class="lbl">마이</div></div>
+  </div>
+</div>
+
+<!-- ══ 5. 점포관리자 ══ -->
+<div class="screen" id="s5">
+  <div class="mhdr">
+    <span class="btn-back" onclick="go(2)">←</span>
+    <span class="mhdr-title">점포 관리자</span>
+    <span class="mbadge">🏪 점포관리자</span>
+  </div>
+  <div style="flex:1;overflow-y:auto;scrollbar-width:none;padding-bottom:6px">
+    <!-- 점포 상태 -->
+    <div class="store-stat-card">
+      <div class="ssc-top">
+        <img class="ssc-img" src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=120&q=70" alt="">
+        <div>
+          <div class="ssc-name">강남자동차정비센터</div>
+          <div class="ssc-cat">🔧 자동차정비 · 서울 강남구</div>
+          <div class="ssc-open">● 영업중</div>
+        </div>
+      </div>
+      <div class="ssc-grid">
+        <div class="ssg"><div class="ssg-val">127</div><div class="ssg-lbl">이번 달 조회</div></div>
+        <div class="ssg"><div class="ssg-val">4.8</div><div class="ssg-lbl">평점</div></div>
+        <div class="ssg"><div class="ssg-val">23</div><div class="ssg-lbl">리뷰</div></div>
+      </div>
+    </div>
+    <!-- 잠금화면 노출 -->
+    <div class="lkcard">
+      <div class="lkcard-title">⭐ 잠금화면 · 메인화면 우선 노출</div>
+      <div class="lk-preview">
+        <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=400&q=50" alt="">
+        <div class="lk-text">🔧 강남구 No.1 프리미엄 정비소<br>엔진오일·브레이크·타이어 전문<br>MOINCAR 인증 · ★4.8</div>
+      </div>
+      <div class="lk-toggle-row"><span style="color:var(--t2);font-size:10px">잠금화면 노출 활성화</span><div class="toggle"><div class="toggle-t"></div></div></div>
+    </div>
+    <!-- 관리 메뉴 -->
+    <div class="mgrid">
+      <div class="mitem" onclick="go(5,'products')">
+        <div class="mitem-ico">🛒</div><div class="mitem-name">상품·서비스 관리</div><div class="mitem-sub">등록 상품 8개</div>
+        <div class="mbadge2 pur">PRO</div>
+      </div>
+      <div class="mitem">
+        <div class="mitem-ico">🎟️</div><div class="mitem-name">쿠폰 발행</div><div class="mitem-sub">활성 쿠폰 3개</div>
+        <div class="mbadge2 grn">NEW</div>
+      </div>
+      <div class="mitem">
+        <div class="mitem-ico">📊</div><div class="mitem-name">통계 분석</div><div class="mitem-sub">조회·클릭·리뷰</div>
+      </div>
+      <div class="mitem">
+        <div class="mitem-ico">💬</div><div class="mitem-name">고객 문의</div><div class="mitem-sub">미답변 2건</div>
+        <div class="mbadge2 red">2</div>
+      </div>
+      <div class="mitem">
+        <div class="mitem-ico">🖼️</div><div class="mitem-name">점포 사진 관리</div><div class="mitem-sub">5장 / 최대 10장</div>
+      </div>
+      <div class="mitem">
+        <div class="mitem-ico">✏️</div><div class="mitem-name">정보 수정</div><div class="mitem-sub">영업시간·전화번호</div>
+      </div>
+    </div>
+    <!-- 점포 사진 미리보기 -->
+    <div style="margin:0 14px 13px">
+      <div style="color:var(--t1);font-size:12px;font-weight:800;margin-bottom:7px">🖼️ 점포 사진 <span style="color:var(--t3);font-size:9px;font-weight:400">유료 최대 10장 · 무료 1장</span></div>
+      <div class="pgrid">
+        <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=200&q=60" alt="">
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60" alt="">
+        <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&q=60" alt="">
+        <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=200&q=60" alt="">
+        <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=200&q=60" alt="">
+        <div class="padd"><span style="font-size:18px">＋</span>사진추가</div>
+      </div>
+      <div style="color:var(--t3);font-size:8px;text-align:right;margin-top:3px">5/10장 · 첫 번째 사진 잠금화면 노출</div>
+    </div>
+    <!-- 상품 관리 미리보기 -->
+    <div style="margin:0 14px 13px">
+      <div style="color:var(--t1);font-size:12px;font-weight:800;margin-bottom:7px">🛒 상품·서비스 관리 <span style="color:var(--t3);font-size:9px">유료 최대 10장 · 무료 1장</span></div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <!-- 상품1 – 유료 10장 -->
+        <div style="background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:11px;display:flex;gap:9px;align-items:flex-start">
+          <div style="width:52px;height:52px;border-radius:9px;overflow:hidden;border:1px solid var(--br);flex-shrink:0;position:relative;cursor:pointer" onclick="addProdPhoto(this,10)">
+            <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=120&q=60" style="width:100%;height:100%;object-fit:cover" alt="">
+            <div style="position:absolute;bottom:0;right:0;background:rgba(79,195,247,.8);width:18px;height:18px;border-radius:4px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:10px">📷</div>
+          </div>
+          <div style="flex:1">
+            <div style="color:var(--t1);font-size:12px;font-weight:700">엔진오일 교환 (합성유)</div>
+            <div style="color:var(--accent);font-size:11px;font-weight:600;margin-top:2px">35,000원</div>
+            <div style="color:var(--t3);font-size:9px;margin-top:2px">5W-30 합성유 + 오일필터 포함</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
+              <span style="background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.2);border-radius:5px;padding:2px 7px;color:var(--accent);font-size:8px;font-weight:600;cursor:pointer" id="pp1">📷 3/10</span>
+              <span style="color:var(--t3);font-size:8px">유료회원 최대 10장</span>
             </div>
-            <div class="banner-slide">
-              <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=600&q=80" alt="">
-              <div class="b-overlay"></div>
-              <div class="b-content"><div class="b-tag">🏅 협회 인증</div><div class="b-title">KAA 인증서<br>발급 신청</div><div class="b-sub">한국자동차협회 공식 인증 서비스</div></div>
+          </div>
+        </div>
+        <!-- 상품2 – 무료 1장 -->
+        <div style="background:var(--s1);border:1px solid var(--br);border-radius:12px;padding:11px;display:flex;gap:9px;align-items:flex-start">
+          <div style="width:52px;height:52px;border-radius:9px;background:var(--s2);border:1px solid var(--br);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative;cursor:pointer" onclick="addProdPhoto(this,1)">
+            🛞<div style="position:absolute;bottom:0;right:0;background:rgba(79,195,247,.8);width:18px;height:18px;border-radius:4px 0 0 0;display:flex;align-items:center;justify-content:center;font-size:10px">📷</div>
+          </div>
+          <div style="flex:1">
+            <div style="color:var(--t1);font-size:12px;font-weight:700">타이어 교환 (1개)</div>
+            <div style="color:var(--accent);font-size:11px;font-weight:600;margin-top:2px">80,000원~</div>
+            <div style="color:var(--t3);font-size:9px;margin-top:2px">국내외 브랜드 폭넓은 선택</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:5px">
+              <span style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:5px;padding:2px 7px;color:var(--green);font-size:8px;font-weight:600;cursor:pointer" id="pp2">📷 0/1</span>
+              <span style="color:var(--t3);font-size:8px">무료회원 1장</span>
             </div>
-            <div class="banner-slide">
-              <img src="https://images.unsplash.com/photo-1508974239320-0a029497e820?w=600&q=80" alt="">
-              <div class="b-overlay"></div>
-              <div class="b-content"><div class="b-tag">🎁 이동리워드</div><div class="b-title">이동할수록<br>적립되는 리워드</div><div class="b-sub">주행 거리당 포인트 지급</div></div>
-            </div>
-          </div>
-          <div class="banner-dots" id="bannerDots">
-            <div class="b-dot on"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div>
           </div>
         </div>
-
-        <!-- 퀵메뉴 -->
-        <div class="quick-grid">
-          <div class="quick-item"><div class="quick-icon" style="background:#7B1E2A">🚨</div><div class="quick-label">긴급<br>출동</div></div>
-          <div class="quick-item"><div class="quick-icon" style="background:#0D2A4A">💰</div><div class="quick-label">내 차<br>시세</div></div>
-          <div class="quick-item"><div class="quick-icon" style="background:#0A1E3A">📰</div><div class="quick-label">자동차<br>뉴스</div></div>
-          <div class="quick-item"><div class="quick-icon" style="background:#1A1040">🎁</div><div class="quick-label">이동<br>리워드</div></div>
-        </div>
-
-        <!-- 카테고리 -->
-        <div class="sec-title-row"><div class="sec-title">서비스</div><div class="sec-more">전체보기</div></div>
-        <div class="cat-row">
-          <div class="cat-item"><div class="cat-box">🔧</div><div class="cat-name">정비</div></div>
-          <div class="cat-item"><div class="cat-box">🫧</div><div class="cat-name">세차</div></div>
-          <div class="cat-item"><div class="cat-box">🛞</div><div class="cat-name">타이어</div></div>
-          <div class="cat-item"><div class="cat-box">🚗</div><div class="cat-name">중고차</div></div>
-          <div class="cat-item"><div class="cat-box">🔍</div><div class="cat-name">검사</div></div>
-          <div class="cat-item"><div class="cat-box">⛽</div><div class="cat-name">주유소</div></div>
-          <!-- 주차장: P 간판 아이콘 -->
-          <div class="cat-item">
-            <div class="parking-icon"><div class="p-sign">P</div></div>
-            <div class="cat-name">주차장</div>
-          </div>
-          <div class="cat-item"><div class="cat-box">🚙</div><div class="cat-name">렌트카</div></div>
-          <div class="cat-item"><div class="cat-box">🌏</div><div class="cat-name">중고차수출</div></div>
-          <div class="cat-item"><div class="cat-box">🛒</div><div class="cat-name">차량용품</div></div>
-        </div>
-
-        <!-- 추천 점포 -->
-        <div class="sec-title-row" style="margin-top:4px;"><div class="sec-title">추천 점포</div><div class="sec-more">더보기</div></div>
-        <div class="store-row">
-          <div class="store-card">
-            <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=300&q=80" alt="정비센터">
-            <div class="store-card-body"><div class="s-tag">MOINCAR 인증</div><div class="s-name">강남자동차정비센터</div><div class="s-sub">엔진·미션·판금 전문</div><div class="s-dist">📍 1.8km</div></div>
-          </div>
-          <div class="store-card">
-            <img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=300&q=80" alt="중고차">
-            <div class="store-card-body"><div class="s-tag">인증중고차</div><div class="s-name">서울모터스홀딩스</div><div class="s-sub">수입차·국산차 전문</div><div class="s-dist">📍 2.4km</div></div>
-          </div>
-          <div class="store-card">
-            <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=300&q=80" alt="자동차딜러">
-            <div class="store-card-body"><div class="s-tag">공식딜러</div><div class="s-name">현대자동차 강남점</div><div class="s-sub">신차·인증중고·시승</div><div class="s-dist">📍 3.0km</div></div>
-          </div>
-          <div class="store-card">
-            <img src="https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=300&q=80" alt="세차">
-            <div class="store-card-body"><div class="s-tag">MOINCAR 인증</div><div class="s-name">프리미엄 세차코팅</div><div class="s-sub">손세차·광택·코팅</div><div class="s-dist">📍 3.5km</div></div>
-          </div>
-        </div>
-
-        <!-- 지도 -->
-        <div class="map-box">
-          <div class="map-grid-bg"></div><div class="map-dim"></div>
-          <div class="map-center-dot"><div class="map-dot"></div></div>
-          <div class="map-pin" style="left:55px;top:45px">🔧</div>
-          <div class="map-pin" style="right:50px;top:38px">🚗</div>
-          <div class="map-pin" style="left:65px;bottom:48px">⛽</div>
-          <div class="map-pin" style="right:40px;bottom:40px">🏢</div>
-          <div class="map-footer">
-            <div><div class="map-footer-t">📍 내 주변 점포 18개</div><div class="map-footer-s">금천구 가산동 기준</div></div>
-            <div class="map-open-btn">지도 열기</div>
-          </div>
-        </div>
-
-        <!-- 인근 점포 -->
-        <div class="sec-title-row"><div class="sec-title">인근 점포</div><div class="sec-more">더보기</div></div>
-        <div class="nearby-list">
-          <div class="nearby-item">
-            <img class="nearby-thumb" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=120&q=80" alt="">
-            <div class="nearby-info"><div class="n-badge">신규</div><div class="n-name">수입차 브레이크 전문점</div><div class="n-sub">브레이크·하체점검 · 1.2km</div></div>
-            <div class="n-emoji">🛞</div>
-          </div>
-          <div class="nearby-item">
-            <img class="nearby-thumb" src="https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=120&q=80" alt="">
-            <div class="nearby-info"><div class="n-badge">인기</div><div class="n-name">하이브리드 배터리케어</div><div class="n-sub">배터리·전기점검 · 2.0km</div></div>
-            <div class="n-emoji">⚡</div>
-          </div>
-          <div class="nearby-item">
-            <img class="nearby-thumb" src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=120&q=80" alt="">
-            <div class="nearby-info"><div class="n-badge moincar">MOINCAR</div><div class="n-name">인증 중고차센터</div><div class="n-sub">중고차·성능점검 · 2.4km</div></div>
-            <div class="n-emoji">🚗</div>
-          </div>
-          <div class="nearby-item">
-            <img class="nearby-thumb" src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=120&q=80" alt="">
-            <div class="nearby-info"><div class="n-badge">추천</div><div class="n-name">프리미엄 엔진오일샵</div><div class="n-sub">오일·경정비 · 2.8km</div></div>
-            <div class="n-emoji">🔧</div>
-          </div>
-        </div>
-
-        <div class="biz-footer"><p>한국자동차협회 | 대표: 홍길동<br>사업자등록번호: 123-45-67890<br>서울특별시 강남구 테헤란로 123 | 고객센터: 1588-0000</p></div>
-      </div>
-    </div>
-
-    <!-- 하단 네비 -->
-    <div class="bottom-nav" id="homeNav">
-      <div class="nav-item active"><div class="ni">🏠</div><div class="nl" style="color:var(--accent)">홈</div></div>
-      <div class="nav-item"><div class="ni">🎟️</div><div class="nl">쿠폰</div></div>
-      <div class="nav-item"><div class="ni">✅</div><div class="nl">협회인증</div></div>
-      <div class="nav-item"><div class="ni">🚗</div><div class="nl">중고차</div></div>
-      <div class="nav-item"><div class="ni">👤</div><div class="nl">마이</div></div>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 1: 사업자 확인 ══ -->
-  <div class="screen" id="s-reg1">
-    <div class="reg-header">
-      <span class="btn-back" onclick="go('s-interest')">←</span>
-      <span class="reg-header-title">점포 등록</span>
-    </div>
-    <div class="reg-body">
-      <div class="reg-big-title">사업자 정보를<br>확인해주세요.</div>
-      <label class="form-label">사업자등록번호</label>
-      <input class="form-input" placeholder="1234567890" value="1234567890" style="margin-bottom:16px">
-      <label class="form-label">업종 선택</label>
-      <div class="select-wrap">
-        <select class="form-select">
-          <option>중고차매매</option>
-          <option>자동차정비</option>
-          <option>세차</option>
-          <option>타이어</option>
-          <option>주유소</option>
-          <option>렌트카</option>
-          <option>주차장</option>
-        </select>
-      </div>
-      <div class="form-hint">업종에 맞는 점포 상세페이지가 자동으로 생성됩니다.</div>
-      <label class="form-label">대표 전화번호</label>
-      <input class="form-input" placeholder="02-000-0000" style="margin-bottom:16px">
-      <label class="form-label">주소</label>
-      <input class="form-input" placeholder="서울특별시 금천구 가산동..." style="margin-bottom:16px">
-      <button class="btn-next" onclick="go('s-reg2')">다음 단계</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 2: AI 안내 ══ -->
-  <div class="screen" id="s-reg2">
-    <div class="reg-header">
-      <span class="btn-back" onclick="go('s-reg1')">←</span>
-    </div>
-    <div class="ai-body">
-      <div class="ai-avatar">🤖</div>
-      <div class="ai-greeting">안녕하세요! MOINCAR AI 안내봇이에요.</div>
-      <div class="ai-main-title">사장님의 매장을 더 많은<br>고객에게 알려드릴게요!</div>
-      <div class="ai-desc">입구·전시장·대표 차량 사진을 올리면<br>AI가 점포 상세페이지 초안을<br>자동으로 만들어드립니다.</div>
-      <div class="step-row">
-        <div class="step-item"><div class="step-num">STEP 1</div><div class="step-icon">🏪</div><div class="step-text">매장 간판<br>입구 사진</div></div>
-        <div class="step-item"><div class="step-num">STEP 2</div><div class="step-icon">🏬</div><div class="step-text">전시장<br>내부 사진</div></div>
-        <div class="step-item"><div class="step-num">STEP 3</div><div class="step-icon">⭐</div><div class="step-text">대표 차량<br>서비스 사진</div></div>
-      </div>
-      <button class="btn-next" style="width:100%" onclick="go('s-reg3')">사진 등록 시작하기</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 3: 간판·입구 사진 ══ -->
-  <div class="screen" id="s-reg3">
-    <div class="photo-header">
-      <span class="btn-back" onclick="go('s-reg2')">←</span>
-      <span style="color:var(--t1);font-size:14px;font-weight:700;">STEP 1 / 3</span>
-    </div>
-    <div class="photo-step-bar">
-      <div class="pstep done"></div><div class="pstep active"></div><div class="pstep"></div>
-    </div>
-    <div class="photo-body">
-      <div class="photo-sec-title">매장 간판·입구 사진</div>
-      <div class="photo-sec-sub">간판과 매장명이 잘 보이는 입구 사진을<br>올려주세요.</div>
-      <div class="photo-btn-row">
-        <button class="photo-cam-btn">📷 사진 촬영</button>
-        <button class="photo-gal-btn">🖼️ 갤러리에서 선택</button>
-      </div>
-      <div class="photo-preview">
-        <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=400&q=80" alt="">
-      </div>
-      <button class="btn-next" onclick="go('s-reg4')">다음 단계</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 4: 전시장·내부 사진 ══ -->
-  <div class="screen" id="s-reg4">
-    <div class="photo-header">
-      <span class="btn-back" onclick="go('s-reg3')">←</span>
-      <span style="color:var(--t1);font-size:14px;font-weight:700;">STEP 2 / 3</span>
-    </div>
-    <div class="photo-step-bar">
-      <div class="pstep done"></div><div class="pstep done"></div><div class="pstep active"></div>
-    </div>
-    <div class="photo-body">
-      <div class="photo-sec-title">전시장·내부 사진</div>
-      <div class="photo-sec-sub">전시장 전경과 차량, 상담 공간이<br>보이는 사진을 올려주세요.</div>
-      <div class="photo-btn-row">
-        <button class="photo-cam-btn">📷 사진 촬영</button>
-        <button class="photo-gal-btn">🖼️ 갤러리에서 선택</button>
-      </div>
-      <div class="photo-preview">
-        <img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=400&q=80" alt="">
-      </div>
-      <button class="btn-next" onclick="go('s-reg5')">다음 단계</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 5: 대표 차량·서비스 사진 ══ -->
-  <div class="screen" id="s-reg5">
-    <div class="photo-header">
-      <span class="btn-back" onclick="go('s-reg4')">←</span>
-      <span style="color:var(--t1);font-size:14px;font-weight:700;">STEP 3 / 3</span>
-    </div>
-    <div class="photo-step-bar">
-      <div class="pstep done"></div><div class="pstep done"></div><div class="pstep done"></div>
-    </div>
-    <div class="photo-body">
-      <div class="photo-sec-title">대표 차량·서비스 사진</div>
-      <div class="photo-sec-sub">대표 판매 차량 또는 핵심 서비스<br>사진을 올려주세요.</div>
-      <div class="photo-btn-row">
-        <button class="photo-cam-btn">📷 사진 촬영</button>
-        <button class="photo-gal-btn">🖼️ 갤러리에서 선택</button>
-      </div>
-      <div class="photo-preview">
-        <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&q=80" alt="">
-      </div>
-      <button class="btn-next" onclick="go('s-reg6')">🤖 AI 점포페이지 생성</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 6: AI 분석 결과 ══ -->
-  <div class="screen" id="s-reg6" style="overflow-y:auto;">
-    <div class="result-header">
-      <span class="btn-back" onclick="go('s-reg5')">←</span>
-      <span style="color:var(--t1);font-size:15px;font-weight:700;">AI 분석 완료</span>
-    </div>
-    <div class="result-body">
-      <div class="result-tag">🤖 AI 자동 생성</div>
-      <div class="result-title">점포 정보가 자동으로<br>생성되었어요!</div>
-      <div class="result-sub">사진을 분석해 업종과 매장 정보를 자동으로 입력했습니다. 수정이 필요한 항목은 직접 편집해주세요.</div>
-      <div class="result-field"><div class="result-field-label">점포명</div><input class="result-field-val" value="KAA 수성 인증 중고차센터"></div>
-      <div class="result-field"><div class="result-field-label">카테고리</div><input class="result-field-val" value="중고차 매매"></div>
-      <div class="result-field"><div class="result-field-label">AI 소개</div><input class="result-field-val" value="중고차매매 · AI 자동 생성 점포"></div>
-      <div class="result-field"><div class="result-field-label">주소</div><input class="result-field-val" value="서울특별시 금천구 가산디지털로 00"></div>
-      <div class="result-field"><div class="result-field-label">전화번호</div><input class="result-field-val" value="02-123-4567"></div>
-      <div class="result-field"><div class="result-field-label">영업시간</div><input class="result-field-val" value="09:00 ~ 19:00 (일요일 휴무)"></div>
-      <button class="btn-next" onclick="go('s-reg7')">다음 단계 → 사진 최종 등록</button>
-    </div>
-  </div>
-
-  <!-- ══ 점포등록 7: 사진 최종 등록 ══ -->
-  <div class="screen" id="s-reg7" style="overflow-y:auto;">
-    <div class="photo-header">
-      <span class="btn-back" onclick="go('s-reg6')">←</span>
-      <span style="color:var(--t1);font-size:15px;font-weight:700;">사진 등록</span>
-    </div>
-    <div style="padding:0 20px 40px;">
-      <div style="color:var(--t1);font-size:16px;font-weight:800;margin-bottom:6px;">점포 사진을 등록해주세요</div>
-      <div style="color:var(--t3);font-size:12px;margin-bottom:20px;">고객에게 보여질 대표 사진들을 등록하세요. 최대 9장</div>
-      <div class="photo-grid">
-        <div class="photo-grid-item"><img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=200&q=80" alt=""></div>
-        <div class="photo-grid-item"><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=200&q=80" alt=""></div>
-        <div class="photo-grid-item"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&q=80" alt=""></div>
-        <div class="photo-grid-item"><img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=200&q=80" alt=""></div>
-        <div class="photo-grid-item"><img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=200&q=80" alt=""></div>
-        <div class="photo-grid-add">＋</div>
-      </div>
-      <div class="reg-bottom-row">
-        <button class="reg-outline-btn">업종별 상품등록</button>
-        <button class="reg-fill-btn" onclick="go('s-home')">🎉 점포 등록 완료!</button>
       </div>
     </div>
   </div>
+  <div class="bnav">
+    <div class="ni" onclick="go(2)"><div class="ico">🏠</div><div class="lbl">홈</div></div>
+    <div class="ni"><div class="ico">🎟️</div><div class="lbl">쿠폰</div></div>
+    <div class="ni"><div class="ico">✅</div><div class="lbl">협회인증</div></div>
+    <div class="ni" onclick="go(3)"><div class="ico">🎁</div><div class="lbl">리워드</div></div>
+    <div class="ni on"><div class="ico">🏪</div><div class="lbl" style="color:var(--accent)">관리</div></div>
+  </div>
+</div>
+
+<!-- ══ 6. 점포상세 ══ -->
+<div class="screen" id="s6">
+  <div class="dhero">
+    <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=600&q=80" alt="">
+    <div class="dhero-ov"></div>
+    <div class="dhero-back" onclick="go(2)">←</div>
+    <div class="dhero-cnt">
+      <div class="dtag">MOINCAR 인증 · 정비</div>
+      <div class="dname">강남자동차정비센터</div>
+      <div class="dsub">⭐ 4.8 · 리뷰 23개 · 1.8km</div>
+    </div>
+  </div>
+  <div class="dtabs">
+    <div class="dtab on" onclick="setDtab(0)">정보</div>
+    <div class="dtab" onclick="setDtab(1)">서비스</div>
+    <div class="dtab" onclick="setDtab(2)">사진</div>
+    <div class="dtab" onclick="setDtab(3)">리뷰</div>
+  </div>
+  <div class="dbody" id="dtab0">
+    <div class="dcta"><button class="dcta-btn dcta-call">📞 전화하기</button><button class="dcta-btn dcta-rsv">📅 예약하기</button></div>
+    <div class="dinfo-row"><div class="dinfo-ico">📍</div><div class="dinfo-val">서울특별시 강남구 테헤란로 00</div></div>
+    <div class="dinfo-row"><div class="dinfo-ico">📞</div><div class="dinfo-val">02-123-4567</div></div>
+    <div class="dinfo-row"><div class="dinfo-ico">🕘</div><div class="dinfo-val">09:00 ~ 19:00<br><span style="color:var(--t3);font-size:9px">일요일 휴무</span></div></div>
+    <div class="dinfo-row"><div class="dinfo-ico">🔧</div><div class="dinfo-val">엔진오일·브레이크·미션·판금 전문 / 수입차 가능</div></div>
+    <div style="background:var(--s1);border:1px solid var(--br);border-radius:11px;padding:11px;margin-top:6px">
+      <div style="color:var(--t3);font-size:9px;margin-bottom:5px">🤖 AI 소개</div>
+      <div style="color:var(--t2);font-size:10px;line-height:1.7">강남구 위치한 MOINCAR 인증 프리미엄 정비소입니다. 수입차 전문 기술진이 엔진오일부터 판금·도장까지 원스톱으로 해결해드립니다.</div>
+    </div>
+  </div>
+  <div class="dbody" id="dtab1" style="display:none">
+    <div class="dsvc">
+      <div class="dsvc-item"><span style="font-size:16px">🛢️</span><span class="dsvc-name">엔진오일 교환</span><span class="dsvc-price">35,000원~</span></div>
+      <div class="dsvc-item"><span style="font-size:16px">🛞</span><span class="dsvc-name">타이어 교환</span><span class="dsvc-price">80,000원~</span></div>
+      <div class="dsvc-item"><span style="font-size:16px">🔴</span><span class="dsvc-name">브레이크 패드</span><span class="dsvc-price">45,000원~</span></div>
+      <div class="dsvc-item"><span style="font-size:16px">❄️</span><span class="dsvc-name">에어컨 점검</span><span class="dsvc-price">무료</span></div>
+      <div class="dsvc-item"><span style="font-size:16px">🔍</span><span class="dsvc-name">차량 기본점검</span><span class="dsvc-price">무료</span></div>
+    </div>
+  </div>
+  <div class="dbody" id="dtab2" style="display:none">
+    <div class="dphoto-grid">
+      <img src="https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=200&q=70" alt="">
+      <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=70" alt="">
+      <img src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?w=200&q=70" alt="">
+      <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&q=70" alt="">
+      <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=200&q=70" alt="">
+      <img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=200&q=70" alt="">
+    </div>
+    <div style="color:var(--t3);font-size:8px;text-align:center;margin-top:4px">총 6장 · 첫 번째 사진 잠금화면 노출 중</div>
+  </div>
+  <div class="dbody" id="dtab3" style="display:none">
+    <div style="text-align:center;margin-bottom:14px">
+      <div style="color:var(--t1);font-size:34px;font-weight:900">4.8</div>
+      <div style="color:var(--gold);font-size:14px;margin-bottom:3px">★★★★★</div>
+      <div style="color:var(--t3);font-size:10px">총 23개 리뷰</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:var(--s1);border:1px solid var(--br);border-radius:11px;padding:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="color:var(--t1);font-size:11px;font-weight:700">김민준</span><span style="color:var(--gold);font-size:10px">★★★★★</span></div>
+        <div style="color:var(--t2);font-size:10px;line-height:1.6">정비 퀄리티가 정말 좋아요. 엔진오일 교환했는데 친절하게 설명해주셨습니다.</div>
+      </div>
+      <div style="background:var(--s1);border:1px solid var(--br);border-radius:11px;padding:11px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><span style="color:var(--t1);font-size:11px;font-weight:700">이지은</span><span style="color:var(--gold);font-size:10px">★★★★☆</span></div>
+        <div style="color:var(--t2);font-size:10px;line-height:1.6">수입차도 잘 봐주셔서 좋았습니다. 다음에도 이용할게요!</div>
+      </div>
+    </div>
+  </div>
+  <div class="bnav">
+    <div class="ni" onclick="go(2)"><div class="ico">🏠</div><div class="lbl">홈</div></div>
+    <div class="ni"><div class="ico">🎟️</div><div class="lbl">쿠폰</div></div>
+    <div class="ni"><div class="ico">✅</div><div class="lbl">협회인증</div></div>
+    <div class="ni" onclick="go(3)"><div class="ico">🎁</div><div class="lbl">리워드</div></div>
+    <div class="ni"><div class="ico">👤</div><div class="lbl">마이</div></div>
+  </div>
+</div>
 
 </div><!-- /phone -->
 
-<!-- APK 다운로드 -->
-<a href="/moincar_v44.apk" class="apk-fab" download>
-  <div class="ficon">📱</div>
-  <div><div class="apk-fab-t">APK 다운로드</div><div class="apk-fab-s">MOINCAR v44 · 13MB</div></div>
-</a>
-
 <script>
-// ── 화면 전환 ──
-function go(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  // 홈 화면이면 스크롤 초기화
-  if(id==='s-home'){
-    const hs=document.getElementById('homeScroll');
-    if(hs) hs.scrollTop=0;
-    document.getElementById('homeHeader').style.transform='translateY(0)';
-    document.querySelector('.scroll-inner').style.paddingTop='100px';
-    document.getElementById('homeNav').style.transform='translateY(0)';
+/* ═══ 화면 전환 ═══ */
+const IDS=['s0','s1','s2','s3','s4','s5','s6'];
+const SNBTNS=document.querySelectorAll('.snbtn');
+function go(idx){
+  IDS.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.classList.toggle('active',i===idx);
+  });
+  SNBTNS.forEach((b,i)=>b.classList.toggle('on',i===idx));
+  if(idx===2){
+    const hs=document.getElementById('hscroll');
+    if(hs)hs.scrollTop=0;
+    const hh=document.getElementById('hhdr');
+    if(hh)hh.style.transform='translateY(0)';
+    const si=document.getElementById('si');
+    if(si)si.style.paddingTop='99px';
+    const hn=document.getElementById('hbnav');
+    if(hn)hn.style.transform='translateY(0)';
   }
 }
 
-// ── 팝업 ──
-function showPopup(){document.getElementById('storePopup').classList.add('show');}
-function hidePopup(){document.getElementById('storePopup').classList.remove('show');}
-
-// ── 약관 동의 토글 ──
-function toggleAgree(row){
-  const chk=row.querySelector('.agree-check');
-  chk.classList.toggle('on');
-}
-
-// ── 배너 자동 슬라이드 ──
+/* ═══ 홈 배너 슬라이드 ═══ */
 let bIdx=0;
-const bTotal=5;
 setInterval(()=>{
-  bIdx=(bIdx+1)%bTotal;
-  document.getElementById('bannerTrack').style.transform=`translateX(-${bIdx*100}%)`;
-  document.querySelectorAll('.b-dot').forEach((d,i)=>d.classList.toggle('on',i===bIdx));
+  bIdx=(bIdx+1)%4;
+  const t=document.getElementById('bt');
+  if(t)t.style.transform=`translateX(-${bIdx*100}%)`;
+  document.querySelectorAll('.bdot').forEach((d,i)=>d.classList.toggle('on',i===bIdx));
 },4000);
 
-// ── 홈 스크롤 → 상단바 연동 ──
-const hScroll=document.getElementById('homeScroll');
-const hHeader=document.getElementById('homeHeader');
-const hNav=document.getElementById('homeNav');
-const HEADER_H=100; // 60+40=100px
+/* ═══ 홈 스크롤 헤더 연동 ═══ */
+const hscroll=document.getElementById('hscroll');
+const hhdr=document.getElementById('hhdr');
+const hbnav=document.getElementById('hbnav');
+let navT,lastY=0;
+if(hscroll){
+  hscroll.addEventListener('scroll',()=>{
+    const off=hscroll.scrollTop;
+    const diff=off-lastY; lastY=off;
+    const slide=Math.min(Math.max(off,0),99);
+    if(hhdr)hhdr.style.transform=`translateY(-${slide}px)`;
+    const si=document.getElementById('si');
+    if(si)si.style.paddingTop=(99-slide)+'px';
+    if(diff>2&&hbnav)hbnav.style.transform='translateY(100%)';
+    clearTimeout(navT);
+    navT=setTimeout(()=>{if(hbnav)hbnav.style.transform='translateY(0)';},600);
+  });
+}
 
-let navTimer;
-let lastScrollY=0;
+/* ═══════════════════════════════════════
+   이동리워드 – v14 실제 Flutter 코드 완전 반영
+═══════════════════════════════════════ */
+// 상태
+let steps=0, distKm=0, speed=4.5;
+const MAX_STEPS=10000, MAX_DIST=50;
+let walkPts=()=>Math.min(Math.floor(steps/100),100);
+let movePts=()=>Math.min(Math.floor(distKm/0.5),50);
+let calories=()=>steps*0.04;
+let walkMin=()=>Math.floor(steps/100);
+let totDist=()=>+(steps*0.0008+distKm).toFixed(1);
+let isDriving=()=>speed>10;
 
-hScroll.addEventListener('scroll',()=>{
-  const off=hScroll.scrollTop;
-  const diff=off-lastScrollY;
-  lastScrollY=off;
+// 보물상자
+let chestPts=0, earnedPts=50, totalPts=132;
+const CHEST_MAX=150;
+let lastTap=0, coinCnt=0;
+// 광고 스케줄 (실제 코드와 동일)
+const AD_SCHED=[5,5,5,5,5,15,5,5,5,5,15,5,5,5,5,15,15,5,5,5,15,15,15,5,30];
+let adCount=0, chestAdBase=0;
 
-  // 헤더 스크롤 연동 (위로 올릴수록 헤더 숨김)
-  const slide=Math.min(Math.max(off,0),HEADER_H);
-  hHeader.style.transform=`translateY(-${slide}px)`;
-  document.getElementById('scrollInner').style.paddingTop=(HEADER_H-slide)+'px';
+function updateRewardUI(){
+  const walking=!isDriving();
+  // 상단바
+  document.getElementById('r-todaySub').textContent=`오늘 ${chestPts} P 수령`;
+  document.getElementById('r-totalPts').textContent=`${totalPts} P`;
+  // 상태 패널
+  const panel=document.getElementById('r-statpanel');
+  panel.className='statpanel '+(walking?'walk':'drive');
+  document.getElementById('r-spico').textContent=walking?'🚶':'🚗';
+  document.getElementById('r-spico').className='sp-ico '+(walking?'walk':'drive');
+  document.getElementById('r-spbadge').textContent=walking?'걷는 중':'이동 중';
+  document.getElementById('r-spbadge').className='sp-badge '+(walking?'walk':'drive');
+  document.getElementById('r-spsteps').textContent=walking?`${steps} 보`:`${distKm.toFixed(1)} km`;
+  document.getElementById('r-spdetail').textContent=`${speed.toFixed(1)} km/h · ${walking?'걸음감지 활성':'GPS 이동감지'}`;
+  document.getElementById('r-walkMeta').textContent=`걷기 ${steps}/${MAX_STEPS}보`;
+  document.getElementById('r-walkPts').textContent=`${walkPts()} P`;
+  document.getElementById('r-walkBar').style.width=(steps/MAX_STEPS*100)+'%';
+  document.getElementById('r-driveMeta').textContent=`이동 ${distKm.toFixed(1)}/${MAX_DIST}km`;
+  document.getElementById('r-drivePts').textContent=`${movePts()} P`;
+  document.getElementById('r-driveBar').style.width=(distKm/MAX_DIST*100)+'%';
+  // 활동 카드
+  document.getElementById('r-actbadge').textContent=walking?'🚶 걷기 활성':'🚗 이동 활성';
+  document.getElementById('r-actbadge').className='act-mode-badge '+(walking?'walk':'drive');
+  // 걷기 카드
+  const wc=document.getElementById('r-walkCard');
+  wc.className='act-half '+(walking?(steps<MAX_STEPS?'active-walk':'active-walk'):'inactive');
+  document.getElementById('r-walkEmo').style.color=!walking?'grey':'';
+  document.getElementById('r-walkCardPts').textContent=`${walkPts()} P`;
+  document.getElementById('r-walkCardPts').className='ah-pts walk'+((!walking||steps>=MAX_STEPS)?' dim':'');
+  document.getElementById('r-walkSteps').textContent=`${steps} 보`;
+  document.getElementById('r-walkCardBar').style.width=(steps/MAX_STEPS*100)+'%';
+  document.getElementById('r-walkCardBar').style.background=!walking?'#3A3A4A':'var(--green)';
+  document.getElementById('r-walkHint').textContent=!walking?'🚶 걷기 중 비활성':(steps>=MAX_STEPS?'완료! 🎉':'+100보 탭');
+  document.getElementById('r-walkHint').style.color=!walking?'#555566':(steps>=MAX_STEPS?'var(--t2)':'var(--green)');
+  // 이동 카드
+  const dc=document.getElementById('r-driveCard');
+  dc.className='act-half '+(isDriving()?(distKm<MAX_DIST?'active-drive':'active-drive'):'inactive');
+  document.getElementById('r-driveCardPts').textContent=`${movePts()} P`;
+  document.getElementById('r-driveCardPts').className='ah-pts drive'+((!isDriving()||distKm>=MAX_DIST)?' dim':'');
+  document.getElementById('r-driveDist').textContent=`${distKm.toFixed(1)} km`;
+  document.getElementById('r-driveCardBar').style.width=(distKm/MAX_DIST*100)+'%';
+  document.getElementById('r-driveCardBar').style.background=walking?'#3A3A4A':'var(--orange)';
+  document.getElementById('r-driveHint').textContent=walking?'🚶 걷기 중 비활성':(distKm>=MAX_DIST?'완료! 🎉':'+500m');
+  document.getElementById('r-driveHint').style.color=walking?'#555566':(distKm<MAX_DIST?'var(--orange)':'var(--t2)');
+  // 칼로리
+  document.getElementById('r-cal').textContent=calories().toFixed(0)+' kcal';
+  document.getElementById('r-time').textContent=walkMin()+' 분';
+  document.getElementById('r-totdist').textContent=totDist()+' km';
+  // 보물상자
+  const full=chestPts>=CHEST_MAX;
+  const noEarned=earnedPts<=0;
+  const chest=document.getElementById('r-chest');
+  chest.className='chest-card '+(full||noEarned?'empty':'active');
+  document.getElementById('r-chestPts').textContent=`${chestPts} / ${CHEST_MAX} P`;
+  const wp=document.getElementById('r-waitPts');
+  wp.textContent=`대기 ${earnedPts} P`;
+  wp.className='wait '+(noEarned?'none':'have');
+  const hint=document.getElementById('r-chestHint');
+  hint.textContent=full?'🔒 오늘 한도 완료! 내일 다시 도전하세요.':noEarned?'걷기·이동으로 포인트를 먼저 획득하세요!':'상자를 터치하면 1P 수령 · 6P마다 광고';
+  hint.className='cc-hint '+(full?'full':noEarned?'empty':'active');
+  const circle=document.getElementById('r-chestCircle');
+  circle.textContent=full?'🔒':noEarned?'📦':'🎁';
+  circle.className='cc-circle '+(full?'full':noEarned?'empty':'active');
+  document.getElementById('r-chestRecv').textContent=`${chestPts} P 수령`;
+  const pb=document.getElementById('r-chestProgBar');
+  pb.style.width=(chestPts/CHEST_MAX*100)+'%';
+  pb.className='cc-progfill'+(full?' full':'');
+  // 광고 25칸
+  const adbar=document.getElementById('r-adbar');
+  adbar.innerHTML='';
+  AD_SCHED.forEach((d,i)=>{
+    const s=document.createElement('span');
+    if(i<adCount){s.className=d===30?'done-30':d===15?'done-15':'done-5';}
+    else{s.className='undone';}
+    adbar.appendChild(s);
+  });
+  document.getElementById('r-adcnt').textContent=`광고 ${adCount}/25`;
+  // 기프트 배지
+  document.getElementById('r-giftBadge').textContent=`⭐ ${totalPts} P 보유`;
+}
 
-  // 하단 네비 숨김/표시
-  if(diff>2){
-    hNav.style.transform='translateY(100%)';
+function simStep(){
+  if(steps>=MAX_STEPS||isDriving())return;
+  const before=walkPts();
+  steps=Math.min(steps+100,MAX_STEPS);
+  speed=4.5+(steps%500)/200;
+  const after=walkPts();
+  if(after>before){earnedPts+=after-before;totalPts+=after-before;}
+  updateRewardUI();
+  showToast('+100보 걷기 인식!');
+}
+function simDrive(){
+  if(distKm>=MAX_DIST||!isDriving())return;
+  const before=movePts();
+  distKm=Math.min(+(distKm+0.5).toFixed(1),MAX_DIST);
+  speed=30+(distKm*0.5)%40;
+  const after=movePts();
+  if(after>before){earnedPts+=after-before;totalPts+=after-before;}
+  updateRewardUI();
+  showToast('+0.5km 이동 인식!');
+}
+
+/* 보물상자 탭 (실제 _tapChest 로직 완전 동일) */
+function tapChest(e){
+  if(chestPts>=CHEST_MAX||earnedPts<=0)return;
+  const now=Date.now();
+  if(now-lastTap<120)return;
+  lastTap=now;
+  if(navigator.vibrate)navigator.vibrate(30);
+  coinCnt++;
+  const xOff=(coinCnt%9-4)*9;
+  chestPts++;
+  earnedPts=Math.max(earnedPts-1,0);
+  totalPts++;
+  updateRewardUI();
+  spawnCoin(e,xOff);
+  checkAdTrigger();
+}
+function spawnCoin(e,xOff){
+  const phone=document.getElementById('phone');
+  const pr=phone.getBoundingClientRect();
+  const circle=document.getElementById('r-chestCircle');
+  const cr=circle.getBoundingClientRect();
+  const cx=cr.left-pr.left+cr.width/2;
+  const cy=cr.top-pr.top+cr.height/2;
+  const coin=document.createElement('div');
+  coin.className='coin';
+  coin.textContent='🪙';
+  coin.style.cssText=`left:${cx-14+xOff}px;top:${cy-14}px;`;
+  phone.appendChild(coin);
+  const plus=document.createElement('div');
+  plus.className='coin-plus';
+  plus.textContent='+1P';
+  plus.style.cssText=`left:${cx+10+xOff}px;top:${cy-18}px;`;
+  phone.appendChild(plus);
+  setTimeout(()=>{coin.remove();plus.remove();},1000);
+}
+function checkAdTrigger(){
+  if(adCount>=25)return;
+  while(chestPts-chestAdBase>=6&&adCount<25){
+    adCount++;
+    chestAdBase+=6;
+    updateRewardUI();
+    showToast(`광고 ${adCount}/25 (${AD_SCHED[adCount-1]}초)`);
+    break;
   }
-  clearTimeout(navTimer);
-  navTimer=setTimeout(()=>{hNav.style.transform='translateY(0)';},600);
-});
+}
+
+/* 기간별 차트 */
+const CHART_DATA={
+  w:{data:[28,45,32,58,72,44,chestPts||32],labels:['월','화','수','목','금','토','일'],total:342},
+  m:{data:[210,340,289,420,380,310,350],labels:['1주','2주','3주','4주','5주','6주','7주'],total:2300},
+  y:{data:[1200,1500,1800,2100,1900,2300,1800,2600,2200,2900,2400,3100],labels:['1','2','3','4','5','6','7','8','9','10','11','12'],total:26800}
+};
+let curTab='w';
+function renderChart(type){
+  curTab=type;
+  const d=CHART_DATA[type];
+  const max=Math.max(...d.data)||1;
+  const ca=document.getElementById('r-chart');
+  if(!ca)return;
+  ca.innerHTML='';
+  d.data.forEach((v,i)=>{
+    const isToday=i===d.data.length-1;
+    const h=Math.max((v/max)*68,3);
+    ca.innerHTML+=`<div class="cbar"><div class="cbar-val">${v}</div><div class="cbar-fill ${isToday?'today':'past'}" style="height:${h}px"></div><div class="cbar-lbl">${d.labels[i]}</div></div>`;
+  });
+  document.getElementById('r-chartTotal').textContent=d.total.toLocaleString()+'P';
+}
+function setTab(btn,type){
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  renderChart(type);
+}
+renderChart('w');
+
+/* 기프트 팝업 */
+function openGift(brand,emo,pts){
+  document.getElementById('gp-brand').textContent=brand;
+  document.getElementById('gp-emo').textContent=emo;
+  document.getElementById('gp-pts').textContent=`${pts}P 필요`;
+  document.getElementById('gp-have').textContent=`${totalPts}P`;
+  document.getElementById('gp-remain').textContent=`${Math.max(totalPts-pts,0)}P`;
+  document.getElementById('giftPopup').classList.add('show');
+}
+function closeGift(){document.getElementById('giftPopup').classList.remove('show');}
+
+/* ═══ 내차시세 ═══ */
+let appListVisible=false;
+let photoCnt=2;
+function toggleAppList(){
+  appListVisible=!appListVisible;
+  document.getElementById('appListWrap').style.display=appListVisible?'block':'none';
+}
+function addPhoto(){
+  if(photoCnt>=5){showToastIn('s4','최대 5장까지 첨부 가능합니다.');return;}
+  photoCnt++;
+  const row=document.getElementById('photoRow');
+  const add=row.querySelector('.photo-add-btn');
+  const img=document.createElement('img');
+  img.className='photo-thumb';
+  img.src='https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=120&q=60';
+  img.alt='';
+  row.insertBefore(img,add);
+}
+function submitCarPrice(){
+  appListVisible=true;
+  document.getElementById('appListWrap').style.display='block';
+  const list=document.querySelector('.app-list');
+  const d=new Date();
+  const id=`#${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(Math.floor(Math.random()*99)+1).padStart(3,'0')}`;
+  const item=document.createElement('div');
+  item.className='aitem';
+  item.innerHTML=`<div class="aitem-row"><span class="aid">${id}</span><span class="astatus wait">견적 대기</span></div><div class="acar">현대 아반떼 CN7 2022 · 48,000km</div><div class="adate">신청일: ${d.toLocaleDateString('ko-KR')}</div><div class="adealer">딜러 배정 중...</div>`;
+  list.insertBefore(item,list.firstChild);
+  list.scrollIntoView({behavior:'smooth'});
+  showToastIn('s4','시세 문의 신청 완료! 딜러 연락 대기 중');
+}
+
+/* ═══ 상품 사진 추가 ═══ */
+function addProdPhoto(wrap,max){
+  const id=wrap.parentElement.querySelector('[id^="pp"]').id;
+  const el=document.getElementById(id);
+  const cur=parseInt(el.textContent.match(/\d+/)[0])||0;
+  if(cur>=max){showToastIn('s5',`최대 ${max}장까지 등록 가능합니다.`);return;}
+  const img=document.createElement('img');
+  img.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=120&q=60';
+  img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0';
+  const badge=wrap.querySelector('div');
+  while(wrap.firstChild&&wrap.firstChild!==badge)wrap.removeChild(wrap.firstChild);
+  wrap.insertBefore(img,badge);
+  el.textContent=`📷 ${cur+1}/${max}`;
+  showToastIn('s5',`사진 등록 완료 (${cur+1}/${max})`);
+}
+
+/* ═══ 점포상세 탭 ═══ */
+function setDtab(idx){
+  document.querySelectorAll('.dtab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  for(let i=0;i<4;i++){const el=document.getElementById('dtab'+i);if(el)el.style.display=i===idx?'block':'none';}
+}
+
+/* ═══ 토스트 ═══ */
+function showToast(msg){
+  const phone=document.getElementById('phone');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  phone.appendChild(t);
+  setTimeout(()=>t.remove(),2100);
+}
+function showToastIn(screenId,msg){
+  const screen=document.getElementById(screenId);
+  if(!screen)return;
+  const old=screen.querySelector('.toast');
+  if(old)old.remove();
+  const t=document.createElement('div');
+  t.className='toast';
+  t.textContent=msg;
+  screen.appendChild(t);
+  setTimeout(()=>t.remove(),2100);
+}
+
+/* 초기 UI */
+updateRewardUI();
 </script>
 </body>
 </html>
