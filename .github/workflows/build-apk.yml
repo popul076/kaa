@@ -2,7 +2,7 @@ name: Build Flutter APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, light-theme ]
   workflow_dispatch:
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: moincar-v15-apk
+          name: moincar-light-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
 

@@ -40,7 +40,7 @@ class AuthPrefs {
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  static const Color _bg     = Color(0xFF020810);
+  static const Color _bg     = Color(0xFFF4F6FB);
   static const Color _s1     = Color(0xFF071428);
   static const Color _s2     = Color(0xFF0D1E3C);
   static const Color _br     = Color(0xFF1A3050);
@@ -275,8 +275,8 @@ class SignupNormalScreen extends StatefulWidget {
 }
 
 class _SignupNormalScreenState extends State<SignupNormalScreen> {
-  static const Color _bg     = Color(0xFF020810);
-  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _bg     = Color(0xFFF4F6FB);
+  static const Color _card   = Color(0xFFFFFFFF);
   static const Color _br     = Color(0xFF1E3A5F);
   static const Color _accent = Color(0xFF4FC3F7);
   static const Color _orange = Color(0xFFFF6B35);
@@ -894,8 +894,8 @@ class NormalLoginScreen extends StatefulWidget {
 }
 
 class _NormalLoginScreenState extends State<NormalLoginScreen> {
-  static const Color _bg     = Color(0xFF020810);
-  static const Color _card   = Color(0xFF0D1B2A);
+  static const Color _bg     = Color(0xFFF4F6FB);
+  static const Color _card   = Color(0xFFFFFFFF);
   static const Color _br     = Color(0xFF1E3A5F);
   static const Color _accent = Color(0xFF4FC3F7);
   static const Color _t1     = Color(0xFFE8F4FF);

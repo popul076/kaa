@@ -27,16 +27,16 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
 
-  // ── 컬러 시스템 ──────────────────────────────────────────────
-  static const Color _bg      = Color(0xFF020810);
-  static const Color _s1      = Color(0xFF071428);
-  static const Color _s2      = Color(0xFF0D1E3C);
-  static const Color _br      = Color(0xFF1A3050);
-  static const Color _accent  = Color(0xFF4FC3F7);
-  static const Color _accentS = Color(0xFF1A3A6E);
-  static const Color _t1      = Color(0xFFE8F4FF);
-  static const Color _t2      = Color(0xFF7AB0D4);
-  static const Color _t3      = Color(0xFF3A6080);
+  // ── 컬러 시스템 (라이트 테마) ────────────────────────────────
+  static const Color _bg      = Color(0xFFF4F6FB);  // 메인 배경 - 연한 흰색
+  static const Color _s1      = Color(0xFFFFFFFF);  // 카드 배경 - 흰색
+  static const Color _s2      = Color(0xFFEBF0FA);  // 서브 배경 - 연한 파랑
+  static const Color _br      = Color(0xFFD0DCF0);  // 테두리 - 연한 회색
+  static const Color _accent  = Color(0xFF1565C0);  // 포인트 - 진한 파랑
+  static const Color _accentS = Color(0xFFDCEAFD);  // 포인트 배경 - 연한 파랑
+  static const Color _t1      = Color(0xFF0D1B2A);  // 주 텍스트 - 거의 검정
+  static const Color _t2      = Color(0xFF2E4A6A);  // 보조 텍스트 - 진한 네이비
+  static const Color _t3      = Color(0xFF6B85A0);  // 3차 텍스트 - 회색
 
   // ── 상단 레이아웃 상수 ────────────────────────────────────────
   static const double _topBarH    = 56.0;   // 로고바 높이
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen>
       'sub': '전국 주유소 최저가 실시간 비교',
       'tag': '⛽ 주유 정보',
       'image': 'https://images.unsplash.com/photo-1565728744382-61accd4aa148?w=600&q=80',
-      'color': Color(0xFF0D1E10),
+      'color': Color(0xFFE8F5E9),
       'route': '',  // 주유 팝업 표시
     },
     {
@@ -160,10 +160,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── 퀵 기능 (4종) ────────────────────────────────────────────
   final List<Map<String, dynamic>> _quickItems = [
-    {'icon': Icons.local_fire_department_outlined, 'label': '긴급\n출동',   'color': Color(0xFF7B1E2A), 'aColor': Color(0xFFFF6B6B)},
-    {'icon': Icons.price_change_outlined,           'label': '내 차\n시세',  'color': Color(0xFF0D2A4A), 'aColor': Color(0xFF4FC3F7)},
-    {'icon': Icons.newspaper_outlined,              'label': '자동차\n뉴스', 'color': Color(0xFF0A1E3A), 'aColor': Color(0xFF4FC3F7)},
-    {'icon': Icons.card_giftcard_outlined,          'label': '이동\n리워드', 'color': Color(0xFF1A1040), 'aColor': Color(0xFF9B7CFF)},
+    {'icon': Icons.local_fire_department_outlined, 'label': '긴급\n출동',   'color': Color(0xFFFFEBEE), 'aColor': Color(0xFFD32F2F)},
+    {'icon': Icons.price_change_outlined,           'label': '내 차\n시세',  'color': Color(0xFFE3F2FD), 'aColor': Color(0xFF1565C0)},
+    {'icon': Icons.newspaper_outlined,              'label': '자동차\n뉴스', 'color': Color(0xFFE8EAF6), 'aColor': Color(0xFF3949AB)},
+    {'icon': Icons.card_giftcard_outlined,          'label': '이동\n리워드', 'color': Color(0xFFF3E5F5), 'aColor': Color(0xFF7B1FA2)},
   ];
 
   // ── 추천 점포 ────────────────────────────────────────────────
@@ -545,7 +545,7 @@ class _HomeScreenState extends State<HomeScreen>
         const Spacer(),
         // 알림
         GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/notification'),
+          onTap: () {},
           child: Stack(clipBehavior: Clip.none, children: [
             Container(
               width: 38, height: 38,
@@ -566,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(width: 8),
         // 마이버튼 → 마이페이지 이동
         GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/my'),
+          onTap: () {},
           child: Container(
             width: 38, height: 38,
             decoration: BoxDecoration(color: _s1,
@@ -695,7 +695,6 @@ class _HomeScreenState extends State<HomeScreen>
     if (query.trim().isEmpty) return;
     _searchFocus.unfocus();
     // 검색 결과 → StoreListScreen으로 이동
-    Navigator.pushNamed(context, '/store-list');
     setState(() => _isSearchActive = false);
   }
 
@@ -705,7 +704,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: const Color(0xFFFFFFFF),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
@@ -746,7 +745,7 @@ class _HomeScreenState extends State<HomeScreen>
                 height: 100,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF020810),
+                  color: const Color(0xFFF4F6FB),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: _isListening
@@ -864,7 +863,6 @@ class _HomeScreenState extends State<HomeScreen>
                       builder: (_) => _buildGasPopupDialog(),
                     );
                   } else {
-                    Navigator.pushNamed(context, route);
                   }
                 },
                 child: Stack(fit: StackFit.expand, children: [
@@ -1005,7 +1003,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildGasPopupDialog() {
     final lowestGasIdx = _lowestGasIdx;
     return Dialog(
-      backgroundColor: const Color(0xFF0D1B2A),
+      backgroundColor: const Color(0xFFFFFFFF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 30),
       child: SingleChildScrollView(
@@ -1380,7 +1378,7 @@ class _HomeScreenState extends State<HomeScreen>
             // storeId: 1,2,3... (AppData.stores 인덱스 기준)
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () => Navigator.push(context,
+              onTap: () {// UI only
                 MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
                   settings: RouteSettings(arguments: storeId))),
               child: Container(
@@ -1525,12 +1523,7 @@ class _HomeScreenState extends State<HomeScreen>
               final aColor = item['aColor'] as Color;
               return Expanded(
                 child: GestureDetector(
-                  onTap: () {
-                    if (idx == 0) Navigator.pushNamed(context, '/emergency');
-                    else if (idx == 1) Navigator.pushNamed(context, '/car-price');
-                    else if (idx == 2) Navigator.pushNamed(context, '/news');
-                    else if (idx == 3) Navigator.pushNamed(context, '/reward');
-                  },
+                  onTap: () {},
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     padding: const EdgeInsets.fromLTRB(4, 18, 4, 18),
@@ -1610,7 +1603,7 @@ class _HomeScreenState extends State<HomeScreen>
       margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
       height: 240,  // 220 → 240 (+20px)
       decoration: BoxDecoration(
-        color: const Color(0xFF050E1E),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _br.withOpacity(0.4)),
       ),
@@ -1709,7 +1702,7 @@ class _HomeScreenState extends State<HomeScreen>
             final dist = s['distLabel'] as String? ?? '';
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () => Navigator.push(context,
+              onTap: () {// UI only
                 MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
                   settings: RouteSettings(arguments: storeId))),
               child: Container(
@@ -1832,7 +1825,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(18),
         gradient: const LinearGradient(
           begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Color(0xFF071428), Color(0xFF0D2040), Color(0xFF071428)],
+          colors: [Color(0xFFDCEAFD), Color(0xFFEBF4FF), Color(0xFFDCEAFD)],
         ),
         border: Border.all(color: _accentS.withOpacity(0.5)),
       ),
@@ -1911,7 +1904,7 @@ class _HomeScreenState extends State<HomeScreen>
             final s = _recentStores[i];
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () => Navigator.push(context,
+              onTap: () {// UI only
                 MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
                   settings: RouteSettings(arguments: storeId))),
               child: Container(
@@ -1985,7 +1978,7 @@ class _HomeScreenState extends State<HomeScreen>
         final s = entry.value;
         final storeId = (i % AppData.stores.length) + 1;
         return GestureDetector(
-          onTap: () => Navigator.push(context,
+          onTap: () {// UI only
             MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
               settings: RouteSettings(arguments: storeId))),
           child: Container(
@@ -2540,7 +2533,7 @@ class _HomeScreenState extends State<HomeScreen>
 class _NavyGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF050E1E));
+    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFEBF0FA));
     final p = Paint()
       ..color = const Color(0xFF142244).withOpacity(0.5)
       ..strokeWidth = 0.5;

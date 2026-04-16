@@ -13,7 +13,7 @@ class IntroScreen extends StatefulWidget {
 }
 
 class _IntroScreenState extends State<IntroScreen> {
-  static const Color _bg     = Color(0xFF020810);
+  static const Color _bg     = Color(0xFFF4F6FB);
   static const Color _s1     = Color(0xFF071428);
   static const Color _accent = Color(0xFF4FC3F7);
   static const Color _t1     = Color(0xFFE8F4FF);
@@ -49,7 +49,7 @@ class _IntroScreenState extends State<IntroScreen> {
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF020810),
+        statusBarColor: Color(0xFFF4F6FB),
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(

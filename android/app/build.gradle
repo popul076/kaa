@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.kaa.mobility.kaa_app"
+    namespace = "com.moincar.light"
     compileSdk = 35
     ndkVersion = "26.1.10909125"
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.kaa.mobility.kaa_app"
+        applicationId = "com.moincar.light"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

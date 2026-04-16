@@ -10,8 +10,8 @@ import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
 
 // ── MOINCAR 공통 다크 색상 상수 ──
-const Color _mBg      = Color(0xFF020810);
-const Color _mCard    = Color(0xFF0D1B2A);
+const Color _mBg      = Color(0xFFF4F6FB);
+const Color _mCard    = Color(0xFFFFFFFF);
 const Color _mAccent  = Color(0xFF4FC3F7);
 const Color _mOrange  = Color(0xFFFF6B35);
 const Color _mGreen   = Color(0xFF10B981);
@@ -457,7 +457,7 @@ class _UsedCarScreenState extends State<UsedCarScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D1B2A),
+                      color: const Color(0xFFFFFFFF),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: _mBorder),
                     ),
@@ -599,8 +599,8 @@ class MyScreen extends StatefulWidget {
 
 class _MyScreenState extends State<MyScreen> {
   // MOINCAR 다크 컬러
-  static const Color _bg      = Color(0xFF020810);
-  static const Color _card    = Color(0xFF0D1B2A);
+  static const Color _bg      = Color(0xFFF4F6FB);
+  static const Color _card    = Color(0xFFFFFFFF);
   static const Color _accent  = Color(0xFF4FC3F7);
   static const Color _orange  = Color(0xFFFF6B35);
   static const Color _green   = Color(0xFF10B981);
@@ -618,7 +618,7 @@ class _MyScreenState extends State<MyScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF020810),
+        statusBarColor: Color(0xFFF4F6FB),
         statusBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
@@ -1482,8 +1482,8 @@ class _StoreRegisterScreenState extends State<StoreRegisterScreen>
   ];
 
   // 다크 테마 색상
-  static const _bg = Color(0xFF020810);
-  static const _card = Color(0xFF0D1B2A);
+  static const _bg = Color(0xFFF4F6FB);
+  static const _card = Color(0xFFFFFFFF);
   static const _accent = Color(0xFF4FC3F7);
   static const _textPrimary = Colors.white;
   static const _textSecondary = Color(0xFFB0BEC5);
