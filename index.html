@@ -1037,15 +1037,12 @@ body{background:#111;display:flex;justify-content:center;align-items:flex-start}
   </div>
   <div class="my-body">
     <!-- 프로필 카드 -->
-    <div class="my-profile-card">
+    <div class="my-profile-card" id="my-profile-card-content">
       <div class="my-avatar" id="my-avatar">M</div>
       <div style="flex:1">
-        <div class="my-user-name" id="my-username">사용자</div>
-        <div>
-          <span class="my-role-badge" style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.5);color:var(--green)">👤 일반 이용자</span>
-        </div>
+        <div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:8px">로그인이 필요합니다</div>
+        <div onclick="go('s-login')" style="display:inline-block;padding:6px 14px;background:rgba(79,195,247,.15);border:1px solid rgba(79,195,247,.4);border-radius:8px;font-size:13px;color:var(--accent);font-weight:700;cursor:pointer">로그인 / 회원가입</div>
       </div>
-      <i class="fas fa-chevron-right" style="color:var(--tsec)"></i>
     </div>
 
     <!-- 내 활동 -->
@@ -1578,16 +1575,43 @@ function completeSignup() {
   const nick = document.getElementById('nick-input').value.trim() || '사용자';
   state.username = nick;
   state.loggedIn = true;
+  updateMyPage();
+  go('s-home');
+  showToast('환영합니다, ' + nick + '님!');
+}
+function updateMyPage() {
+  const nick = state.username;
   const av = document.getElementById('my-avatar');
   const un = document.getElementById('my-username');
   if (av) av.textContent = nick.charAt(0).toUpperCase();
   if (un) un.textContent = nick;
-  go('s-home');
-  showToast('환영합니다, ' + nick + '님!');
+  // 로그인 상태면 프로필 카드 정상 표시, 비로그인이면 로그인 유도
+  const profileCard = document.getElementById('my-profile-card-content');
+  if (!profileCard) return;
+  if (state.loggedIn) {
+    profileCard.innerHTML = `
+      <div class="my-avatar" id="my-avatar">${nick.charAt(0).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="my-user-name" id="my-username">${nick}</div>
+        <div><span class="my-role-badge" style="background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.5);color:var(--green)">👤 일반 이용자</span></div>
+      </div>
+      <i class="fas fa-chevron-right" style="color:var(--tsec)"></i>
+    `;
+  } else {
+    profileCard.innerHTML = `
+      <div class="my-avatar" id="my-avatar">M</div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:600;color:#fff;margin-bottom:8px">로그인이 필요합니다</div>
+        <div onclick="go('s-login')" style="display:inline-block;padding:6px 14px;background:rgba(79,195,247,.15);border:1px solid rgba(79,195,247,.4);border-radius:8px;font-size:13px;color:var(--accent);font-weight:700;cursor:pointer">로그인 / 회원가입</div>
+      </div>
+    `;
+  }
 }
 function logout() {
   state.loggedIn = false;
   state.agreed.clear();
+  state.username = '사용자';
+  updateMyPage();
   go('s-intro');
 }
 
@@ -1819,6 +1843,8 @@ function showToast(msg) {
 renderCars('전체');
 renderStoreList('전체');
 renderChart();
+// 앱 시작 시 항상 인트로부터
+go('s-intro');
 </script>
 </body>
 </html>
