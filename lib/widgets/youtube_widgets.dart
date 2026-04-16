@@ -20,54 +20,70 @@ class ShortsData {
   });
 }
 
-// 실제 자동차 관련 유튜브 쇼츠 영상 목록
+// 실제 자동차 관련 유튜브 쇼츠 영상 목록 (실제 존재하는 쇼츠 ID)
 final List<ShortsData> kAutoShorts = [
   ShortsData(
-    videoId: 'dQw4w9WgXcQ', // 대체: 아래에서 실제 쇼츠 ID로 사용
-    title: '전기차 급속충전 꿀팁',
-    category: '전기차',
-    views: '4.2만',
+    videoId: 'M_ehRbGlwDQ', // 차 오래 타고 싶다면 이 4가지는 꼭 챙기세요
+    title: '차 오래 타려면 이 4가지 필수!',
+    category: '차량관리',
+    views: '3.2만',
   ),
   ShortsData(
-    videoId: 'jNQXAC9IVRw',
-    title: '타이어 마모도 셀프 점검법',
-    category: '정비',
-    views: '2.8만',
+    videoId: 'pL7ay-zd5Eo', // 내 차 수명 2배! 소모품 교체주기 총정리
+    title: '소모품 교체주기 총정리 🛠️',
+    category: '정비꿀팁',
+    views: '5.1만',
   ),
   ShortsData(
-    videoId: 'M7lc1UVf-VE',
-    title: '엔진오일 교환 주기 완벽 정리',
-    category: '정비',
-    views: '6.1만',
+    videoId: 'x16Q5CObhQc', // 여름 차량 관리 꿀팁
+    title: '여름철 차량관리 치트키 5가지',
+    category: '여름관리',
+    views: '2.7만',
   ),
   ShortsData(
-    videoId: 'ZyhrYis509A',
-    title: '중고차 사기 안 당하는 법',
-    category: '중고차',
-    views: '11.5만',
+    videoId: 'OI4-OdUIY8A', // 엔진오일 교환 타이밍 한방 정리
+    title: '엔진오일 교환 타이밍 완벽정리',
+    category: '정비꿀팁',
+    views: '4.8만',
   ),
   ShortsData(
-    videoId: 'kJQP7kiw5Fk',
-    title: '블랙박스 주차모드 설정법',
-    category: '용품',
-    views: '3.3만',
+    videoId: 'vl7jZcVHJTg', // 여름철 타이어 공기압 관리
+    title: '여름 타이어 공기압 차종별 관리법',
+    category: '안전운행',
+    views: '3.9만',
   ),
   ShortsData(
-    videoId: '09R8_2nJtjg',
-    title: '신차 vs 중고차 비교 분석',
-    category: '구매팁',
-    views: '8.7만',
+    videoId: 'psNIy8wk4MQ', // 겨울철 차량관리
+    title: '모르면 손해! 계절별 차량관리법',
+    category: '차량관리',
+    views: '6.3만',
+  ),
+  ShortsData(
+    videoId: 'fya_C7bfbQw', // 고무·쇠부품 관리
+    title: '차량 고무·쇠부품 관리 꿀팁',
+    category: '정비꿀팁',
+    views: '1.9만',
+  ),
+  ShortsData(
+    videoId: 'Vs_TsMbE8CA', // 여름철 타이어 공기압 주의
+    title: '여름 타이어 이러면 무조건 터짐 ⚠️',
+    category: '안전운행',
+    views: '8.2만',
   ),
 ];
 
 // 카테고리별 색상
 Color _categoryColor(String cat) {
   switch (cat) {
-    case '전기차': return const Color(0xFF4FC3F7);
-    case '정비':  return const Color(0xFFFFB74D);
-    case '중고차': return const Color(0xFF81C784);
-    case '용품':  return const Color(0xFFCE93D8);
-    case '구매팁': return const Color(0xFFFF8A65);
+    case '차량관리':  return const Color(0xFF4FC3F7);
+    case '정비꿀팁': return const Color(0xFFFFB74D);
+    case '여름관리': return const Color(0xFFFF7043);
+    case '안전운행': return const Color(0xFF81C784);
+    case '중고차':  return const Color(0xFFCE93D8);
+    case '구매팁':  return const Color(0xFFFF8A65);
+    case '전기차':  return const Color(0xFF4FC3F7);
+    case '정비':   return const Color(0xFFFFB74D);
+    case '용품':   return const Color(0xFFCE93D8);
     default:      return const Color(0xFF90A4AE);
   }
 }
