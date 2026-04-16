@@ -1465,55 +1465,133 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  // 퀵 기능 — 4칸
+  // 빠른기능 — 4칸 (타이틀 포함)
   // ══════════════════════════════════════════════════════════════
   Widget _buildQuickActions() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 26, 14, 0),
-      child: Row(
-        children: _quickItems.asMap().entries.map((e) {
-          final item = e.value;
-          final bgColor = item['color'] as Color;
-          final aColor = item['aColor'] as Color;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                final idx = e.key;
-                if (idx == 0) Navigator.pushNamed(context, '/emergency');
-                else if (idx == 1) Navigator.pushNamed(context, '/car-price');
-                else if (idx == 2) Navigator.pushNamed(context, '/news');
-                else if (idx == 3) Navigator.pushNamed(context, '/reward');
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.fromLTRB(4, 22, 4, 22),
+    // 4가지 테마 이름
+    final List<String> themeNames = ['긴급출동', '내 차 시세', '자동차뉴스', '이동리워드'];
+    final List<String> themeSubtitles = ['24시간 긴급', '무료 조회', '최신 정보', '포인트 적립'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── '빠른기능' 섹션 타이틀 ──────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 26, 16, 14),
+          child: Row(
+            children: [
+              Container(
+                width: 4, height: 20,
                 decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: aColor.withOpacity(0.35)),
-                ),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Container(
-                    width: 56, height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black.withOpacity(0.2),
-                      border: Border.all(color: aColor.withOpacity(0.4)),
-                    ),
-                    child: Icon(item['icon'] as IconData, color: aColor, size: 28),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFFF6B6B), Color(0xFF9B7CFF)],
                   ),
-                  const SizedBox(height: 12),
-                  Text(item['label'] as String,
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 11, color: aColor, height: 1.35,
-                          fontWeight: FontWeight.w700),
-                      textAlign: TextAlign.center),
-                ]),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-          );
-        }).toList(),
-      ),
+              const SizedBox(width: 9),
+              Text(
+                '빠른기능',
+                style: GoogleFonts.notoSansKr(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '자주 쓰는 서비스',
+                style: GoogleFonts.notoSansKr(
+                  color: const Color(0xFF556677),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── 4개 버튼 그리드 ─────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: _quickItems.asMap().entries.map((e) {
+              final idx = e.key;
+              final item = e.value;
+              final bgColor = item['color'] as Color;
+              final aColor = item['aColor'] as Color;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    if (idx == 0) Navigator.pushNamed(context, '/emergency');
+                    else if (idx == 1) Navigator.pushNamed(context, '/car-price');
+                    else if (idx == 2) Navigator.pushNamed(context, '/news');
+                    else if (idx == 3) Navigator.pushNamed(context, '/reward');
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.fromLTRB(4, 18, 4, 18),
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: aColor.withOpacity(0.35)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: aColor.withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Container(
+                        width: 52, height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withOpacity(0.2),
+                          border: Border.all(color: aColor.withOpacity(0.4)),
+                        ),
+                        child: Icon(item['icon'] as IconData, color: aColor, size: 26),
+                      ),
+                      const SizedBox(height: 10),
+                      // 테마 이름 (큰 글씨)
+                      Text(
+                        themeNames[idx],
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 10,
+                          color: aColor,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      // 서브타이틀 (작은 글씨)
+                      Text(
+                        themeSubtitles[idx],
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 9,
+                          color: aColor.withOpacity(0.6),
+                          height: 1.2,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ]),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
