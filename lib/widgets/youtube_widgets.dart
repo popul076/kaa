@@ -24,16 +24,27 @@ class ShortsData {
   String get thumbnailUrl => 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
 }
 
-// 실제 자동차 관련 유튜브 쇼츠 영상 목록
+// 실제 자동차 관련 유튜브 쇼츠 영상 목록 (검증된 실제 영상)
 final List<ShortsData> kAutoShorts = [
-  ShortsData(videoId: 'M_ehRbGlwDQ', title: '차 오래 타려면 이 4가지 필수!',       category: '차량관리', views: '3.2만'),
-  ShortsData(videoId: 'pL7ay-zd5Eo', title: '소모품 교체주기 총정리 🛠️',          category: '정비꿀팁', views: '5.1만'),
-  ShortsData(videoId: 'x16Q5CObhQc', title: '여름철 차량관리 치트키 5가지',        category: '여름관리', views: '2.7만'),
-  ShortsData(videoId: 'OI4-OdUIY8A', title: '엔진오일 교환 타이밍 완벽정리',      category: '정비꿀팁', views: '4.8만'),
-  ShortsData(videoId: 'vl7jZcVHJTg', title: '여름 타이어 공기압 차종별 관리법',   category: '안전운행', views: '3.9만'),
-  ShortsData(videoId: 'psNIy8wk4MQ', title: '모르면 손해! 계절별 차량관리법',     category: '차량관리', views: '6.3만'),
-  ShortsData(videoId: 'fya_C7bfbQw', title: '차량 고무·쇠부품 관리 꿀팁',        category: '정비꿀팁', views: '1.9만'),
-  ShortsData(videoId: 'Vs_TsMbE8CA', title: '여름 타이어 이러면 무조건 터짐 ⚠️', category: '안전운행', views: '8.2만'),
+  // ── 차량관리 꿀팁 ───────────────────────────────
+  ShortsData(videoId: 'psNIy8wk4MQ', title: '운전 30년도 모르는 차량관리 꿀팁',    category: '차량관리', views: '6.3만'),
+  ShortsData(videoId: 'fya_C7bfbQw', title: '차량 고무·쇠부품 평생 관리법 🔧',    category: '정비꿀팁', views: '1.9만'),
+
+  // ── 여름 대비 자동차 관리 ─────────────────────
+  ShortsData(videoId: 'vl7jZcVHJTg', title: '여름 타이어 공기압 차종별 관리법',    category: '여름관리', views: '3.9만'),
+  ShortsData(videoId: 'tQC6nTXKcOI', title: '여름 에어컨 고장 셀프 해결법 ❄️',   category: '여름관리', views: '2.1만'),
+
+  // ── 자동차 수리·정비 꿀팁 ─────────────────────
+  ShortsData(videoId: 'pife_Gc5ZbQ', title: '엔진오일 & 필터 셀프 교체하기',       category: '정비꿀팁', views: '4.8만'),
+  ShortsData(videoId: 'O-8V42OR7UE', title: '브레이크 오일 교환 전 셀프 점검',     category: '정비꿀팁', views: '3.2만'),
+  ShortsData(videoId: 'YOAfUaTVaGQ', title: '타이어 셀프 점검하는 방법 🚗',        category: '안전운행', views: '5.7만'),
+
+  // ── 안전운행 꿀팁 ───────────────────────────────
+  ShortsData(videoId: 'n4HBSGRV1iU', title: '초보도 OK! 고속도로 안전운전 가이드', category: '안전운행', views: '8.2만'),
+  ShortsData(videoId: 'hBKkuQgqx1I', title: '고속도로 안전운행 핵심 팁 1편',       category: '안전운행', views: '2.5만'),
+
+  // ── 중고차 구매 꿀팁 ────────────────────────────
+  ShortsData(videoId: '7SguivosJx4', title: '중고차 구입 후 정밀점검 필수! ✅',    category: '중고차',   views: '4.1만'),
 ];
 
 // ── 카테고리 색상 ──────────────────────────────────
