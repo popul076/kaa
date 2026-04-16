@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.moincar.white"
+    namespace = "com.kaa.mobility.kaa_app"
     compileSdk = 35
     ndkVersion = "26.1.10909125"
 
