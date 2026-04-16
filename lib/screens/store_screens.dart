@@ -2104,8 +2104,13 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
               border: Border.all(color: const Color(0xFF1E3A5F)),
             ),
             child: YoutubeUrlInputWidget(
-              initialUrl: _youtubeUrl,
-              onChanged: (url) => setState(() => _youtubeUrl = url),
+              initialVideoId: _youtubeUrl != null
+                  ? (_youtubeUrl!.contains('shorts/')
+                      ? _youtubeUrl!.split('shorts/').last.split('?').first
+                      : _youtubeUrl!.split('v=').last.split('&').first)
+                  : null,
+              onVideoIdSaved: (videoId) => setState(
+                  () => _youtubeUrl = 'https://www.youtube.com/shorts/$videoId'),
             ),
           ),
 
