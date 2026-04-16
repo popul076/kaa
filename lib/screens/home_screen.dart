@@ -1599,8 +1599,15 @@ class _HomeScreenState extends State<HomeScreen>
   // 지도 미리보기
   // ══════════════════════════════════════════════════════════════
   Widget _buildMapPreview() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(14, 26, 14, 0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 26, 16, 10),
+          child: _sectionHeader('🗺️  내주변 점포 지도', ''),
+        ),
+        Container(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
       height: 240,  // 220 → 240 (+20px)
       decoration: BoxDecoration(
         color: const Color(0xFF050E1E),
@@ -1657,6 +1664,8 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ]),
       ),
+        ),
+      ],
     );
   }
 
@@ -1685,7 +1694,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 26, 16, 16),
-        child: _sectionHeader('📍  인근 점포', '더보기'),
+        child: _sectionHeader('📍  주변 점포', '더보기'),
       ),
       Stack(children: [
         SizedBox(
