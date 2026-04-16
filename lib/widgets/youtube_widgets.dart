@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/app_state.dart';
 
 // =====================================================
@@ -91,33 +91,13 @@ Color _categoryColor(String cat) {
   }
 }
 
-// YouTube Shorts URL 열기 (YouTube 앱 → 없으면 브라우저)
+// 앱 내 ShortsPlayerPage로 이동
 Future<void> _openYoutubeShorts(BuildContext context, ShortsData shorts) async {
-  // YouTube 앱 딥링크
-  final appUri = Uri.parse('vnd.youtube://shorts/${shorts.videoId}');
-  // 웹 fallback
-  final webUri = Uri.parse(shorts.youtubeUrl);
-
-  try {
-    if (await canLaunchUrl(appUri)) {
-      await launchUrl(appUri, mode: LaunchMode.externalApplication);
-    } else {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-    }
-  } catch (_) {
-    // 모두 실패 시 그냥 웹 브라우저
-    try {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('YouTube를 열 수 없습니다. YouTube 앱을 설치해주세요.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  if (context.mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ShortsPlayerPage(shorts: shorts)),
+    );
   }
 }
 
@@ -411,8 +391,7 @@ class _VerticalShortsCard extends StatelessWidget {
 }
 
 // =====================================================
-// 2. 쇼츠 플레이어 페이지 (YouTube 앱/브라우저로 이동)
-//    → youtube_player_flutter 제거, url_launcher 사용
+// 2. 쇼츠 플레이어 페이지 - 앱 내 youtube_player_flutter 재생
 // =====================================================
 class ShortsPlayerPage extends StatefulWidget {
   final ShortsData shorts;
@@ -423,239 +402,218 @@ class ShortsPlayerPage extends StatefulWidget {
 }
 
 class _ShortsPlayerPageState extends State<ShortsPlayerPage> {
+  late YoutubePlayerController _controller;
+  bool _isFullScreen = false;
+
   @override
   void initState() {
     super.initState();
-    // 페이지 로드 즉시 YouTube 앱/브라우저로 이동
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _openYoutubeShorts(context, widget.shorts);
-    });
+    _initController(widget.shorts.videoId);
+  }
+
+  void _initController(String videoId) {
+    _controller = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        mute: false,
+        enableCaption: false,
+        loop: false,
+        isLive: false,
+        forceHD: false,
+        useHybridComposition: true,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    // 세로 모드 복구
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    super.dispose();
+  }
+
+  void _switchVideo(String videoId) {
+    _controller.load(videoId);
   }
 
   @override
   Widget build(BuildContext context) {
     final catColor = _categoryColor(widget.shorts.category);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A0A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+    return YoutubePlayerBuilder(
+      onExitFullScreen: () {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        setState(() => _isFullScreen = false);
+      },
+      onEnterFullScreen: () {
+        setState(() => _isFullScreen = true);
+      },
+      player: YoutubePlayer(
+        controller: _controller,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: Colors.red,
+        progressColors: const ProgressBarColors(
+          playedColor: Colors.red,
+          handleColor: Colors.redAccent,
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: catColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: catColor.withOpacity(0.5)),
-              ),
-              child: Text(
-                widget.shorts.category,
-                style: TextStyle(
-                  color: catColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                widget.shorts.title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        onReady: () => _controller.play(),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // 썸네일
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                widget.shorts.thumbnailUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  color: const Color(0xFF0D2040),
-                  child: const Icon(Icons.play_circle_outline,
-                      color: Color(0xFF4FC3F7), size: 64),
+      builder: (context, player) {
+        return Scaffold(
+          backgroundColor: Colors.black,
+          appBar: _isFullScreen
+              ? null
+              : AppBar(
+                  backgroundColor: const Color(0xFF0A0A0A),
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: catColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: catColor.withOpacity(0.5)),
+                        ),
+                        child: Text(
+                          widget.shorts.category,
+                          style: TextStyle(
+                            color: catColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.shorts.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            widget.shorts.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          body: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: catColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: catColor.withOpacity(0.5)),
-                ),
-                child: Text(
-                  widget.shorts.category,
-                  style: TextStyle(color: catColor, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
+              // ── 플레이어 (9:16 세로 비율) ──
+              AspectRatio(
+                aspectRatio: 9 / 16,
+                child: player,
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${widget.shorts.views} 조회',
-                style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // YouTube 앱으로 열기 버튼
-          GestureDetector(
-            onTap: () => _openYoutubeShorts(context, widget.shorts),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF0000), Color(0xFFCC0000)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.play_circle_filled, color: Colors.white, size: 28),
-                  SizedBox(width: 10),
-                  Text(
-                    'YouTube에서 재생',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'YouTube 앱 또는 브라우저에서 재생됩니다',
-            style: TextStyle(color: Color(0xFF666666), fontSize: 12),
-          ),
-          const SizedBox(height: 40),
 
-          // 다른 쇼츠 목록
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: const Text(
-                '다른 쇼츠 보기',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+              // ── 영상 정보 ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: catColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: catColor.withOpacity(0.4)),
+                          ),
+                          child: Text(widget.shorts.category,
+                              style: TextStyle(color: catColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${widget.shorts.views} 조회',
+                            style: const TextStyle(color: Color(0xFF888888), fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.shorts.title,
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 90,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: 16),
-              itemCount: kAutoShorts.length,
-              itemBuilder: (context, i) {
-                final s = kAutoShorts[i];
-                if (s.videoId == widget.shorts.videoId) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ShortsPlayerPage(shorts: s),
+
+              const Divider(color: Color(0xFF1E2D40), height: 1),
+
+              // ── 다른 쇼츠 목록 ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('다른 쇼츠 보기',
+                      style: TextStyle(color: catColor, fontSize: 13, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(left: 16),
+                  itemCount: kAutoShorts.length,
+                  itemBuilder: (context, i) {
+                    final s = kAutoShorts[i];
+                    if (s.videoId == widget.shorts.videoId) return const SizedBox.shrink();
+                    return GestureDetector(
+                      onTap: () => _switchVideo(s.videoId),
+                      child: Container(
+                        width: 110,
+                        margin: const EdgeInsets.only(right: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                s.thumbnailUrl,
+                                width: 110, height: 62,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 110, height: 62,
+                                  color: const Color(0xFF1E1E1E),
+                                  child: const Icon(Icons.play_circle_outline,
+                                      color: Colors.white54, size: 24),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              s.title,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
-                  child: Container(
-                    width: 120,
-                    margin: const EdgeInsets.only(right: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            s.thumbnailUrl,
-                            width: 120, height: 68,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 120, height: 68,
-                              color: const Color(0xFF1E1E1E),
-                              child: const Icon(Icons.play_circle_outline,
-                                  color: Colors.white54, size: 24),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          s.title,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 // =====================================================
-// 3. 기존 Store 연결 플레이어 (점포 상세에서 사용)
-//    → url_launcher로 YouTube 앱/브라우저 열기
+// 3. 점포 유튜브 플레이어 (점포 상세에서 사용)
+//    → youtube_player_flutter 앱 내 재생
 // =====================================================
 class YoutubePlayerPage extends StatefulWidget {
   final Store store;
@@ -666,40 +624,29 @@ class YoutubePlayerPage extends StatefulWidget {
 }
 
 class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
-  Future<void> _openStoreVideo() async {
-    if (widget.store.videoId == null) return;
-    final videoId = widget.store.videoId!;
-    final appUri = Uri.parse('vnd.youtube://shorts/$videoId');
-    final webUri = Uri.parse('https://www.youtube.com/shorts/$videoId');
-
-    try {
-      if (await canLaunchUrl(appUri)) {
-        await launchUrl(appUri, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      try {
-        await launchUrl(webUri, mode: LaunchMode.externalApplication);
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('YouTube를 열 수 없습니다.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
+  YoutubePlayerController? _controller;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _openStoreVideo();
-    });
+    if (widget.store.videoId != null) {
+      _controller = YoutubePlayerController(
+        initialVideoId: widget.store.videoId!,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          mute: false,
+          enableCaption: false,
+          useHybridComposition: true,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    super.dispose();
   }
 
   @override
@@ -708,93 +655,80 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
         ? 'https://img.youtube.com/vi/${widget.store.videoId}/mqdefault.jpg'
         : null;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF020810),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1B2A),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
+    // 영상 없는 경우
+    if (_controller == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF020810),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0D1B2A),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(widget.store.name,
+              style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
         ),
-        title: Text(
-          widget.store.name,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        body: const Center(
+          child: Text('등록된 영상이 없습니다', style: TextStyle(color: Colors.white60)),
         ),
+      );
+    }
+
+    return YoutubePlayerBuilder(
+      onExitFullScreen: () =>
+          SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]),
+      player: YoutubePlayer(
+        controller: _controller!,
+        showVideoProgressIndicator: true,
+        progressIndicatorColor: const Color(0xFF4FC3F7),
+        progressColors: const ProgressBarColors(
+          playedColor: Color(0xFF4FC3F7),
+          handleColor: Color(0xFF0288D1),
+        ),
+        onReady: () => _controller!.play(),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (thumbUrl != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  thumbUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 200,
-                    color: const Color(0xFF0D2040),
-                    child: const Icon(Icons.play_circle_outline,
-                        color: Color(0xFF4FC3F7), size: 64),
-                  ),
-                ),
-              ),
+      builder: (context, player) {
+        return Scaffold(
+          backgroundColor: const Color(0xFF020810),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFF0D1B2A),
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
             ),
-          const SizedBox(height: 24),
-          Text(
-            widget.store.name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            title: Text(
+              widget.store.name,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(height: 32),
-          GestureDetector(
-            onTap: _openStoreVideo,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 40),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4FC3F7).withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.play_circle_filled, color: Colors.white, size: 28),
-                  SizedBox(width: 10),
-                  Text(
-                    'YouTube에서 재생',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+          body: Column(
+            children: [
+              // 플레이어 (16:9)
+              AspectRatio(aspectRatio: 16 / 9, child: player),
+              // 점포명 안내
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.store, color: Color(0xFF4FC3F7), size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.store.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            'YouTube 앱 또는 브라우저에서 재생됩니다',
-            style: TextStyle(color: Color(0xFF666666), fontSize: 12),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
