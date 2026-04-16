@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/youtube_widgets.dart';
 import '../models/app_state.dart';
 import 'store_screens.dart';
 
@@ -461,6 +462,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildBanner(),
                 _buildCategoryGrid(),
                 _buildRecommendSection(),
+                const YoutubeShortSlider(),
                 _buildQuickActions(),
                 _buildMapPreview(),
                 _buildNearbySection(),

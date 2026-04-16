@@ -13,18 +13,18 @@ dependencies:
   cupertino_icons: ^1.0.6
   cached_network_image: ^3.3.1
   smooth_page_indicator: ^1.1.0
-  shared_preferences: 2.2.2
+  shared_preferences: ^2.2.2
   url_launcher: ^6.2.5
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
-  geolocator: ^10.1.0
-  geocoding: ^2.1.1
+  geolocator: ^13.0.1
+  geocoding: ^3.0.0
   image_picker: ^1.1.2
   image: ^4.1.7
   flutter_image_compress: ^2.3.0
+  youtube_player_flutter: ^9.1.1
 
 dependency_overrides:
-  shared_preferences_android: 2.3.3
   geolocator_android: 4.5.5
 
 dev_dependencies:

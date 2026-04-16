@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
+import '../widgets/youtube_widgets.dart';
 
 // ==================== 점포 목록 ====================
 class StoreListScreen extends StatefulWidget {
@@ -1253,6 +1254,7 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
 
   // 점포 정보 편집 상태
   bool _isEditing = false;
+  String? _youtubeUrl = 'https://www.youtube.com/shorts/SsGWb9G4bOE';
   final _nameCtrl     = TextEditingController(text: 'MOINCAR 추천 프리미엄 정비소');
   final _subCtrl      = TextEditingController(text: '전문 기술과 정성으로 고객 차량을 책임집니다');
   final _typeCtrl     = TextEditingController(text: '자동차 정비');
@@ -2089,6 +2091,21 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                     Icon(Icons.search, color: _accent, size: 16),
                 ],
               ),
+            ),
+          ),
+
+          // 유튜브 쇼츠 URL 입력
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF020810),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF1E3A5F)),
+            ),
+            child: YoutubeUrlInputWidget(
+              initialUrl: _youtubeUrl,
+              onChanged: (url) => setState(() => _youtubeUrl = url),
             ),
           ),
 
