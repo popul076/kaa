@@ -1378,9 +1378,7 @@ class _HomeScreenState extends State<HomeScreen>
             // storeId: 1,2,3... (AppData.stores 인덱스 기준)
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () {// UI only
-                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
-                  settings: RouteSettings(arguments: storeId))),
+              onTap: () {},
               child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _stores.length - 1 ? 14 : 0),
@@ -1702,9 +1700,7 @@ class _HomeScreenState extends State<HomeScreen>
             final dist = s['distLabel'] as String? ?? '';
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () {// UI only
-                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
-                  settings: RouteSettings(arguments: storeId))),
+              onTap: () {},
               child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _nearbyStores.length - 1 ? 14 : 0),
@@ -1904,9 +1900,7 @@ class _HomeScreenState extends State<HomeScreen>
             final s = _recentStores[i];
             final storeId = (i % AppData.stores.length) + 1;
             return GestureDetector(
-              onTap: () {// UI only
-                MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
-                  settings: RouteSettings(arguments: storeId))),
+              onTap: () {},
               child: Container(
               width: cardW,
               margin: EdgeInsets.only(right: i < _recentStores.length - 1 ? 14 : 0),
@@ -1978,9 +1972,7 @@ class _HomeScreenState extends State<HomeScreen>
         final s = entry.value;
         final storeId = (i % AppData.stores.length) + 1;
         return GestureDetector(
-          onTap: () {// UI only
-            MaterialPageRoute(builder: (_) => const StoreDetailScreen(),
-              settings: RouteSettings(arguments: storeId))),
+          onTap: () {},
           child: Container(
           margin: const EdgeInsets.fromLTRB(14, 0, 14, 16),
           decoration: BoxDecoration(
