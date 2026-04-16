@@ -1,8 +1,8 @@
-name: moincar_light
-description: MOINCAR Light - 라이트 테마 UI 프리뷰
+name: moincar_white
+description: MOINCAR White - 화이트 테마 UI 프리뷰
 
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
