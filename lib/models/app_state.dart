@@ -72,7 +72,7 @@ class QuoteBid {
   final String estimatedTime; // 예상 소요시간
   final String memo;
   final DateTime createdAt;
-  final bool phoneRevealed; // 전화번호 공개 여부 (1:1문의/예약 후)
+  bool phoneRevealed; // 전화번호 공개 여부 (1:1문의/예약 후)
   final String storePhone;  // 실제 전화번호 (phoneRevealed=true 시에만 표시)
   RepairStatus status;
 
@@ -94,6 +94,19 @@ class QuoteBid {
     this.phoneRevealed = false,
     this.status = RepairStatus.matched,
   });
+
+  QuoteBid copyWith({bool? phoneRevealed, RepairStatus? status}) {
+    return QuoteBid(
+      bidId: bidId, storeId: storeId, storeName: storeName,
+      storeDistance: storeDistance, storeRating: storeRating,
+      storeBadge: storeBadge, storeImage: storeImage,
+      partsCost: partsCost, laborCost: laborCost, totalCost: totalCost,
+      estimatedTime: estimatedTime, memo: memo, createdAt: createdAt,
+      storePhone: storePhone,
+      phoneRevealed: phoneRevealed ?? this.phoneRevealed,
+      status: status ?? this.status,
+    );
+  }
 }
 
 /// 견적 요청서 (사용자 → 점포)

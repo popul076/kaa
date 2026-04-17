@@ -905,7 +905,7 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
   void _revealAndCall() {
     if (!_bid.phoneRevealed) {
       AppState().revealPhone(widget.request.requestId, _bid.bidId);
-      setState(() => _bid = widget.bid..phoneRevealed = true);
+      setState(() { _bid.phoneRevealed = true; });
     }
     showDialog(
       context: context,

@@ -8,6 +8,7 @@ import 'screens/store_screens.dart';
 import 'screens/other_screens.dart';
 import 'screens/quote_screens.dart';
 import 'screens/category_landing_screen.dart';
+import 'models/app_state.dart';
 import 'theme/app_theme.dart';
 
 // 앱 전체 상태바 스타일 상수
@@ -85,11 +86,14 @@ class KaaApp extends StatelessWidget {
           }
           if (settings.name == '/quote-detail') {
             final args = settings.arguments as Map<String, dynamic>? ?? {};
-            return MaterialPageRoute(
-              builder: (_) => QuoteDetailScreen(
-                requestId: args['requestId'] as String? ?? '',
-              ),
-            );
+            final req  = args['request']  as EstimateRequest?;
+            final bid  = args['bid']      as QuoteBid?;
+            if (req != null && bid != null) {
+              return MaterialPageRoute(
+                builder: (_) => QuoteDetailScreen(request: req, bid: bid),
+              );
+            }
+            return MaterialPageRoute(builder: (_) => const QuoteReceivedScreen());
           }
           if (settings.name == '/chat') {
             final args = settings.arguments as Map<String, dynamic>? ?? {};
