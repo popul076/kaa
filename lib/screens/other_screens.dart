@@ -5,9 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
+import 'quote_screens.dart' show QuoteDetailScreen;
 
 // ── MOINCAR 공통 다크 색상 상수 ──
 const Color _mBg      = Color(0xFF020810);
