@@ -72,6 +72,8 @@ class KaaApp extends StatelessWidget {
           '/news': (_) => const NewsScreen(),
           '/emergency': (_) => const EmergencyScreen(),
           '/car-price': (_) => const CarPriceScreen(),
+          '/my-quotes': (_) => const MyQuotesScreen(),
+          '/car-applications': (_) => const CarApplicationHistoryScreen(),
           '/reward': (_) => const RewardScreen(),
         },
         onGenerateRoute: (settings) {

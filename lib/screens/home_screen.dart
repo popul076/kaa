@@ -507,7 +507,6 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 _buildBanner(),
                 _buildCategoryGrid(),
-                _buildEstimateBanner(),
                 _buildRecommendSection(),
                 const YoutubeShortSlider(),
                 _buildQuickActions(),
@@ -879,82 +878,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  // 견적 요청 배너 (카테고리 그리드 아래)
-  // ══════════════════════════════════════════════════════════════
-  Widget _buildEstimateBanner() {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/quote-request'),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(14, 0, 14, 18),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF0D2A4A), Color(0xFF1B3A6B)],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.35)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF4FC3F7).withOpacity(0.08),
-              blurRadius: 16, offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // 아이콘 영역
-            Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4FC3F7).withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Text('🔧', style: TextStyle(fontSize: 26)),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // 텍스트
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '무료 견적 요청하기',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 15, fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '사진 한 장으로 근처 업체에 자동 알림 · 10분 내 견적',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 11, color: const Color(0xFFB0BEC5),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 화살표
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFF4FC3F7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.arrow_forward_ios,
-                  color: Colors.black, size: 16),
-            ),
-          ],
         ),
       ),
     );

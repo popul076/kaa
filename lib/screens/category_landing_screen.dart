@@ -334,7 +334,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   // ── AppBar ─────────────────────────────────────────────
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 44,
       pinned: true,
       backgroundColor: _bg,
       surfaceTintColor: Colors.transparent,
@@ -361,7 +361,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               colors: [_catColor, _bg],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 48, 20, 8),
           child: Row(
             children: [
               Text(widget.emoji, style: const TextStyle(fontSize: 36)),
@@ -373,14 +373,14 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
                   Text(
                     '${widget.category} 업체',
                     style: GoogleFonts.notoSansKr(
-                      fontSize: 22, fontWeight: FontWeight.w800,
+                      fontSize: 18, fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),
                   ),
                   Text(
                     '내 위치 기준 ${_stores.length}개 업체',
                     style: GoogleFonts.notoSansKr(
-                      fontSize: 13, color: _t2,
+                      fontSize: 11, color: _t2,
                     ),
                   ),
                 ],
@@ -398,7 +398,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       onTap: () => setState(() => _mapExpanded = !_mapExpanded),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        height: _mapExpanded ? 280 : 180,
+        height: _mapExpanded ? 340 : 240,
         margin: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -496,7 +496,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       final py = positions[i][1];
       return Positioned(
         left: MediaQuery.of(context).size.width * px - 56,
-        top: (_mapExpanded ? 280 : 180) * py - 16,
+        top: (_mapExpanded ? 340 : 240) * py - 16,
         child: GestureDetector(
           onTap: () => _goToDetail(s),
           child: Container(

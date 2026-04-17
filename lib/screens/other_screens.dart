@@ -792,7 +792,8 @@ class _MyScreenState extends State<MyScreen> {
                     // ── 내 활동 ──
                     _buildSection('내 활동', [
                       _DarkMenuItem(icon: Icons.receipt_long_outlined, label: '견적 내역',
-                        color: _accent, onTap: () {}),
+                        color: _accent,
+                        onTap: () => Navigator.pushNamed(context, '/my-quotes')),
                       _DarkMenuItem(icon: Icons.favorite_border, label: '즐겨찾기 점포',
                         color: _accent, onTap: () {}),
                       _DarkMenuItem(icon: Icons.confirmation_number_outlined, label: '내 쿠폰',
@@ -1150,17 +1151,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       return GestureDetector(
                         onTap: () {
                           setState(() {
+                            if (!isRead) {
+                              n['read'] = true;
+                              final unread = _notifs.where((n) => !(n['read'] as bool)).length;
+                              AppState().updateNotificationCount(unread);
+                            }
                             if (isExpanded) {
                               _expanded.remove(i);
                             } else {
                               _expanded.add(i);
-                              if (!isRead) {
-                                n['read'] = true;
-                                final unread = _notifs.where((n) => !(n['read'] as bool)).length;
-                                AppState().updateNotificationCount(unread);
-                              }
                             }
                           });
+                          // 견적 카테고리 알림 → 마이페이지 견적 내역으로 이동
+                          if (n['category'] == '견적') {
+                            Navigator.pop(context); // 알림 화면 닫기
+                            Navigator.pushNamed(context, '/my-quotes');
+                          }
                         },
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -2761,10 +2767,35 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
       _kmCtrl.text    = prefs.getString(_kKm) ?? '';
     });
 
-    // ── 캐시 초기화 후 샘플 2건 세팅 ──
-    await prefs.remove(_kApps);
+    // ── 저장된 신청 내역 복원 (JSON 인코딩) ──
+    final savedJson = prefs.getString('${_kApps}_json');
+    if (savedJson != null && savedJson.isNotEmpty) {
+      try {
+        final decoded = (savedJson.split('|||')).map((item) {
+          final parts = item.split('||');
+          if (parts.length < 7) return null;
+          return <String, dynamic>{
+            'storeName':     parts[0],
+            'storeRating':   parts[1],
+            'storeDistance': parts[2],
+            'storeColor':    int.tryParse(parts[3]) ?? 0xFF4FC3F7,
+            'sentAt':        parts[4],
+            'cancelled':     parts[5] == 'true',
+            'carInfo':       parts[6],
+            'priceResult':   null,
+            'readStatus':    parts.length > 7 ? parts[7] : 'unread',
+            'estimatePrice': 0,
+            'estimateNote':  '',
+          };
+        }).whereType<Map<String, dynamic>>().toList();
+        if (decoded.isNotEmpty) {
+          setState(() => _applications = decoded);
+          return; // 저장된 데이터가 있으면 샘플 세팅 건너뜀
+        }
+      } catch (_) {}
+    }
 
-    // 샘플: 읽음(read) + 안읽음(unread)
+    // ── 처음 실행 시 샘플 2건 세팅 ──
     final sampleApps = <Map<String, dynamic>>[
       {
         'storeName':     '대구모터스',
@@ -2809,11 +2840,18 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
 
   Future<void> _saveApplications() async {
     final prefs = await SharedPreferences.getInstance();
+    // JSON 스타일로 저장 (||| 구분자로 레코드 분리)
     final encoded = _applications.map((a) =>
+      '${a['storeName']}||${a['storeRating']}||${a['storeDistance']}||'
+      '${a['storeColor']}||${a['sentAt']}||${a['cancelled']}||${a['carInfo']}||${a['readStatus'] ?? 'unread'}'
+    ).join('|||');
+    await prefs.setString('${_kApps}_json', encoded);
+    // 기존 리스트 키도 호환 유지
+    final list = _applications.map((a) =>
       '${a['storeName']}||${a['storeRating']}||${a['storeDistance']}||'
       '${a['storeColor']}||${a['sentAt']}||${a['cancelled']}||${a['carInfo']}'
     ).toList();
-    await prefs.setStringList(_kApps, encoded);
+    await prefs.setStringList(_kApps, list);
   }
 
   Future<void> _clearInputData() async {
@@ -3152,6 +3190,64 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
       _showApplications = true;
     });
     await _saveApplications();
+
+    // ── 전송 완료 팝업 ──
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFF0D1B2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: _mGreen.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: _mGreen.withOpacity(0.5), width: 2),
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: _mGreen, size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text('전송이 완료되었습니다',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text('${selectedStores.length}개 매장에 신청서가 전달되었습니다.\n매장에서 확인 후 연락드립니다.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 13, height: 1.6)),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _mAccent.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                selectedStores.map((s) => s['name'] as String).join(' · '),
+                style: const TextStyle(color: _mAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _mGreen,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: const Text('확인', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   // 신청서 취소
@@ -3201,7 +3297,26 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                   Text(_step == 0 ? '💰 내차 시세 조회' : '📊 시세 결과',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
                   const Spacer(),
-                  if (_step == 1)
+                  // 신청 내역 버튼 (항상 표시)
+                  GestureDetector(
+                    onTap: () => setState(() => _showApplications = !_showApplications),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _mOrange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _mOrange.withOpacity(0.4)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.history_rounded, color: _mOrange, size: 13),
+                        const SizedBox(width: 4),
+                        Text('신청내역 ${_applications.length}건',
+                          style: const TextStyle(fontSize: 11, color: _mOrange, fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
+                  ),
+                  if (_step == 1) ...[ 
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => setState(() { _step = 0; _priceResult = null; }),
                       child: Container(
@@ -3214,6 +3329,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                         child: const Text('재조회', style: TextStyle(fontSize: 11, color: _mAccent)),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -7463,5 +7579,307 @@ class _FloatPoint {
   bool isDone = false;
   _FloatPoint() {
     Future.delayed(const Duration(milliseconds: 700), () => isDone = true);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 마이페이지 – 견적받은 내역 화면
+// 알림(견적 카테고리) 탭 → 이 화면으로 바로 이동
+// ══════════════════════════════════════════════════════════════
+class MyQuotesScreen extends StatefulWidget {
+  const MyQuotesScreen({super.key});
+  @override
+  State<MyQuotesScreen> createState() => _MyQuotesScreenState();
+}
+
+class _MyQuotesScreenState extends State<MyQuotesScreen> {
+  static const _bg     = Color(0xFF020810);
+  static const _card   = Color(0xFF0D1B2A);
+  static const _navy   = Color(0xFF0A1628);
+  static const _accent = Color(0xFF4FC3F7);
+  static const _green  = Color(0xFF10B981);
+  static const _orange = Color(0xFFFF6B35);
+  static const _border = Color(0xFF1E3A5F);
+  static const _t1     = Colors.white;
+  static const _t2     = Color(0xFFB0BEC5);
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    final requests = AppState().estimateRequests;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: _bg, statusBarIconBrightness: Brightness.light),
+      child: Scaffold(
+        backgroundColor: _bg,
+        body: Column(children: [
+          // ── 헤더 ──────────────────────────────────────────
+          Container(
+            color: _card,
+            padding: EdgeInsets.fromLTRB(16, topPad + 12, 16, 14),
+            child: Row(children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: const Icon(Icons.arrow_back_ios_new, color: _t1, size: 20)),
+              const SizedBox(width: 12),
+              const Text('📋 견적받은 내역',
+                style: TextStyle(color: _t1, fontSize: 17, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _accent.withOpacity(0.3)),
+                ),
+                child: Text('총 ${requests.length}건',
+                  style: const TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+          ),
+
+          // ── 내역 리스트 ────────────────────────────────────
+          Expanded(
+            child: requests.isEmpty
+              ? Center(
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Text('📭', style: TextStyle(fontSize: 48)),
+                    const SizedBox(height: 16),
+                    const Text('아직 견적 내역이 없습니다',
+                      style: TextStyle(color: _t2, fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    const Text('카테고리에서 견적을 요청해보세요',
+                      style: TextStyle(color: _t2, fontSize: 13)),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/quote-request'),
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('견적 요청하기'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ]),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 80),
+                  itemCount: requests.length,
+                  itemBuilder: (_, i) => _buildRequestCard(context, requests[i]),
+                ),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildRequestCard(BuildContext ctx, EstimateRequest req) {
+    final hasNewBid = req.bids.any((b) => b.status == RepairStatus.bidding);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasNewBid ? _accent.withOpacity(0.4) : _border, width: 1.5),
+      ),
+      child: Column(children: [
+        // ── 요청 요약 헤더 ────────────────────────────────
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _navy,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(children: [
+            const Text('🚗', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(req.carName.isNotEmpty ? req.carName : '차량 미입력',
+                style: const TextStyle(color: _t1, fontSize: 14, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text('${req.region}  ·  ${req.repairType}',
+                style: const TextStyle(color: _t2, fontSize: 11)),
+            ])),
+            if (hasNewBid)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _accent.withOpacity(0.5)),
+                ),
+                child: const Text('새 견적 도착!',
+                  style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w800)),
+              ),
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _border,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('${req.bidCount}건',
+                style: const TextStyle(color: _t2, fontSize: 11, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+
+        // ── 증상 태그 ─────────────────────────────────────
+        if (req.symptoms.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+            child: Wrap(
+              spacing: 6, runSpacing: 4,
+              children: req.symptoms.take(4).map((s) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _navy,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(s, style: const TextStyle(color: _t2, fontSize: 10)),
+              )).toList(),
+            ),
+          ),
+
+        // ── 점포별 견적 카드 ──────────────────────────────
+        if (req.bids.isNotEmpty) ...[
+          const Divider(color: Color(0xFF1E3A5F), height: 20),
+          ...req.bids.take(3).map((bid) => _buildBidTile(ctx, req, bid)),
+          if (req.bids.length > 3)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(ctx, '/quote-list'),
+                child: Text('+ ${req.bids.length - 3}개 더 보기',
+                  style: const TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+            ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.hourglass_empty, color: _t2, size: 14),
+              const SizedBox(width: 6),
+              Text('견적 대기 중...', style: const TextStyle(color: _t2, fontSize: 12)),
+            ]),
+          ),
+      ]),
+    );
+  }
+
+  Widget _buildBidTile(BuildContext ctx, EstimateRequest req, QuoteBid bid) {
+    return GestureDetector(
+      onTap: () => Navigator.push(ctx, MaterialPageRoute(
+        builder: (_) => QuoteDetailScreen(request: req, bid: bid),
+      )),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _bg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border),
+        ),
+        child: Row(children: [
+          // 썸네일
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(bid.storeImage,
+              width: 50, height: 50, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 50, height: 50, color: _navy,
+                child: const Icon(Icons.store, color: _t2, size: 24))),
+          ),
+          const SizedBox(width: 12),
+          // 점포 정보
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(bid.storeBadge,
+                  style: const TextStyle(color: _accent, fontSize: 9, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 6),
+              Text('${bid.storeDistance}  ·  ⭐ ${bid.storeRating}',
+                style: const TextStyle(color: _t2, fontSize: 10)),
+            ]),
+            const SizedBox(height: 4),
+            Text(bid.storeName,
+              style: const TextStyle(color: _t1, fontSize: 13, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            // 견적 금액 3분할
+            Row(children: [
+              _costChip('부품', bid.partsCost),
+              const SizedBox(width: 4),
+              _costChip('공임', bid.laborCost),
+              const SizedBox(width: 4),
+              _costChip('합계', bid.totalCost, highlight: true),
+            ]),
+          ])),
+          // 화살표 + 전화/문의 버튼
+          Column(children: [
+            GestureDetector(
+              onTap: () async {
+                if (!bid.phoneRevealed) {
+                  AppState().revealPhone(req.requestId, bid.bidId);
+                  bid.phoneRevealed = true;
+                }
+                final uri = Uri.parse('tel:${bid.storePhone}');
+                if (await canLaunchUrl(uri)) launchUrl(uri);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: _green.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _green.withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.phone, color: _green, size: 16),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _accent.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.arrow_forward_ios, color: _accent, size: 14),
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _costChip(String label, int amount, {bool highlight = false}) {
+    final fmt = amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    return Expanded(child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: highlight ? _accent.withOpacity(0.1) : _navy,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: highlight ? _accent.withOpacity(0.3) : _border),
+      ),
+      child: Column(children: [
+        Text(label, style: TextStyle(color: _t2, fontSize: 8)),
+        const SizedBox(height: 2),
+        Text('${fmt}원',
+          style: TextStyle(
+            color: highlight ? _accent : _t1,
+            fontSize: 9, fontWeight: FontWeight.w800),
+          overflow: TextOverflow.ellipsis),
+      ]),
+    ));
   }
 }
