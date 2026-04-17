@@ -86,13 +86,23 @@ class _StoreListScreenState extends State<StoreListScreen> {
           ),
 
           Expanded(
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              itemCount: filtered.length,
-              itemBuilder: (_, i) => _StoreListCard(
-                store: filtered[i],
-                onTap: () => Navigator.pushNamed(context, '/store-detail', arguments: filtered[i].id),
-              ),
+              children: [
+                // ── 카테고리 점포 영상 섹션 ──
+                if (_filter != '전체') ...[
+                  CategoryVideoSection(
+                    category: _filter,
+                    stores: filtered,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                // ── 점포 목록 ──
+                ...filtered.asMap().entries.map((e) => _StoreListCard(
+                  store: e.value,
+                  onTap: () => Navigator.pushNamed(context, '/store-detail', arguments: e.value.id),
+                )),
+              ],
             ),
           ),
         ],
@@ -297,6 +307,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
             SliverToBoxAdapter(child: _buildAiIntro(store)),
             SliverToBoxAdapter(child: _buildBasicInfo(store)),
             SliverToBoxAdapter(child: _buildMapSection(store)),
+            SliverToBoxAdapter(child: StoreVideoSection(store: store)),
             SliverToBoxAdapter(child: _buildEmojiReactionSection()),
             SliverToBoxAdapter(child: _buildReviewSection()),
             SliverToBoxAdapter(child: _buildServiceSection(context, store)),
@@ -2110,7 +2121,7 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
                       : _youtubeUrl!.split('v=').last.split('&').first)
                   : null,
               onVideoIdSaved: (videoId) => setState(
-                  () => _youtubeUrl = 'https://www.youtube.com/shorts/$videoId'),
+                  () => _youtubeUrl = 'https://www.youtube.com/watch?v=$videoId'),
             ),
           ),
 
