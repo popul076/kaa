@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_state.dart';
 
@@ -21,61 +20,19 @@ class VideoData {
   });
 
   String get youtubeUrl => 'https://www.youtube.com/watch?v=$videoId';
-  String get embedUrl =>
-      'https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&rel=0&modestbranding=1';
   String get thumbnailUrl => 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
 }
 
 // 실제 자동차 유튜브 정식 영상 목록
 final List<VideoData> kAutoVideos = [
-  VideoData(
-    videoId: 'R0KGwmANaBw',
-    title: '2025년 차량 관리 꿀팁 완벽 정리!!',
-    category: '차량관리',
-    duration: '12:34',
-  ),
-  VideoData(
-    videoId: 'mM32L_q-rAI',
-    title: '차량관리 복잡할 것 없습니다. 영상 하나로 끝!',
-    category: '차량관리',
-    duration: '15:20',
-  ),
-  VideoData(
-    videoId: '2qqVWiBhhWc',
-    title: '정비사도 깜짝놀란 초간단 차량 관리 방법 5가지',
-    category: '차량관리',
-    duration: '10:45',
-  ),
-  VideoData(
-    videoId: 'R4x_0wykUwM',
-    title: '엔진오일 교환주기 정확하게 알고 하세요!',
-    category: '엔진/소모품',
-    duration: '9:18',
-  ),
-  VideoData(
-    videoId: 'FlitOPLibWQ',
-    title: '운전 30년도 모르는 차량관리 꿀팁',
-    category: '엔진/소모품',
-    duration: '8:52',
-  ),
-  VideoData(
-    videoId: 'J3YPWAx1g9Y',
-    title: '겨울에 반드시 알아야할 차량 관리 꿀팁 5가지!',
-    category: '계절관리',
-    duration: '11:03',
-  ),
-  VideoData(
-    videoId: 'Q1ZMv8BifEI',
-    title: '봄맞이 차량 관리법 — 염화칼슘 제거부터 점검까지',
-    category: '계절관리',
-    duration: '7:40',
-  ),
-  VideoData(
-    videoId: '3un7Cc3a_fM',
-    title: '초보운전 필수 차량관리! 엔진오일·타이어·정비소',
-    category: '안전운행',
-    duration: '13:27',
-  ),
+  VideoData(videoId: 'R0KGwmANaBw', title: '2025년 차량 관리 꿀팁 완벽 정리!!',            category: '차량관리',    duration: '12:34'),
+  VideoData(videoId: 'mM32L_q-rAI', title: '차량관리 복잡할 것 없습니다. 영상 하나로 끝!', category: '차량관리',    duration: '15:20'),
+  VideoData(videoId: '2qqVWiBhhWc', title: '정비사도 깜짝놀란 초간단 차량 관리 5가지',     category: '차량관리',    duration: '10:45'),
+  VideoData(videoId: 'R4x_0wykUwM', title: '엔진오일 교환주기 정확하게 알고 하세요!',      category: '엔진/소모품', duration: '9:18'),
+  VideoData(videoId: 'FlitOPLibWQ', title: '운전 30년도 모르는 차량관리 꿀팁',             category: '엔진/소모품', duration: '8:52'),
+  VideoData(videoId: 'J3YPWAx1g9Y', title: '겨울에 반드시 알아야할 차량관리 꿀팁 5가지!', category: '계절관리',    duration: '11:03'),
+  VideoData(videoId: 'Q1ZMv8BifEI', title: '봄맞이 차량관리법 — 염화칼슘 제거부터',       category: '계절관리',    duration: '7:40'),
+  VideoData(videoId: '3un7Cc3a_fM', title: '초보운전 필수 차량관리! 엔진오일·타이어',      category: '안전운행',    duration: '13:27'),
 ];
 
 // ── 카테고리 색상 ──────────────────────────────────
@@ -89,8 +46,8 @@ Color _categoryColor(String cat) {
   }
 }
 
-// ── 유튜브 앱 딥링크 (크게 보기용) ────────────────
-Future<void> _openYoutubeDeeplink(String videoId) async {
+// ── 유튜브 앱 딥링크 열기 ─────────────────────────
+Future<void> _openYoutube(String videoId) async {
   final appUri = Uri.parse('vnd.youtube://$videoId');
   final webUri = Uri.parse('https://www.youtube.com/watch?v=$videoId');
   try {
@@ -106,7 +63,8 @@ Future<void> _openYoutubeDeeplink(String videoId) async {
 
 // =====================================================
 // 1. 홈화면 영상 슬라이더 — "점포 유튜브"
-//    카드 탭 → VideoPlayerPage (앱 내 WebView 재생)
+//    카드 탭 → VideoDetailPage (앱 내 상세 페이지)
+//    "재생하기" 버튼 → 유튜브 앱 실행
 // =====================================================
 class YoutubeShortSlider extends StatelessWidget {
   const YoutubeShortSlider({super.key});
@@ -119,55 +77,39 @@ class YoutubeShortSlider extends StatelessWidget {
         // ── 헤더 ──────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 14),
-          child: Row(
-            children: [
-              Container(
-                width: 4, height: 22,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF4FC3F7), Color(0xFF9B7CFF)],
-                  ),
-                  borderRadius: BorderRadius.circular(2),
+          child: Row(children: [
+            Container(
+              width: 4, height: 22,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [Color(0xFF4FC3F7), Color(0xFF9B7CFF)],
                 ),
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(width: 9),
-              const Text(
-                '점포 유튜브',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.play_arrow, color: Colors.white, size: 12),
-                    SizedBox(width: 2),
-                    Text('YouTube',
-                        style: TextStyle(color: Colors.white, fontSize: 10,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Text('전체보기',
-                  style: TextStyle(
-                      color: const Color(0xFF4FC3F7).withOpacity(0.8),
-                      fontSize: 12, fontWeight: FontWeight.w500)),
-              const Icon(Icons.chevron_right, color: Color(0xFF4FC3F7), size: 16),
-            ],
-          ),
+            ),
+            const SizedBox(width: 9),
+            const Text('점포 유튜브',
+                style: TextStyle(color: Colors.white, fontSize: 17,
+                    fontWeight: FontWeight.bold, letterSpacing: -0.3)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(color: Colors.red,
+                  borderRadius: BorderRadius.circular(6)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.play_arrow, color: Colors.white, size: 12),
+                SizedBox(width: 2),
+                Text('YouTube', style: TextStyle(color: Colors.white,
+                    fontSize: 10, fontWeight: FontWeight.bold)),
+              ]),
+            ),
+            const Spacer(),
+            Text('전체보기',
+                style: TextStyle(color: const Color(0xFF4FC3F7).withOpacity(0.8),
+                    fontSize: 12, fontWeight: FontWeight.w500)),
+            const Icon(Icons.chevron_right, color: Color(0xFF4FC3F7), size: 16),
+          ]),
         ),
 
         // ── 가로형 16:9 카드 슬라이더 ────────────────
@@ -178,8 +120,7 @@ class YoutubeShortSlider extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.only(left: 16, right: 8),
             itemCount: kAutoVideos.length,
-            itemBuilder: (context, i) =>
-                _VideoCard(video: kAutoVideos[i]),
+            itemBuilder: (context, i) => _VideoCard(video: kAutoVideos[i]),
           ),
         ),
         const SizedBox(height: 8),
@@ -200,8 +141,9 @@ class _VideoCard extends StatelessWidget {
     final cc     = _categoryColor(video.category);
 
     return GestureDetector(
+      // 카드 탭 → 상세 페이지 (앱 내)
       onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => VideoPlayerPage(video: video))),
+          MaterialPageRoute(builder: (_) => VideoDetailPage(video: video))),
       child: Container(
         width: cardW,
         margin: const EdgeInsets.only(right: 12, bottom: 4),
@@ -209,136 +151,96 @@ class _VideoCard extends StatelessWidget {
           color: const Color(0xFF0A1628),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFF1E3A5F).withOpacity(0.7)),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.4),
-                blurRadius: 10, offset: const Offset(0, 4)),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4),
+              blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── 16:9 썸네일 ───────────────────────────
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-              child: Stack(children: [
-                SizedBox(
-                  width: cardW, height: thumbH,
-                  child: Image.network(video.thumbnailUrl, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF0D2040),
-                        child: const Center(child: Icon(
-                            Icons.play_circle_outline,
-                            color: Color(0xFF4FC3F7), size: 48)),
-                      )),
-                ),
-                // 그라디언트
-                Positioned.fill(child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
-                    ),
-                  ),
-                )),
-                // 재생 버튼
-                Positioned.fill(child: Center(
-                  child: Container(
-                    width: 52, height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.55),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.85), width: 2),
-                    ),
-                    child: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.white, size: 30),
-                  ),
-                )),
-                // 카테고리 배지
-                Positioned(top: 8, left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: cc.withOpacity(0.88),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(video.category,
-                        style: const TextStyle(color: Colors.white,
-                            fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                // 영상 길이
-                Positioned(bottom: 6, right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.75),
-                        borderRadius: BorderRadius.circular(4)),
-                    child: Text(video.duration,
-                        style: const TextStyle(color: Colors.white,
-                            fontSize: 10, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ]),
-            ),
-            // ── 제목 + YT 버튼 ────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(video.title,
-                        style: const TextStyle(color: Colors.white,
-                            fontSize: 12, fontWeight: FontWeight.w600,
-                            height: 1.35),
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () => _openYoutubeDeeplink(video.videoId),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.red.withOpacity(0.5)),
-                      ),
-                      child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.open_in_new, color: Colors.red, size: 10),
-                        SizedBox(width: 3),
-                        Text('YT', style: TextStyle(color: Colors.red,
-                            fontSize: 10, fontWeight: FontWeight.bold)),
-                      ]),
-                    ),
-                  ),
-                ],
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ── 16:9 썸네일 ───────────────────────────
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            child: Stack(children: [
+              SizedBox(
+                width: cardW, height: thumbH,
+                child: Image.network(video.thumbnailUrl, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: const Color(0xFF0D2040),
+                      child: const Center(child: Icon(Icons.play_circle_outline,
+                          color: Color(0xFF4FC3F7), size: 48)),
+                    )),
               ),
-            ),
-          ],
-        ),
+              // 하단 그라디언트
+              Positioned.fill(child: Container(
+                decoration: BoxDecoration(gradient: LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
+                )),
+              )),
+              // 중앙 재생 버튼
+              Positioned.fill(child: Center(child: Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withOpacity(0.85), width: 2),
+                ),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 30),
+              ))),
+              // 카테고리 배지
+              Positioned(top: 8, left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(color: cc.withOpacity(0.88),
+                      borderRadius: BorderRadius.circular(6)),
+                  child: Text(video.category,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              // 영상 길이
+              Positioned(bottom: 6, right: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(4)),
+                  child: Text(video.duration,
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 10, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ]),
+          ),
+          // ── 제목 ──────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+            child: Text(video.title,
+                style: const TextStyle(color: Colors.white, fontSize: 12,
+                    fontWeight: FontWeight.w600, height: 1.35),
+                maxLines: 2, overflow: TextOverflow.ellipsis),
+          ),
+        ]),
       ),
     );
   }
 }
 
 // =====================================================
-// 2. 앱 내 영상 재생 페이지 — VideoPlayerPage
-//    flutter_inappwebview 로 YouTube embed URL 직접 로드
-//    → 실제 크롬 엔진 사용 → 버퍼링 없이 재생
-//    "유튜브에서 크게 보기" → 유튜브 앱 딥링크
+// 2. 앱 내 영상 상세 페이지 — VideoDetailPage
+//    - 썸네일 크게 표시
+//    - "▶ 유튜브에서 재생" 버튼 → 유튜브 앱 실행
+//    - 뒤로가기 → 우리 앱으로 복귀
+//    - 하단 다른 영상 목록
 // =====================================================
-class VideoPlayerPage extends StatefulWidget {
+class VideoDetailPage extends StatefulWidget {
   final VideoData video;
-  const VideoPlayerPage({super.key, required this.video});
+  const VideoDetailPage({super.key, required this.video});
 
   @override
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+  State<VideoDetailPage> createState() => _VideoDetailPageState();
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> {
+class _VideoDetailPageState extends State<VideoDetailPage> {
   late VideoData _current;
-  InAppWebViewController? _webCtrl;
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -346,29 +248,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _current = widget.video;
   }
 
-  @override
-  void dispose() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    super.dispose();
-  }
-
-  // 다른 영상으로 전환
-  void _switchTo(VideoData v) {
-    setState(() {
-      _current = v;
-      _isLoading = true;
-    });
-    _webCtrl?.loadUrl(
-      urlRequest: URLRequest(url: WebUri(_current.embedUrl)),
-    );
-  }
+  void _switchTo(VideoData v) => setState(() => _current = v);
 
   @override
   Widget build(BuildContext context) {
-    final cc = _categoryColor(_current.category);
-    // 16:9 플레이어 높이 계산
-    final playerW = MediaQuery.of(context).size.width;
-    final playerH = playerW * 9 / 16;
+    final cc     = _categoryColor(_current.category);
+    final screenW = MediaQuery.of(context).size.width;
+    final thumbH  = screenW * 9 / 16; // 16:9 비율
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -399,160 +285,173 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 overflow: TextOverflow.ellipsis),
           ),
         ]),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _openYoutubeDeeplink(_current.videoId),
-            icon: const Icon(Icons.open_in_new, color: Colors.red, size: 15),
-            label: const Text('크게 보기',
-                style: TextStyle(color: Colors.red, fontSize: 12)),
-          ),
-        ],
       ),
       body: Column(children: [
-        // ── WebView 플레이어 (16:9) ────────────────────
-        SizedBox(
-          width: playerW,
-          height: playerH,
+        // ── 썸네일 + 재생 버튼 영역 ───────────────────
+        GestureDetector(
+          onTap: () => _openYoutube(_current.videoId),
           child: Stack(children: [
-            // InAppWebView — 실제 크롬 엔진으로 YouTube embed 로드
-            InAppWebView(
-              initialUrlRequest: URLRequest(
-                url: WebUri(_current.embedUrl),
-              ),
-              initialSettings: InAppWebViewSettings(
-                mediaPlaybackRequiresUserGesture: false, // 자동재생 허용
-                allowsInlineMediaPlayback: true,         // 인라인 재생
-                javaScriptEnabled: true,
-                useWideViewPort: true,
-                loadWithOverviewMode: true,
-                supportZoom: false,
-                builtInZoomControls: false,
-                displayZoomControls: false,
-                userAgent:
-                    'Mozilla/5.0 (Linux; Android 12; Pixel 6) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/120.0.0.0 Mobile Safari/537.36',
-              ),
-              onWebViewCreated: (ctrl) => _webCtrl = ctrl,
-              onLoadStart: (_, __) => setState(() => _isLoading = true),
-              onLoadStop:  (_, __) => setState(() => _isLoading = false),
+            // 썸네일 (16:9)
+            SizedBox(
+              width: screenW, height: thumbH,
+              child: Image.network(_current.thumbnailUrl, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF0D1020),
+                    child: const Center(child: Icon(Icons.image_not_supported,
+                        color: Colors.white24, size: 48)),
+                  )),
             ),
-            // 로딩 인디케이터
-            if (_isLoading)
-              Container(
-                color: Colors.black,
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: Colors.red),
-                      SizedBox(height: 12),
-                      Text('영상 로딩 중...',
-                          style: TextStyle(color: Colors.white60, fontSize: 13)),
-                    ],
+            // 어두운 오버레이
+            Positioned.fill(child: Container(color: Colors.black.withOpacity(0.35))),
+            // 중앙 대형 재생 버튼
+            Positioned.fill(child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 72, height: 72,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(
+                        color: Colors.red.withOpacity(0.5),
+                        blurRadius: 20, spreadRadius: 4)],
                   ),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 44),
                 ),
-              ),
-          ]),
-        ),
-
-        // ── 영상 정보 바 ──────────────────────────────
-        Container(
-          color: const Color(0xFF0D0D0D),
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: cc.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: cc.withOpacity(0.4)),
-              ),
-              child: Text(_current.category,
-                  style: TextStyle(color: cc, fontSize: 11,
-                      fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(width: 8),
-            Text(_current.duration,
-                style: const TextStyle(color: Color(0xFF888888), fontSize: 11)),
-            const Spacer(),
-            // 유튜브 앱으로 크게 보기
-            GestureDetector(
-              onTap: () => _openYoutubeDeeplink(_current.videoId),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.65),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text('▶  유튜브에서 재생',
+                      style: TextStyle(color: Colors.white, fontSize: 14,
+                          fontWeight: FontWeight.bold, letterSpacing: 0.3)),
+                ),
+              ]),
+            )),
+            // 우상단 유튜브 로고
+            Positioned(top: 10, right: 12,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFFFF0000), Color(0xFFCC0000)]),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.open_in_new, color: Colors.white, size: 12),
-                  SizedBox(width: 5),
-                  Text('유튜브에서 크게 보기',
-                      style: TextStyle(color: Colors.white, fontSize: 11,
-                          fontWeight: FontWeight.bold)),
+                  Icon(Icons.play_arrow, color: Colors.white, size: 14),
+                  SizedBox(width: 3),
+                  Text('YouTube', style: TextStyle(color: Colors.white,
+                      fontSize: 11, fontWeight: FontWeight.bold)),
                 ]),
               ),
             ),
           ]),
         ),
 
-        const Divider(color: Color(0xFF1A1A1A), height: 1),
-
-        // ── 현재 영상 제목 ────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
-          child: Text(_current.title,
-              style: const TextStyle(color: Colors.white, fontSize: 13,
-                  fontWeight: FontWeight.bold, height: 1.4),
-              maxLines: 2),
+        // ── 영상 정보 + 재생 버튼 ─────────────────────
+        Container(
+          color: const Color(0xFF0D0D0D),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            // 제목
+            Text(_current.title,
+                style: const TextStyle(color: Colors.white, fontSize: 15,
+                    fontWeight: FontWeight.bold, height: 1.4)),
+            const SizedBox(height: 10),
+            Row(children: [
+              // 카테고리 + 길이
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: cc.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: cc.withOpacity(0.4)),
+                ),
+                child: Text(_current.category,
+                    style: TextStyle(color: cc, fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.access_time, color: Colors.white38, size: 13),
+              const SizedBox(width: 3),
+              Text(_current.duration,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              const Spacer(),
+              // 유튜브로 재생 버튼
+              GestureDetector(
+                onTap: () => _openYoutube(_current.videoId),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                        colors: [Color(0xFFFF0000), Color(0xFFCC0000)]),
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3),
+                        blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.play_circle_filled, color: Colors.white, size: 16),
+                    SizedBox(width: 6),
+                    Text('유튜브에서 재생',
+                        style: TextStyle(color: Colors.white, fontSize: 13,
+                            fontWeight: FontWeight.bold)),
+                  ]),
+                ),
+              ),
+            ]),
+          ]),
         ),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(14, 2, 14, 8),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '앱 내 재생 중  •  전체화면은 "유튜브에서 크게 보기" 탭',
-              style: TextStyle(color: Color(0xFF555555), fontSize: 10),
-            ),
-          ),
+
+        // ── 안내 메시지 ───────────────────────────────
+        Container(
+          width: double.infinity,
+          color: const Color(0xFF080808),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: Color(0xFF444444), size: 14),
+            const SizedBox(width: 6),
+            Expanded(child: Text(
+              '썸네일을 탭하거나 "유튜브에서 재생"을 누르면 유튜브 앱으로 이동합니다. 뒤로가기 시 앱으로 돌아옵니다.',
+              style: const TextStyle(color: Color(0xFF444444), fontSize: 10, height: 1.4),
+            )),
+          ]),
         ),
 
         const Divider(color: Color(0xFF1A1A1A), height: 1),
 
         // ── 다른 영상 목록 ────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text('다른 영상',
-                style: TextStyle(color: cc, fontSize: 12,
-                    fontWeight: FontWeight.bold)),
+            child: Text('다른 영상', style: TextStyle(color: cc, fontSize: 12,
+                fontWeight: FontWeight.bold)),
           ),
         ),
+
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: kAutoVideos.length,
             itemBuilder: (context, i) {
-              final v = kAutoVideos[i];
-              if (v.videoId == _current.videoId) return const SizedBox.shrink();
+              final v  = kAutoVideos[i];
               final vc = _categoryColor(v.category);
-              final isSelected = v.videoId == _current.videoId;
+              final isCurrent = v.videoId == _current.videoId;
               return GestureDetector(
-                onTap: () => _switchTo(v),
+                onTap: () => isCurrent ? null : _switchTo(v),
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isSelected
+                    color: isCurrent
                         ? const Color(0xFF1A2535)
                         : const Color(0xFF0D0D0D),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: isSelected
-                          ? vc.withOpacity(0.5)
+                      color: isCurrent
+                          ? vc.withOpacity(0.6)
                           : const Color(0xFF1A1A1A),
                     ),
                   ),
@@ -569,10 +468,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               child: const Icon(Icons.play_circle_outline,
                                   color: Colors.white38, size: 24),
                             )),
+                        // 재생 아이콘 오버레이
+                        Positioned.fill(child: Center(child: Container(
+                          width: 28, height: 28,
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? Colors.red.withOpacity(0.85)
+                                : Colors.black.withOpacity(0.5),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isCurrent ? Icons.pause : Icons.play_arrow,
+                            color: Colors.white, size: 16,
+                          ),
+                        ))),
+                        // 영상 길이
                         Positioned(bottom: 3, right: 3,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             color: Colors.black.withOpacity(0.75),
                             child: Text(v.duration,
                                 style: const TextStyle(color: Colors.white,
@@ -582,33 +495,37 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ]),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(v.title,
-                              style: const TextStyle(color: Colors.white,
-                                  fontSize: 11, fontWeight: FontWeight.w600,
-                                  height: 1.35),
-                              maxLines: 2, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: vc.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(v.title,
+                            style: TextStyle(
+                              color: isCurrent ? Colors.white : Colors.white70,
+                              fontSize: 11, fontWeight: FontWeight.w600, height: 1.35,
                             ),
-                            child: Text(v.category,
-                                style: TextStyle(color: vc,
-                                    fontSize: 9, fontWeight: FontWeight.bold)),
+                            maxLines: 2, overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: vc.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.play_circle_outline,
-                        color: isSelected ? vc : const Color(0xFF333333),
-                        size: 22),
+                          child: Text(v.category,
+                              style: TextStyle(color: vc, fontSize: 9,
+                                  fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    )),
+                    if (isCurrent)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 6),
+                        child: Text('재생중', style: TextStyle(color: vc,
+                            fontSize: 9, fontWeight: FontWeight.bold)),
+                      )
+                    else
+                      const Icon(Icons.play_circle_outline,
+                          color: Color(0xFF333333), size: 20),
                   ]),
                 ),
               );
@@ -622,34 +539,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
 // =====================================================
 // 3. 점포/명소 유튜브 플레이어 — YoutubePlayerPage
-//    InAppWebView 로 embed 재생 + 유튜브 앱 딥링크
+//    썸네일 표시 + 유튜브 앱 연동
 // =====================================================
-class YoutubePlayerPage extends StatefulWidget {
+class YoutubePlayerPage extends StatelessWidget {
   final Store store;
   const YoutubePlayerPage({super.key, required this.store});
 
   @override
-  State<YoutubePlayerPage> createState() => _YoutubePlayerPageState();
-}
-
-class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
-  InAppWebViewController? _webCtrl;
-  bool _isLoading = true;
-
-  String get _embedUrl {
-    final vid = widget.store.videoId!;
-    return 'https://www.youtube.com/embed/$vid?autoplay=0&playsinline=1&rel=0&modestbranding=1';
-  }
-
-  @override
-  void dispose() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.store.videoId == null) {
+    if (store.videoId == null) {
       return Scaffold(
         backgroundColor: const Color(0xFF020810),
         appBar: AppBar(
@@ -658,19 +556,18 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
             icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
-          title: Text(widget.store.name,
+          title: Text(store.name,
               style: const TextStyle(color: Colors.white, fontSize: 15,
                   fontWeight: FontWeight.bold)),
         ),
-        body: const Center(
-          child: Text('등록된 영상이 없습니다.',
-              style: TextStyle(color: Colors.white60)),
-        ),
+        body: const Center(child: Text('등록된 영상이 없습니다.',
+            style: TextStyle(color: Colors.white60))),
       );
     }
 
-    final playerW = MediaQuery.of(context).size.width;
-    final playerH = playerW * 9 / 16;
+    final screenW = MediaQuery.of(context).size.width;
+    final thumbH  = screenW * 9 / 16;
+    final thumbUrl = 'https://img.youtube.com/vi/${store.videoId}/hqdefault.jpg';
 
     return Scaffold(
       backgroundColor: const Color(0xFF020810),
@@ -681,95 +578,112 @@ class _YoutubePlayerPageState extends State<YoutubePlayerPage> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(widget.store.name,
+        title: Text(store.name,
             style: const TextStyle(color: Colors.white, fontSize: 15,
                 fontWeight: FontWeight.bold)),
         actions: [
           TextButton.icon(
-            onPressed: () => _openYoutubeDeeplink(widget.store.videoId!),
+            onPressed: () => _openYoutube(store.videoId!),
             icon: const Icon(Icons.open_in_new, color: Color(0xFF4FC3F7), size: 16),
             label: const Text('유튜브 앱',
                 style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 12)),
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── WebView 플레이어 (16:9) ────────────────
-          SizedBox(
-            width: playerW,
-            height: playerH,
-            child: Stack(children: [
-              InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(_embedUrl)),
-                initialSettings: InAppWebViewSettings(
-                  mediaPlaybackRequiresUserGesture: false,
-                  allowsInlineMediaPlayback: true,
-                  javaScriptEnabled: true,
-                  useWideViewPort: true,
-                  loadWithOverviewMode: true,
-                  supportZoom: false,
-                  userAgent:
-                      'Mozilla/5.0 (Linux; Android 12; Pixel 6) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/120.0.0.0 Mobile Safari/537.36',
-                ),
-                onWebViewCreated: (ctrl) => _webCtrl = ctrl,
-                onLoadStart: (_, __) => setState(() => _isLoading = true),
-                onLoadStop:  (_, __) => setState(() => _isLoading = false),
-              ),
-              if (_isLoading)
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // ── 썸네일 + 재생 버튼 ────────────────────────
+        GestureDetector(
+          onTap: () => _openYoutube(store.videoId!),
+          child: Stack(children: [
+            SizedBox(
+              width: screenW, height: thumbH,
+              child: Image.network(thumbUrl, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF0D1B2A),
+                    child: const Center(child: Icon(Icons.videocam_off,
+                        color: Colors.white24, size: 48)),
+                  )),
+            ),
+            Positioned.fill(child: Container(color: Colors.black.withOpacity(0.3))),
+            Positioned.fill(child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
                 Container(
-                  color: Colors.black,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF4FC3F7)),
-                  ),
-                ),
-            ]),
-          ),
-
-          // ── 점포명 + 유튜브 앱 버튼 ──────────────
-          Container(
-            color: const Color(0xFF0D1B2A),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(children: [
-              const Icon(Icons.store, color: Color(0xFF4FC3F7), size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(widget.store.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 14,
-                        fontWeight: FontWeight.bold)),
-              ),
-              GestureDetector(
-                onTap: () => _openYoutubeDeeplink(widget.store.videoId!),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  width: 68, height: 68,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFFF0000), Color(0xFFCC0000)]),
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.5),
+                        blurRadius: 18, spreadRadius: 3)],
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 42),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.65),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.open_in_new, color: Colors.white, size: 13),
-                    SizedBox(width: 5),
-                    Text('유튜브에서 크게 보기',
-                        style: TextStyle(color: Colors.white,
-                            fontSize: 12, fontWeight: FontWeight.bold)),
-                  ]),
+                  child: const Text('▶  유튜브에서 재생',
+                      style: TextStyle(color: Colors.white, fontSize: 13,
+                          fontWeight: FontWeight.bold)),
                 ),
-              ),
-            ]),
-          ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text(
-              '💡 재생 버튼으로 앱 내에서 감상하거나,\n   "유튜브에서 크게 보기"로 전체화면 시청하세요.',
-              style: TextStyle(color: Color(0xFF5A7A9A), fontSize: 12, height: 1.5),
+              ]),
+            )),
+          ]),
+        ),
+
+        // ── 점포명 + 재생 버튼 ────────────────────────
+        Container(
+          color: const Color(0xFF0D1B2A),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(children: [
+            const Icon(Icons.store, color: Color(0xFF4FC3F7), size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(store.name,
+                  style: const TextStyle(color: Colors.white, fontSize: 14,
+                      fontWeight: FontWeight.bold)),
             ),
-          ),
-        ],
-      ),
+            GestureDetector(
+              onTap: () => _openYoutube(store.videoId!),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFFFF0000), Color(0xFFCC0000)]),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3),
+                      blurRadius: 8, offset: const Offset(0, 3))],
+                ),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.play_circle_filled, color: Colors.white, size: 15),
+                  SizedBox(width: 6),
+                  Text('유튜브에서 재생',
+                      style: TextStyle(color: Colors.white, fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+
+        // ── 안내 텍스트 ───────────────────────────────
+        Container(
+          width: double.infinity,
+          color: const Color(0xFF080C16),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(children: [
+            const Icon(Icons.info_outline, color: Color(0xFF3A5A7A), size: 14),
+            const SizedBox(width: 6),
+            Expanded(child: Text(
+              '유튜브에서 재생 후 뒤로가기를 누르면 앱으로 돌아옵니다.',
+              style: const TextStyle(color: Color(0xFF3A5A7A), fontSize: 11, height: 1.4),
+            )),
+          ]),
+        ),
+      ]),
     );
   }
 }
