@@ -1,5 +1,147 @@
 import 'package:flutter/foundation.dart';
 
+// =====================================================
+// 견적 요청 모델 (PC 점포관리자 연동 대비 구조 설계)
+// estimate_requests 테이블 대응
+// =====================================================
+
+/// 수리 현황 상태
+enum RepairStatus {
+  pending,     // 견적 요청 대기
+  bidding,     // 투찰 진행중
+  matched,     // 매칭 완료
+  repairing,   // 수리중
+  completed,   // 수리완료
+  cancelled,   // 취소
+}
+
+extension RepairStatusExt on RepairStatus {
+  String get label {
+    switch (this) {
+      case RepairStatus.pending:   return '대기중';
+      case RepairStatus.bidding:   return '견적 수신중';
+      case RepairStatus.matched:   return '매칭완료';
+      case RepairStatus.repairing: return '수리중';
+      case RepairStatus.completed: return '수리완료';
+      case RepairStatus.cancelled: return '취소됨';
+    }
+  }
+  String get emoji {
+    switch (this) {
+      case RepairStatus.pending:   return '⏳';
+      case RepairStatus.bidding:   return '📩';
+      case RepairStatus.matched:   return '✅';
+      case RepairStatus.repairing: return '🔧';
+      case RepairStatus.completed: return '🎉';
+      case RepairStatus.cancelled: return '❌';
+    }
+  }
+}
+
+/// 증상 아이콘 목록
+class SymptomIcon {
+  final String id;
+  final String emoji;
+  final String label;
+  const SymptomIcon({required this.id, required this.emoji, required this.label});
+}
+
+const List<SymptomIcon> kSymptomIcons = [
+  SymptomIcon(id: 'noise',    emoji: '🔊', label: '소음'),
+  SymptomIcon(id: 'leak',     emoji: '💧', label: '누유'),
+  SymptomIcon(id: 'brake',    emoji: '🛑', label: '브레이크'),
+  SymptomIcon(id: 'battery',  emoji: '🔋', label: '배터리'),
+  SymptomIcon(id: 'engine',   emoji: '⚙️',  label: '계통류'),
+  SymptomIcon(id: 'aircon',   emoji: '❄️',  label: '에어컨'),
+  SymptomIcon(id: 'chassis',  emoji: '🚗', label: '하체충격'),
+  SymptomIcon(id: 'accident', emoji: '💥', label: '사고수리'),
+];
+
+/// 점포 투찰 (견적 답변)
+class QuoteBid {
+  final String bidId;
+  final int storeId;
+  final String storeName;
+  final String storeDistance;
+  final double storeRating;
+  final String storeBadge;
+  final String storeImage;
+  final int partsCost;      // 부품비
+  final int laborCost;      // 공임비
+  final int totalCost;      // 예상총액
+  final String estimatedTime; // 예상 소요시간
+  final String memo;
+  final DateTime createdAt;
+  final bool phoneRevealed; // 전화번호 공개 여부 (1:1문의/예약 후)
+  final String storePhone;  // 실제 전화번호 (phoneRevealed=true 시에만 표시)
+  RepairStatus status;
+
+  QuoteBid({
+    required this.bidId,
+    required this.storeId,
+    required this.storeName,
+    required this.storeDistance,
+    required this.storeRating,
+    required this.storeBadge,
+    required this.storeImage,
+    required this.partsCost,
+    required this.laborCost,
+    required this.totalCost,
+    required this.estimatedTime,
+    required this.memo,
+    required this.createdAt,
+    required this.storePhone,
+    this.phoneRevealed = false,
+    this.status = RepairStatus.matched,
+  });
+}
+
+/// 견적 요청서 (사용자 → 점포)
+class EstimateRequest {
+  final String requestId;
+  final String carName;       // 차량명
+  final String carNumber;     // 차량번호
+  final String region;        // 방문 지역
+  final String repairType;    // 정비 유형
+  final List<String> symptoms;// 증상 아이콘 ID 목록
+  final String memo;          // 상세 메모
+  final List<String> compressedImageUrls; // 압축된 사진 (로컬 경로 or URL)
+  final DateTime createdAt;
+  RepairStatus status;
+  final List<QuoteBid> bids;  // 도착한 견적서 목록
+
+  EstimateRequest({
+    required this.requestId,
+    required this.carName,
+    required this.carNumber,
+    required this.region,
+    required this.repairType,
+    required this.symptoms,
+    required this.memo,
+    required this.compressedImageUrls,
+    required this.createdAt,
+    this.status = RepairStatus.bidding,
+    List<QuoteBid>? bids,
+  }) : bids = bids ?? [];
+
+  int get bidCount => bids.length;
+}
+
+/// 점포 알림 설정 (PC 점포관리자 연동 대비)
+class ShopNotificationSettings {
+  bool soundEnabled;    // 음성 알림
+  bool textEnabled;     // 텍스트 알림
+  bool vibration;       // 진동
+  bool fcmEnabled;      // FCM 푸시 (향후 연동)
+
+  ShopNotificationSettings({
+    this.soundEnabled = true,
+    this.textEnabled  = true,
+    this.vibration    = true,
+    this.fcmEnabled   = true,
+  });
+}
+
 class UserModel {
   final String name;
   final String userType;
@@ -65,6 +207,120 @@ class AppState extends ChangeNotifier {
     notificationCount = count;
     notifyListeners();
   }
+
+  // ── 견적 요청 전역 상태 ──────────────────────────
+  final List<EstimateRequest> estimateRequests = [];
+
+  // 더미 데이터 초기화 (앱 로드 시 호출)
+  void initDummyEstimates() {
+    if (estimateRequests.isNotEmpty) return;
+    estimateRequests.addAll([
+      EstimateRequest(
+        requestId: 'REQ-001',
+        carName: '그랜저',
+        carNumber: '123가4567',
+        region: '대구 수성구',
+        repairType: '사고수리',
+        symptoms: ['noise', 'accident'],
+        memo: '알범 급금과 무주 하던 소음이 있습니다. 빠른 예상 견적을 받고 싶습니다.',
+        compressedImageUrls: [],
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        status: RepairStatus.bidding,
+        bids: [
+          QuoteBid(
+            bidId: 'BID-001',
+            storeId: 1,
+            storeName: 'KAA 수성 협회인증 정비센터',
+            storeDistance: '1.1km',
+            storeRating: 4.9,
+            storeBadge: 'KAA 인증',
+            storeImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+            partsCost: 180000,
+            laborCost: 90000,
+            totalCost: 270000,
+            estimatedTime: '당일 1시간',
+            memo: '실물 확인 시 추가 손상 여부에 따라 달라질 수 있습니다.',
+            createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+            storePhone: '053-123-4567',
+          ),
+          QuoteBid(
+            bidId: 'BID-002',
+            storeId: 2,
+            storeName: '프리미엄 바디케어 정비소',
+            storeDistance: '2.0km',
+            storeRating: 4.8,
+            storeBadge: '추천',
+            storeImage: 'https://images.unsplash.com/photo-1632823469850-2f77dd9c7f93?w=400&q=80',
+            partsCost: 250000,
+            laborCost: 130000,
+            totalCost: 380000,
+            estimatedTime: '소요 1일',
+            memo: '판금·도색 포함 견적입니다. 실물 확인 후 조정 가능합니다.',
+            createdAt: DateTime.now().subtract(const Duration(minutes: 40)),
+            storePhone: '053-234-5678',
+          ),
+          QuoteBid(
+            bidId: 'BID-003',
+            storeId: 3,
+            storeName: 'KAA 스피드 경정비',
+            storeDistance: '2.8km',
+            storeRating: 4.7,
+            storeBadge: '추천',
+            storeImage: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80',
+            partsCost: 120000,
+            laborCost: 60000,
+            totalCost: 180000,
+            estimatedTime: '약 4시간',
+            memo: '당일 예약 가능합니다.',
+            createdAt: DateTime.now().subtract(const Duration(minutes: 20)),
+            storePhone: '053-345-6789',
+          ),
+        ],
+      ),
+    ]);
+    notifyListeners();
+  }
+
+  void addEstimateRequest(EstimateRequest req) {
+    estimateRequests.insert(0, req);
+    notificationCount += 1;
+    notifyListeners();
+  }
+
+  void revealPhone(String requestId, String bidId) {
+    final req = estimateRequests.firstWhere((r) => r.requestId == requestId, orElse: () => estimateRequests.first);
+    for (final bid in req.bids) {
+      if (bid.bidId == bidId) {
+        bid.phoneRevealed = true;
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
+  void updateRepairStatus(String requestId, String bidId, RepairStatus status) {
+    final req = estimateRequests.firstWhere((r) => r.requestId == requestId, orElse: () => estimateRequests.first);
+    for (final bid in req.bids) {
+      if (bid.bidId == bidId) {
+        bid.status = status;
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
+  // ── 점포 알림 설정 ─────────────────────────────
+  ShopNotificationSettings shopNotifSettings = ShopNotificationSettings();
+
+  void updateShopNotifSettings({bool? sound, bool? text, bool? vibration}) {
+    if (sound != null)     shopNotifSettings.soundEnabled = sound;
+    if (text != null)      shopNotifSettings.textEnabled  = text;
+    if (vibration != null) shopNotifSettings.vibration    = vibration;
+    notifyListeners();
+  }
+
+  // ── 도착 견적서 총 개수 ─────────────────────────
+  int get totalBidCount => estimateRequests.fold(0, (sum, r) => sum + r.bidCount);
 }
 
 // ==================== 데이터 모델 ====================

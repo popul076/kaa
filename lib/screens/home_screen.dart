@@ -7,6 +7,8 @@ import '../widgets/bottom_nav.dart';
 import '../widgets/youtube_widgets.dart';
 import '../models/app_state.dart';
 import 'store_screens.dart';
+import 'category_landing_screen.dart';
+import 'quote_screens.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // MOINCAR Home Screen v27.0.0
@@ -70,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ── 주유소 오버레이 표시 로직 ──────────────────────────────────
   // showCount: 0=첫번째 표시중, 1=두번째 표시중, 2=1분잠금
   bool _gasOverlayVisible = true;
+  bool _showGasOverlay = false;    // 카테고리 탭으로 열기
   int  _gasShowCount = 0;          // 0→1→2 (2 이상이면 1분 대기)
   DateTime? _gasHideUntil;         // 1분 잠금 해제 시각
   Timer? _gasTimer;
@@ -354,6 +357,49 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // ── 카테고리 탭 핸들러 ──────────────────────────────────────────
+  void _onCategoryTap(Map<String, dynamic> c) {
+    final name  = c['name']  as String;
+    final emoji = c['emoji'] as String;
+
+    // 특수 처리: 주유소, 주차장, 렌트카, 중고차수출, 차량용품 → 스낵바
+    const simpleCategories = ['주차장', '렌트카', '중고차수출', '차량용품'];
+    if (simpleCategories.contains(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: const Color(0xFF0D1B2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+        behavior: SnackBarBehavior.floating,
+        content: Row(children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(child: Text('$name 카테고리 페이지 준비 중입니다.',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
+        ]),
+        duration: const Duration(seconds: 2),
+      ));
+      return;
+    }
+
+    // 주유소 → 기존 주유소 오버레이
+    if (name == '주유소') {
+      setState(() {
+        _showGasOverlay = true;
+        _gasShowCount++;
+      });
+      _startGasTimer();
+      return;
+    }
+
+    // 정비·세차·타이어·중고차·검사 → CategoryLandingScreen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CategoryLandingScreen(category: name, emoji: emoji),
+      ),
+    );
+  }
+
   // ── 주유소 오버레이 타이머 ──────────────────────────────────────
   // showCount 0,1 → 4초 표시 후 숨김
   // showCount 2    → 1분 잠금 (DateTime 기록)
@@ -461,6 +507,7 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 _buildBanner(),
                 _buildCategoryGrid(),
+                _buildEstimateBanner(),
                 _buildRecommendSection(),
                 const YoutubeShortSlider(),
                 _buildQuickActions(),
@@ -832,6 +879,82 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 견적 요청 배너 (카테고리 그리드 아래)
+  // ══════════════════════════════════════════════════════════════
+  Widget _buildEstimateBanner() {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/quote-request'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF0D2A4A), Color(0xFF1B3A6B)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.35)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4FC3F7).withOpacity(0.08),
+              blurRadius: 16, offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // 아이콘 영역
+            Container(
+              width: 52, height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4FC3F7).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text('🔧', style: TextStyle(fontSize: 26)),
+              ),
+            ),
+            const SizedBox(width: 14),
+            // 텍스트
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '무료 견적 요청하기',
+                    style: GoogleFonts.notoSansKr(
+                      fontSize: 15, fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '사진 한 장으로 근처 업체에 자동 알림 · 10분 내 견적',
+                    style: GoogleFonts.notoSansKr(
+                      fontSize: 11, color: const Color(0xFFB0BEC5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // 화살표
+            Container(
+              width: 36, height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4FC3F7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.arrow_forward_ios,
+                  color: Colors.black, size: 16),
+            ),
+          ],
         ),
       ),
     );
@@ -1282,7 +1405,7 @@ class _HomeScreenState extends State<HomeScreen>
       // 주차장은 P 간판 아이콘으로 특별 처리
       final isParking = c['name'] == '주차장';
       return GestureDetector(
-        onTap: () {},
+        onTap: () => _onCategoryTap(c),
         child: SizedBox(
           width: 64,
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [

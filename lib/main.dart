@@ -6,6 +6,8 @@ import 'screens/signup_screens.dart';
 import 'screens/home_screen.dart';
 import 'screens/store_screens.dart';
 import 'screens/other_screens.dart';
+import 'screens/quote_screens.dart';
+import 'screens/category_landing_screen.dart';
 import 'theme/app_theme.dart';
 
 // 앱 전체 상태바 스타일 상수
@@ -64,12 +66,31 @@ class KaaApp extends StatelessWidget {
           '/my': (_) => const MyScreen(),
           '/notification': (_) => const NotificationScreen(),
           '/quote-request': (_) => const QuoteRequestScreen(),
+          '/quote-list': (_) => const QuoteReceivedScreen(),
+          '/shop-quote': (_) => const ShopQuoteScreen(),
           '/news': (_) => const NewsScreen(),
           '/emergency': (_) => const EmergencyScreen(),
           '/car-price': (_) => const CarPriceScreen(),
           '/reward': (_) => const RewardScreen(),
         },
         onGenerateRoute: (settings) {
+          if (settings.name == '/category-landing') {
+            final args = settings.arguments as Map<String, dynamic>? ?? {};
+            return MaterialPageRoute(
+              builder: (_) => CategoryLandingScreen(
+                category: args['category'] as String? ?? '정비',
+                emoji: args['emoji'] as String? ?? '🔧',
+              ),
+            );
+          }
+          if (settings.name == '/quote-detail') {
+            final args = settings.arguments as Map<String, dynamic>? ?? {};
+            return MaterialPageRoute(
+              builder: (_) => QuoteDetailScreen(
+                requestId: args['requestId'] as String? ?? '',
+              ),
+            );
+          }
           if (settings.name == '/chat') {
             final args = settings.arguments as Map<String, dynamic>? ?? {};
             return MaterialPageRoute(
