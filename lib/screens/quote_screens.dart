@@ -1483,7 +1483,9 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                 // ── 원터치 액션 버튼 ──────────────────────
                 Column(children: [
                   // 매칭 상태에 따라 다른 버튼 표시
-                  if (_bid.status == RepairStatus.matched || _bid.status == RepairStatus.bidding) ...[
+                  if (_bid.status == RepairStatus.bidding ||
+                      _bid.status == RepairStatus.pending ||
+                      _bid.status == RepairStatus.matched) ...[
                     // ── 매칭 동의 버튼 (아직 매칭 전) ──
                     if (widget.request.status != RepairStatus.matched)
                       SizedBox(

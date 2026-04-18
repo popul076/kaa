@@ -1166,7 +1166,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           });
                           // 견적 카테고리 알림 → 마이페이지 견적 내역으로 이동
                           if (n['category'] == '견적') {
-                            Navigator.pop(context); // 알림 화면 닫기
                             Navigator.pushNamed(context, '/my-quotes');
                           }
                         },
@@ -3729,8 +3728,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           const SizedBox(height: 16),
 
           // ── 신청서 내역 바로가기 버튼 ──
-          if (_applications.isNotEmpty)
-            GestureDetector(
+          GestureDetector(
               onTap: () => Navigator.push(context,
                 MaterialPageRoute(builder: (_) => const CarApplicationHistoryScreen())),
               child: Container(

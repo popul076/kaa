@@ -334,7 +334,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   // ── AppBar ─────────────────────────────────────────────
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 44,
+      expandedHeight: 110,
       pinned: true,
       backgroundColor: _bg,
       surfaceTintColor: Colors.transparent,
@@ -353,6 +353,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
+        collapseMode: CollapseMode.pin,
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -361,31 +362,48 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               colors: [_catColor, _bg],
             ),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 48, 20, 8),
-          child: Row(
-            children: [
-              Text(widget.emoji, style: const TextStyle(fontSize: 36)),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 90, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    '${widget.category} 업체',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 18, fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    '내 위치 기준 ${_stores.length}개 업체',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 11, color: _t2,
+                  Text(widget.emoji, style: const TextStyle(fontSize: 32)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${widget.category} 업체',
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 20, fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '내 위치 기준 ${_stores.length}개 업체',
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 12, color: _t2,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

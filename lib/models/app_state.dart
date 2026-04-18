@@ -93,7 +93,7 @@ class QuoteBid {
     required this.createdAt,
     required this.storePhone,
     this.phoneRevealed = false,
-    this.status = RepairStatus.matched,
+    this.status = RepairStatus.bidding,
     this.isRead = false,
   });
 

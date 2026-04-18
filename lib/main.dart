@@ -68,6 +68,7 @@ class KaaApp extends StatelessWidget {
           '/notification': (_) => const NotificationScreen(),
           '/quote-request': (_) => const QuoteRequestScreen(),
           '/quote-list': (_) => const QuoteReceivedScreen(),
+          '/quote-received': (_) => const QuoteReceivedScreen(),
           '/shop-quote': (_) => const ShopQuoteScreen(),
           '/news': (_) => const NewsScreen(),
           '/emergency': (_) => const EmergencyScreen(),
