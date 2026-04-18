@@ -342,7 +342,7 @@ class AppState extends ChangeNotifier {
 
   // ── 매칭 확정: 선택한 bid → matched, 나머지 → cancelled ─────
   // 동일 차량(carName)의 다른 요청도 모두 거래종료(cancelled) 처리
-  void matchRequest(String requestId, String selectedBidId) {
+  void matchRequest(String requestId, String selectedBidId, {String? selectedSchedule}) {
     final req = estimateRequests.firstWhere(
       (r) => r.requestId == requestId,
       orElse: () => estimateRequests.first,
