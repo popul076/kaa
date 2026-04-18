@@ -37,7 +37,6 @@ ios/Flutter/Flutter.podspec
 Thumbs.db
 
 # Build artifacts
-*.apk
 *.aab
 *.ipa
 nohup.out

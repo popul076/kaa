@@ -2730,6 +2730,16 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
   final _plateCtrl = TextEditingController();
   final _kmCtrl    = TextEditingController();
 
+  // ── 내차 사진 (최대 10장) ──
+  final List<File> _carPhotos = [];
+  final ImagePicker _carPicker = ImagePicker();
+  bool _photoUploading = false;
+
+  // ── 차량번호 자동조회 결과 ──
+  String? _plateRegDate;    // 최초등록일
+  String? _plateModelYear;  // 연식
+  bool _plateLoading = false;
+
   // 주행거리: 마지막 저장값과 비교해 새 값 입력 시에만 버튼 활성화
   String _kmLastSaved = '';     // SharedPreferences에 저장된 이전 값
   bool get _kmChanged => _kmCtrl.text.trim().isNotEmpty &&
@@ -3461,8 +3471,66 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 차량번호 (텍스트 입력)
-          _darkField('🚗 차량 번호 (선택)', '123가 4567', _plateCtrl),
+          // 차량번호 + 자동조회 버튼
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('🚗 차량 번호 (선택)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+              const SizedBox(height: 6),
+              Row(children: [
+                Expanded(
+                  child: TextField(
+                    controller: _plateCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: '123가 4567',
+                      hintStyle: TextStyle(color: _mTextSec.withOpacity(0.4), fontSize: 13),
+                      filled: true,
+                      fillColor: _mCard,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _mBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _mBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _mAccent)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    onChanged: (_) { if (_plateRegDate != null) setState(() { _plateRegDate = null; _plateModelYear = null; }); },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _plateLoading ? null : _lookupPlate,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+                    decoration: BoxDecoration(
+                      color: _mAccent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _mAccent.withOpacity(0.5)),
+                    ),
+                    child: _plateLoading
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: _mAccent, strokeWidth: 2))
+                      : const Icon(Icons.search, color: _mAccent, size: 20),
+                  ),
+                ),
+              ]),
+              // 조회 결과 표시
+              if (_plateRegDate != null) ...[ 
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _mGreen.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _mGreen.withOpacity(0.3)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.check_circle_rounded, color: _mGreen, size: 14),
+                    const SizedBox(width: 6),
+                    Text('최초등록일: $_plateRegDate  |  연식: ${_plateModelYear}년식',
+                      style: const TextStyle(fontSize: 12, color: _mGreen, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ],
+            ],
+          ),
           const SizedBox(height: 14),
 
           // 제조사 팝업
@@ -3505,6 +3573,104 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           _pickerTile('⭐ 차량 상태 (선택)', _selectedGrade, '무사고/사고이력 선택', () =>
             _showPickerDialog('차량 상태', _grades, _selectedGrade, (v) =>
               setState(() => _selectedGrade = v))
+          ),
+          const SizedBox(height: 20),
+
+          // ── 내차 사진 첨부 섹션 ──
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _mCard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _mOrange.withOpacity(0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.photo_camera_rounded, color: _mOrange, size: 18),
+                  const SizedBox(width: 8),
+                  const Text('내차 사진 첨부 (최대 10장)',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const Spacer(),
+                  Text('${_carPhotos.length}/10',
+                    style: TextStyle(fontSize: 12, color: _carPhotos.isEmpty ? _mTextSec : _mOrange, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 4),
+                Text('사진이 많을수록 정확한 시세 조회 및 매입 제안을 받을 수 있습니다.',
+                  style: TextStyle(fontSize: 11, color: _mTextSec)),
+                const SizedBox(height: 12),
+                if (_carPhotos.isNotEmpty) ...[ 
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _carPhotos.length + 1,
+                      itemBuilder: (ctx, i) {
+                        if (i == _carPhotos.length) {
+                          // + 추가 버튼
+                          if (_carPhotos.length >= 10) return const SizedBox.shrink();
+                          return GestureDetector(
+                            onTap: _showPhotoSourceSheet,
+                            child: Container(
+                              width: 80, height: 80,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: _mBg,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: _mBorder, style: BorderStyle.solid),
+                              ),
+                              child: const Icon(Icons.add_a_photo_rounded, color: _mTextSec, size: 24),
+                            ),
+                          );
+                        }
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 80, height: 80,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                image: DecorationImage(
+                                  image: FileImage(_carPhotos[i]),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 2, right: 10,
+                              child: GestureDetector(
+                                onTap: () => setState(() => _carPhotos.removeAt(i)),
+                                child: Container(
+                                  width: 20, height: 20,
+                                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                  child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _carPhotos.length >= 10 ? null : _showPhotoSourceSheet,
+                    icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
+                    label: Text(_carPhotos.isEmpty ? '사진 추가하기' : '사진 추가 (${_carPhotos.length}/10)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _mOrange,
+                      side: BorderSide(color: _mOrange.withOpacity(0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           // 조회 버튼 (_kmChanged: 새로운 주행거리 입력 시에만 활성화)
@@ -3829,6 +3995,23 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
               const SizedBox(height: 4),
               Text('원하는 매장을 선택하세요 (최대 3곳)',
                 style: TextStyle(fontSize: 11, color: _mTextSec)),
+              if (_carPhotos.isNotEmpty) ...[ 
+                const SizedBox(height: 6),
+                Row(children: [
+                  const Icon(Icons.photo_rounded, color: _mOrange, size: 13),
+                  const SizedBox(width: 4),
+                  Text('사진 ${_carPhotos.length}장 함께 전송됩니다',
+                    style: TextStyle(fontSize: 11, color: _mOrange, fontWeight: FontWeight.w600)),
+                ]),
+              ] else ...[ 
+                const SizedBox(height: 6),
+                Row(children: [
+                  Icon(Icons.info_outline_rounded, color: _mTextSec.withOpacity(0.6), size: 13),
+                  const SizedBox(width: 4),
+                  Text('사진 첨부 시 더 정확한 매입 제안을 받을 수 있습니다',
+                    style: TextStyle(fontSize: 11, color: _mTextSec.withOpacity(0.6))),
+                ]),
+              ],
               const SizedBox(height: 12),
               ...stores.asMap().entries.map((e) {
                 final i = e.key;
@@ -3885,7 +4068,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                         _sendToSelectedStores(selected);
                       },
                   icon: const Icon(Icons.send_rounded, size: 16),
-                  label: const Text('선택 매장에 신청서 전송'),
+                  label: Text(_carPhotos.isEmpty ? '신청서 전송 (사진 없음)' : '내 차 팔기 신청 완료 📸${_carPhotos.length}장'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _mGreen,
                     foregroundColor: Colors.white,
@@ -4231,6 +4414,89 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // ── 차량번호 자동조회 (더미 구현) ──
+  Future<void> _lookupPlate() async {
+    final plate = _plateCtrl.text.trim();
+    if (plate.isEmpty) return;
+    setState(() => _plateLoading = true);
+    await Future.delayed(const Duration(milliseconds: 900));
+    // 더미 데이터: 실제는 국토부 API 연동
+    final now = DateTime.now();
+    setState(() {
+      _plateLoading = false;
+      _plateRegDate  = '${now.year - 4}-${(now.month % 12) + 1}-${(now.day % 28) + 1}';
+      _plateModelYear = '${now.year - 4}';
+      if (_selectedYear == null) _selectedYear = _plateModelYear;
+    });
+  }
+
+  // ── 사진 추가 (갤러리 / 카메라) ──
+  Future<void> _addCarPhoto(ImageSource source) async {
+    if (_carPhotos.length >= 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('사진은 최대 10장까지 첨부 가능합니다')));
+      return;
+    }
+    try {
+      final XFile? picked = await _carPicker.pickImage(
+        source: source, imageQuality: 82, maxWidth: 1280);
+      if (picked != null) {
+        setState(() => _carPhotos.add(File(picked.path)));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('사진 오류: \$e'), backgroundColor: Colors.red[700]));
+    }
+  }
+
+  void _showPhotoSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('사진 추가', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+            const SizedBox(height: 20),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              _photoSourceBtn(Icons.photo_library_rounded, '갤러리', () {
+                Navigator.pop(context);
+                _addCarPhoto(ImageSource.gallery);
+              }),
+              _photoSourceBtn(Icons.camera_alt_rounded, '카메라', () {
+                Navigator.pop(context);
+                _addCarPhoto(ImageSource.camera);
+              }),
+            ]),
+            const SizedBox(height: 10),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _photoSourceBtn(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(children: [
+        Container(
+          width: 64, height: 64,
+          decoration: BoxDecoration(
+            color: _mAccent.withOpacity(0.12),
+            shape: BoxShape.circle,
+            border: Border.all(color: _mAccent.withOpacity(0.4)),
+          ),
+          child: Icon(icon, color: _mAccent, size: 28),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w600)),
+      ]),
     );
   }
 
@@ -5556,6 +5822,121 @@ class _CarConsultScreenState extends State<CarConsultScreen>
     _sliderVal = 0.0;
   }
 
+  // ── 내차팔기 매칭 완료 팝업 (전화번호 입력 → 점포 알림 → 거래종료) ──
+  Future<void> _showSellMatchPopup(int finalPrice) async {
+    final phoneCtrl = TextEditingController();
+    final fmt = _fmt(finalPrice);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => Dialog(
+          backgroundColor: const Color(0xFF0D1B2A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: _green.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _green.withOpacity(0.5), width: 2),
+                ),
+                child: const Icon(Icons.handshake_rounded, color: _green, size: 28),
+              ),
+              const SizedBox(height: 14),
+              Text('$fmt 매매 동의 완료!',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+              const SizedBox(height: 4),
+              Text('${widget.shopName}에 연락처를 전달합니다.',
+                style: const TextStyle(fontSize: 12, color: Color(0xFFB0BEC5))),
+              const SizedBox(height: 16),
+              // 전화번호 입력
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: Colors.white, fontSize: 15),
+                decoration: InputDecoration(
+                  labelText: '전화번호',
+                  labelStyle: const TextStyle(color: Color(0xFFB0BEC5)),
+                  hintText: '010-0000-0000',
+                  hintStyle: const TextStyle(color: Color(0xFF455A64)),
+                  filled: true,
+                  fillColor: const Color(0xFF020810),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1E3A5F))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF1E3A5F))),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _green)),
+                  prefixIcon: const Icon(Icons.phone_rounded, color: _green, size: 18),
+                ),
+                onChanged: (_) => setD(() {}),
+              ),
+              const SizedBox(height: 6),
+              Text('* 입력하신 번호는 ${widget.shopName}에게만 전달됩니다.',
+                style: const TextStyle(fontSize: 10, color: Color(0xFF607D8B))),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF1E3A5F)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('취소', style: TextStyle(color: Color(0xFFB0BEC5))),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: phoneCtrl.text.trim().length >= 9 ? () async {
+                      final phone = phoneCtrl.text.trim();
+                      Navigator.pop(ctx);
+                      // 다른 점포 거래종료 처리
+                      final prefs = await SharedPreferences.getInstance();
+                      final savedJson = prefs.getString('cp_applications_json');
+                      if (savedJson != null && savedJson.isNotEmpty) {
+                        try {
+                          final items = savedJson.split('|||');
+                          final updated = items.map((item) {
+                            final parts = item.split('||');
+                            if (parts.length >= 7 && parts[6] == widget.carInfo && parts[0] != widget.shopName) {
+                              final newParts = List<String>.from(parts);
+                              if (newParts.length > 5) newParts[5] = 'true';
+                              return newParts.join('||');
+                            }
+                            return item;
+                          }).join('|||');
+                          await prefs.setString('cp_applications_json', updated);
+                        } catch (_) {}
+                      }
+                      if (!mounted) return;
+                      // 완료 스낵바
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        backgroundColor: _green,
+                        content: Text('✅ 매칭 완료! ${widget.shopName}에 번호 $phone 전달됨. 다른 신청서는 자동 거래종료됩니다.'),
+                        duration: const Duration(seconds: 4),
+                      ));
+                      Navigator.pop(context); // 협상화면 닫기
+                    } : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _green,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: const Text('전송 완료', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _tab.dispose();
@@ -5774,31 +6155,9 @@ class _CarConsultScreenState extends State<CarConsultScreen>
                         const SizedBox(width: 10),
                         Expanded(child: ElevatedButton(
                           onPressed: _agreed ? () async {
-                            // 매칭 성공 → 동일 차량 다른 신청서 거래종료 처리
-                            final prefs = await SharedPreferences.getInstance();
-                            final savedJson = prefs.getString('cp_applications_json');
-                            if (savedJson != null && savedJson.isNotEmpty) {
-                              try {
-                                final items = savedJson.split('|||');
-                                final updated = items.map((item) {
-                                  final parts = item.split('||');
-                                  if (parts.length >= 7) {
-                                    final storeName = parts[0];
-                                    // 동일 carInfo이고 이 매장이 아닌 것들 거래종료
-                                    if (parts[6] == widget.carInfo && storeName != widget.shopName) {
-                                      final newParts = List<String>.from(parts);
-                                      if (newParts.length > 5) newParts[5] = 'true'; // cancelled
-                                      return newParts.join('||');
-                                    }
-                                  }
-                                  return item;
-                                }).join('|||');
-                                await prefs.setString('cp_applications_json', updated);
-                              } catch (_) {}
-                            }
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동의 완료! 다른 매장 신청이 자동 종료됩니다.')));
-                            Navigator.pop(context); // 협상 화면 닫기
+                            final adjustedPrice2 = (_offeredPrice + (_sliderVal * 2000000)).toInt();
+                            // 전화번호 팝업 → 점포 알림 → 다른 점포 거래종료
+                            await _showSellMatchPopup(adjustedPrice2);
                           } : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _agreed ? _green : _br,

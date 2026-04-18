@@ -71,6 +71,9 @@ class QuoteBid {
   final int totalCost;      // 예상총액
   final String estimatedTime; // 예상 소요시간
   final String memo;
+  final String ownerMessage;       // 사장님 메시지
+  final List<String> availableSchedules; // 예약 가능 일정
+  String? selectedSchedule;        // 사용자가 선택한 예약 일정
   final DateTime createdAt;
   bool phoneRevealed; // 전화번호 공개 여부 (1:1문의/예약 후)
   final String storePhone;  // 실제 전화번호 (phoneRevealed=true 시에만 표시)
@@ -90,6 +93,9 @@ class QuoteBid {
     required this.totalCost,
     required this.estimatedTime,
     required this.memo,
+    this.ownerMessage = '',
+    this.availableSchedules = const [],
+    this.selectedSchedule,
     required this.createdAt,
     required this.storePhone,
     this.phoneRevealed = false,
@@ -97,13 +103,16 @@ class QuoteBid {
     this.isRead = false,
   });
 
-  QuoteBid copyWith({bool? phoneRevealed, RepairStatus? status, bool? isRead}) {
+  QuoteBid copyWith({bool? phoneRevealed, RepairStatus? status, bool? isRead, String? selectedSchedule}) {
     return QuoteBid(
       bidId: bidId, storeId: storeId, storeName: storeName,
       storeDistance: storeDistance, storeRating: storeRating,
       storeBadge: storeBadge, storeImage: storeImage,
       partsCost: partsCost, laborCost: laborCost, totalCost: totalCost,
-      estimatedTime: estimatedTime, memo: memo, createdAt: createdAt,
+      estimatedTime: estimatedTime, memo: memo,
+      ownerMessage: ownerMessage, availableSchedules: availableSchedules,
+      selectedSchedule: selectedSchedule ?? this.selectedSchedule,
+      createdAt: createdAt,
       storePhone: storePhone,
       phoneRevealed: phoneRevealed ?? this.phoneRevealed,
       status: status ?? this.status,
@@ -256,6 +265,8 @@ class AppState extends ChangeNotifier {
             totalCost: 270000,
             estimatedTime: '당일 1시간',
             memo: '실물 확인 시 추가 손상 여부에 따라 달라질 수 있습니다.',
+            ownerMessage: '안녕하세요! 저희 센터는 KAA 공식 인증점으로 20년 경력 기술진이 직접 작업합니다. 실물 확인 후 정확한 견적 드리겠습니다 😊',
+            availableSchedules: ['오늘 오후 2시', '오늘 오후 4시', '내일 오전 10시', '내일 오후 2시', '내일 오후 5시'],
             createdAt: DateTime.now().subtract(const Duration(hours: 1)),
             storePhone: '053-123-4567',
           ),
@@ -272,6 +283,8 @@ class AppState extends ChangeNotifier {
             totalCost: 380000,
             estimatedTime: '소요 1일',
             memo: '판금·도색 포함 견적입니다. 실물 확인 후 조정 가능합니다.',
+            ownerMessage: '고객님 차량 상태 보니 판금+도색 모두 필요할 것 같습니다. 저희는 독일 수입 도료만 사용해 색상 완벽 매칭 보장합니다!',
+            availableSchedules: ['내일 오전 9시', '내일 오후 1시', '모레 오전 10시', '모레 오후 3시'],
             createdAt: DateTime.now().subtract(const Duration(minutes: 40)),
             storePhone: '053-234-5678',
           ),
@@ -288,6 +301,8 @@ class AppState extends ChangeNotifier {
             totalCost: 180000,
             estimatedTime: '약 4시간',
             memo: '당일 예약 가능합니다.',
+            ownerMessage: '빠른 작업 자신있습니다! 부품 재고 보유 중이라 당일 완료 가능해요. 합리적인 가격으로 최선을 다하겠습니다.',
+            availableSchedules: ['오늘 오후 1시', '오늘 오후 3시', '오늘 오후 5시', '내일 오전 11시'],
             createdAt: DateTime.now().subtract(const Duration(minutes: 20)),
             storePhone: '053-345-6789',
           ),

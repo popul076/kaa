@@ -1229,7 +1229,7 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                     return;
                   }
                   Navigator.pop(dialogCtx);
-                  _completeMatch();
+                  _completeMatch(selectedSchedule: _bid.selectedSchedule);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accent,
@@ -1246,8 +1246,8 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
   }
 
   // ── 매칭 완료 처리 + 알림 전송 시뮬레이션 ──────────────
-  void _completeMatch() {
-    AppState().matchRequest(widget.request.requestId, _bid.bidId);
+  void _completeMatch({String? selectedSchedule}) {
+    AppState().matchRequest(widget.request.requestId, _bid.bidId, selectedSchedule: selectedSchedule);
     setState(() {
       _bid.phoneRevealed = true;
       _bid.status = RepairStatus.matched;
@@ -1282,7 +1282,22 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
             const Text('🎉 매칭 성공!',
               style: TextStyle(color: _textPri, fontSize: 20, fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
-            Text('${_bid.storeName}과 매칭되었습니다!\n점포에서 곧 연락드릴 예정입니다.',
+            Text('${_bid.storeName}과 매칭되었습니다!', textAlign: TextAlign.center,
+              style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            if (_bid.selectedSchedule != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(color: _green.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.calendar_today_rounded, color: _green, size: 14),
+                  const SizedBox(width: 6),
+                  Text('예약: ${_bid.selectedSchedule}',
+                    style: const TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            Text('점포에서 곧 연락드릴 예정입니다.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: _textSec, fontSize: 13, height: 1.6)),
             const SizedBox(height: 12),
@@ -1469,6 +1484,27 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
 
                 const SizedBox(height: 14),
 
+                // ── 사장님 메시지 ──────────────────────
+                if (_bid.ownerMessage.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _green.withOpacity(0.06), borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _green.withOpacity(0.3)),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Row(children: [
+                        Icon(Icons.storefront_rounded, color: _green, size: 14),
+                        SizedBox(width: 6),
+                        Text('사장님 메시지', style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text(_bid.ownerMessage, style: const TextStyle(color: _textPri, fontSize: 13, height: 1.6)),
+                    ]),
+                  ),
+
+                if (_bid.ownerMessage.isNotEmpty) const SizedBox(height: 14),
+
                 // ── 점포 메모 ──────────────────────────
                 if (_bid.memo.isNotEmpty)
                   Container(
@@ -1490,23 +1526,90 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
 
                 const SizedBox(height: 14),
 
+                // ── 예약 가능 일정 선택 ──────────────────
+                if (_bid.availableSchedules.isNotEmpty && _bid.status == RepairStatus.bidding)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: _card, borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _accent.withOpacity(0.4)),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Row(children: [
+                        Icon(Icons.calendar_month_rounded, color: _accent, size: 16),
+                        SizedBox(width: 6),
+                        Text('예약 가능 일정', style: TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w800)),
+                      ]),
+                      const SizedBox(height: 4),
+                      const Text('원하는 날짜를 선택하고 확정하세요',
+                        style: TextStyle(color: _textSec, fontSize: 11)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8, runSpacing: 8,
+                        children: _bid.availableSchedules.map((s) {
+                          final selected = _bid.selectedSchedule == s;
+                          return GestureDetector(
+                            onTap: () => setState(() => _bid.selectedSchedule = s),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: selected ? _accent : _navy,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: selected ? _accent : _border),
+                              ),
+                              child: Text(s,
+                                style: TextStyle(
+                                  color: selected ? Colors.black : _textSec,
+                                  fontSize: 12, fontWeight: selected ? FontWeight.w800 : FontWeight.w400)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      if (_bid.selectedSchedule != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: _accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(children: [
+                            const Icon(Icons.check_circle_rounded, color: _accent, size: 14),
+                            const SizedBox(width: 6),
+                            Text('선택: ${_bid.selectedSchedule}',
+                              style: const TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                          ]),
+                        ),
+                      ],
+                    ]),
+                  ),
+
+                if (_bid.availableSchedules.isNotEmpty && _bid.status == RepairStatus.bidding)
+                  const SizedBox(height: 14),
+
                 // ── 원터치 액션 버튼 ──────────────────────
                 Column(children: [
                   // 매칭 상태에 따라 다른 버튼 표시
                   if (_bid.status == RepairStatus.bidding ||
                       _bid.status == RepairStatus.pending ||
                       _bid.status == RepairStatus.matched) ...[
-                    // ── 매칭 동의 버튼 (아직 매칭 전) ──
+                    // ── 예약 확정하기 버튼 ──
                     if (widget.request.status != RepairStatus.matched)
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () => _showMatchConfirmDialog(),
-                          icon: const Icon(Icons.handshake_rounded, size: 18),
-                          label: const Text('이 견적으로 매칭하기',
-                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                          onPressed: _bid.selectedSchedule != null
+                            ? () => _showMatchConfirmDialog()
+                            : null,
+                          icon: const Icon(Icons.event_available_rounded, size: 18),
+                          label: Text(
+                            _bid.selectedSchedule != null
+                              ? '${_bid.selectedSchedule} 예약 확정하기'
+                              : '위에서 예약 일정을 선택하세요',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: _green,
+                            backgroundColor: _bid.selectedSchedule != null ? _green : _border,
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
