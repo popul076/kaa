@@ -1,32 +1,65 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MOINCAR APK 다운로드</title>
-<style>
-  body { background:#020810; color:#fff; font-family:'Noto Sans KR',sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; }
-  .card { background:#0D1B2A; border:1px solid #1E3A5F; border-radius:20px; padding:40px 32px; max-width:360px; width:90%; text-align:center; }
-  .icon { font-size:56px; margin-bottom:16px; }
-  h1 { font-size:22px; font-weight:800; margin:0 0 6px; }
-  .ver { color:#4FC3F7; font-size:13px; font-weight:700; margin-bottom:20px; }
-  .btn { display:block; background:linear-gradient(135deg,#10B981,#059669); color:#fff; text-decoration:none; border-radius:14px; padding:16px; font-size:16px; font-weight:800; margin-bottom:12px; }
-  .note { color:#B0BEC5; font-size:12px; line-height:1.7; margin-top:16px; }
-  .size { color:#607D8B; font-size:11px; margin-top:4px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOINCAR APK 다운로드</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0A1628; color: #fff; font-family: 'Pretendard', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { max-width: 480px; width: 100%; padding: 24px; text-align: center; }
+    .logo { font-size: 28px; font-weight: 900; color: #4FC3F7; letter-spacing: 2px; margin-bottom: 6px; }
+    .subtitle { color: #5A7FA8; font-size: 13px; margin-bottom: 32px; }
+    .card { background: #0D1F35; border: 1px solid #1E3A5F; border-radius: 20px; padding: 28px 24px; margin-bottom: 16px; }
+    .version-badge { display: inline-block; background: #1565C0; color: #4FC3F7; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 20px; margin-bottom: 16px; }
+    .apk-icon { font-size: 52px; margin-bottom: 12px; }
+    .apk-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .apk-meta { color: #5A7FA8; font-size: 12px; margin-bottom: 20px; line-height: 1.8; }
+    .btn-download { display: block; background: linear-gradient(135deg, #1565C0, #4FC3F7); color: #fff; font-size: 16px; font-weight: 800; padding: 16px 24px; border-radius: 14px; text-decoration: none; margin-bottom: 12px; transition: opacity .2s; }
+    .btn-download:hover { opacity: 0.9; }
+    .btn-prev { display: block; background: #0A1628; color: #5A7FA8; font-size: 13px; padding: 12px; border-radius: 10px; text-decoration: none; border: 1px solid #1E3A5F; }
+    .changelog { background: #071323; border: 1px solid #1E3A5F; border-radius: 14px; padding: 20px; text-align: left; }
+    .changelog h3 { font-size: 13px; color: #4FC3F7; font-weight: 800; margin-bottom: 12px; }
+    .changelog ul { list-style: none; }
+    .changelog li { font-size: 12px; color: #8BAACC; padding: 5px 0; border-bottom: 1px solid #0D1F35; display: flex; gap: 8px; }
+    .changelog li:last-child { border-bottom: none; }
+    .tag { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+    .tag-fix { background: #1A3A5C; color: #4FC3F7; }
+    .tag-new { background: #1A4A2E; color: #2ECC71; }
+    .tag-ux { background: #3A2A00; color: #FFA726; }
+  </style>
 </head>
 <body>
-<div class="card">
-  <div class="icon">📱</div>
-  <h1>MOINCAR</h1>
-  <div class="ver">v1.5.0+33 · 최신버전</div>
-  <a class="btn" href="moincar_v33.apk" download="moincar-v33.apk">⬇ APK 다운로드 (v33)</a>
-  <div class="size">파일크기: 약 12MB</div>
-  <div class="note">
-    ① 다운로드 후 파일 열기<br>
-    ② 설정 → 알 수 없는 앱 설치 허용<br>
-    ③ 설치 완료 후 앱 실행
+  <div class="container">
+    <div class="logo">MOINCAR</div>
+    <div class="subtitle">모인카 앱 최신 버전 다운로드</div>
+
+    <div class="card">
+      <div class="version-badge">v34 최신버전</div>
+      <div class="apk-icon">📱</div>
+      <div class="apk-title">moincar-v34.apk</div>
+      <div class="apk-meta">
+        버전 1.5.0+34 · 약 12MB<br>
+        2026-04-18 배포
+      </div>
+      <a href="moincar_v34.apk" class="btn-download">⬇ APK 다운로드 (v34)</a>
+      <a href="moincar_v33.apk" class="btn-prev">이전 버전 (v33) 다운로드</a>
+    </div>
+
+    <div class="changelog">
+      <h3>📋 v34 변경 내역</h3>
+      <ul>
+        <li><span class="tag tag-fix">FIX</span>AppBar 슬림화 · 중앙 '정비' 텍스트 · 뒤로가기 화살표 정상화</li>
+        <li><span class="tag tag-fix">FIX</span>견적 요청/도착 배너 복구 · onTap 즉시 라우팅 · 에러 핸들링</li>
+        <li><span class="tag tag-new">NEW</span>홈 상단바 [신청내역/견적도착] 버튼 추가 (GestureDetector)</li>
+        <li><span class="tag tag-fix">FIX</span>로딩 스피너 결함 수정 → 정적 대기 텍스트 교체</li>
+        <li><span class="tag tag-new">NEW</span>동의완료 후 다른 점포 Grey-out + 클릭 차단</li>
+        <li><span class="tag tag-new">NEW</span>매칭/마감/NEW 배지 상태별 표시</li>
+        <li><span class="tag tag-ux">UX</span>RequestHistory 매칭완료/거래종료 상태 명확히 표시</li>
+        <li><span class="tag tag-new">NEW</span>SharedPreferences 로컬 캐시로 앱 이탈 후 데이터 유지</li>
+        <li><span class="tag tag-fix">FIX</span>홈 복귀 시 hasActiveRequest 확인 → 배너 자동 활성화</li>
+      </ul>
+    </div>
   </div>
-</div>
 </body>
 </html>
