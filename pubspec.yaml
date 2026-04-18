@@ -2,7 +2,7 @@ name: kaa_app
 description: KAA Mobility Platform - 자동차 관련 정보와 중고차 정보를 한 번에 찾는 앱
 
 publish_to: 'none'
-version: 1.5.0+30
+version: 1.5.0+31
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

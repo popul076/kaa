@@ -326,6 +326,7 @@ class AppState extends ChangeNotifier {
   }
 
   // ── 매칭 확정: 선택한 bid → matched, 나머지 → cancelled ─────
+  // 동일 차량(carName)의 다른 요청도 모두 거래종료(cancelled) 처리
   void matchRequest(String requestId, String selectedBidId) {
     final req = estimateRequests.firstWhere(
       (r) => r.requestId == requestId,
@@ -337,6 +338,20 @@ class AppState extends ChangeNotifier {
           ? RepairStatus.matched
           : RepairStatus.cancelled;
     }
+    // 동일 차량의 다른 요청 → 거래종료
+    for (final other in estimateRequests) {
+      if (other.requestId != requestId &&
+          other.carName == req.carName &&
+          other.status != RepairStatus.cancelled) {
+        other.status = RepairStatus.cancelled;
+        for (final b in other.bids) {
+          if (b.status != RepairStatus.matched) {
+            b.status = RepairStatus.cancelled;
+          }
+        }
+      }
+    }
+    _isRequestActive = false; // 매칭 완료 시 배너 플래그 해제
     notifyListeners();
   }
 
@@ -359,8 +374,16 @@ class AppState extends ChangeNotifier {
   int get unreadBidCount => estimateRequests.fold(
     0, (sum, r) => sum + r.bids.where((b) => !b.isRead).length);
 
+  // ── 견적 요청 활성 여부 (요청 직후 true → 배너 강제 표시) ────
+  bool _isRequestActive = false;
+  bool get isRequestActive => _isRequestActive;
+  void setRequestActive(bool v) {
+    _isRequestActive = v;
+    notifyListeners();
+  }
+
   // ── 매칭된 요청 수 ───────────────────────────────────────────
-  bool get hasActiveRequest => estimateRequests.any(
+  bool get hasActiveRequest => _isRequestActive || estimateRequests.any(
     (r) => r.status == RepairStatus.bidding || r.status == RepairStatus.pending);
 
   // ── 점포 알림 설정 ─────────────────────────────

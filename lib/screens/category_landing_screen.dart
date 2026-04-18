@@ -369,36 +369,17 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(widget.emoji, style: const TextStyle(fontSize: 32)),
-                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '${widget.category} 업체',
-                            style: GoogleFonts.notoSansKr(
-                              fontSize: 20, fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        widget.category,
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 22, fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
-                        const SizedBox(height: 2),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '내 위치 기준 ${_stores.length}개 업체',
-                            style: GoogleFonts.notoSansKr(
-                              fontSize: 12, color: _t2,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -543,151 +524,80 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
 
   // ── 견적 요청 배너 (요청 전/후 상태 전환) ──────────────
   Widget _buildQuoteRequestBanner() {
-    final requests = AppState().estimateRequests;
-    // 현재 카테고리와 관련된 활성 요청 확인
-    final activeRequests = requests.where((r) =>
-      r.status == RepairStatus.bidding || r.status == RepairStatus.pending
-    ).toList();
-    final hasActiveRequest = activeRequests.isNotEmpty;
-    final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
+    return AnimatedBuilder(
+      animation: AppState(),
+      builder: (context, _) {
+        final requests = AppState().estimateRequests;
+        // isRequestActive 플래그 또는 실제 활성 요청이 있으면 '도착 확인' 배너 표시
+        final forceActive = AppState().isRequestActive;
+        final activeRequests = requests.where((r) =>
+          r.status == RepairStatus.bidding || r.status == RepairStatus.pending
+        ).toList();
+        final hasActiveRequest = forceActive || activeRequests.isNotEmpty;
+        final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
 
-    if (hasActiveRequest) {
-      // ── 요청 후: 견적서 도착 현황 배너 ──
-      return GestureDetector(
-        onTap: () => Navigator.pushNamed(context, '/quote-received'),
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_green.withOpacity(0.15), const Color(0xFF0A1628)],
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
-          ),
-          child: Row(children: [
-            Container(
-              width: 48, height: 48,
+        if (hasActiveRequest) {
+          // ── 요청 후: 견적서 도착 확인하기 배너 (높이 축소, 텍스트만) ──
+          return GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/quote-received'),
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: _green.withOpacity(0.15),
+                color: _green.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
               ),
-              child: const Icon(Icons.mark_email_unread_rounded,
-                  color: _green, size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '견적서 도착 현황',
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 15, fontWeight: FontWeight.w700,
-                          color: Colors.white),
-                    ),
+              child: Row(children: [
+                const Icon(Icons.mark_email_unread_rounded, color: _green, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    totalBids > 0
+                      ? '견적서 도착 확인하기  ($totalBids건)'
+                      : '견적서 도착 확인하기  (대기중...)',
+                    style: GoogleFonts.notoSansKr(
+                        fontSize: 13, fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      totalBids > 0
-                        ? '현재 $totalBids곳의 정비소에서 견적서가 도착했습니다'
-                        : '견적 요청 중 · 점포 답변 대기중...',
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 11, color: _green.withOpacity(0.9)),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: _green, size: 20),
+              ]),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _green,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                totalBids > 0 ? '$totalBids건' : '대기중',
-                style: GoogleFonts.notoSansKr(
-                    fontSize: 12, color: Colors.white,
-                    fontWeight: FontWeight.w800)),
-            ),
-          ]),
-        ),
-      );
-    }
+          );
+        }
 
-    // ── 요청 전: 정비 요청하기 배너 ──
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/quote-request'),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1B3A6B), Color(0xFF0D2A4A)],
+        // ── 요청 전: 정비 요청하기 배너 (높이 축소, 이모지/부제목 제거) ──
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/quote-request'),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _accent.withOpacity(0.4)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.request_quote_outlined, color: _accent, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '정비  견적 요청하기',
+                    style: GoogleFonts.notoSansKr(
+                        fontSize: 13, fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: _accent, size: 20),
+              ],
+            ),
           ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _accent.withOpacity(0.4)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(
-                color: _accent.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.request_quote_outlined,
-                  color: _accent, size: 26),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '${widget.category} 정비 요청하기',
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 15, fontWeight: FontWeight.w700,
-                          color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '사진 첨부 → 근처 업체 자동 알림 → 10분 내 견적!',
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 11, color: _t2),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _accent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text('요청',
-                  style: GoogleFonts.notoSansKr(
-                      fontSize: 12, color: Colors.black,
-                      fontWeight: FontWeight.w800)),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 

@@ -201,6 +201,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
     );
 
     AppState().addEstimateRequest(req);
+    AppState().setRequestActive(true); // 요청 후 배너 강제 활성화
     await _clearSavedData(); // 전송 성공 시 캐시 초기화
 
     if (!mounted) return;
@@ -705,18 +706,25 @@ class _QuoteReceivedScreenState extends State<QuoteReceivedScreen> {
   @override
   void initState() {
     super.initState();
-    AppState().initDummyEstimates();
+    // StreamBuilder 방식으로 교체: initState에서 데이터 직접 로드하지 않음
+    // AppState가 ChangeNotifier이므로 ValueListenableBuilder로 실시간 반영
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppState().initDummyEstimates();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    final requests = AppState().estimateRequests;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: _bg, statusBarIconBrightness: Brightness.light),
-      child: Scaffold(
+      child: AnimatedBuilder(
+        animation: AppState(),
+        builder: (context, _) {
+          final requests = AppState().estimateRequests;
+          return Scaffold(
         backgroundColor: _bg,
         body: Column(children: [
           // ── 헤더 ──────────────────────────────────
@@ -756,6 +764,9 @@ class _QuoteReceivedScreenState extends State<QuoteReceivedScreen> {
           ),
         ]),
       ),
+          ); // Scaffold
+        }, // AnimatedBuilder builder
+      ), // AnimatedBuilder
     );
   }
 

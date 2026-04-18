@@ -2730,6 +2730,11 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
   final _plateCtrl = TextEditingController();
   final _kmCtrl    = TextEditingController();
 
+  // 주행거리: 마지막 저장값과 비교해 새 값 입력 시에만 버튼 활성화
+  String _kmLastSaved = '';     // SharedPreferences에 저장된 이전 값
+  bool get _kmChanged => _kmCtrl.text.trim().isNotEmpty &&
+      _kmCtrl.text.trim() != _kmLastSaved;
+
   // 팝업 선택 값
   String? _selectedMaker;
   String? _selectedModel;
@@ -2758,6 +2763,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
 
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedKm = prefs.getString(_kKm) ?? '';
     setState(() {
       _selectedMaker = prefs.getString(_kMaker);
       _selectedModel = prefs.getString(_kModel);
@@ -2765,7 +2771,8 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
       _selectedMonth = prefs.getString(_kMonth);
       _selectedGrade = prefs.getString(_kGrade);
       _plateCtrl.text = prefs.getString(_kPlate) ?? '';
-      _kmCtrl.text    = prefs.getString(_kKm) ?? '';
+      _kmCtrl.text    = savedKm;
+      _kmLastSaved    = savedKm; // 이전 저장값 기억
     });
 
     // ── 저장된 신청 내역 복원 (JSON 인코딩) ──
@@ -3122,7 +3129,13 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
         const SnackBar(content: Text('주행거리를 입력해주세요')));
       return;
     }
+    if (km == _kmLastSaved && _kmLastSaved.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('주행거리를 새로 입력해 주세요')));
+      return;
+    }
     setState(() => _loading = true);
+    setState(() => _kmLastSaved = km); // 새 값을 기준으로 업데이트
     await _saveInputData(); // 입력값 자동 저장
     await Future.delayed(const Duration(milliseconds: 1200));
     final yearNum = int.tryParse(_selectedYear!) ?? 2020;
@@ -3236,7 +3249,23 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  Navigator.pop(context);
+                  // 주행거리 확인 후 매칭 성공 → 동일 차량 다른 신청서 거래종료 처리
+                  final carInfo = _priceResult != null
+                    ? '${_priceResult!['maker']} ${_priceResult!['model']} ${_priceResult!['year']}년'
+                    : '';
+                  if (carInfo.isNotEmpty) {
+                    setState(() {
+                      for (int i = 0; i < _applications.length; i++) {
+                        if (!_applications[i]['cancelled'] &&
+                            _applications[i]['carInfo'] == carInfo) {
+                          // 새로 전송한 것 제외한 기존 것 거래종료
+                        }
+                      }
+                    });
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _mGreen,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -3478,30 +3507,37 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
               setState(() => _selectedGrade = v))
           ),
           const SizedBox(height: 24),
-          // 조회 버튼
-          SizedBox(
+          // 조회 버튼 (_kmChanged: 새로운 주행거리 입력 시에만 활성화)
+          StatefulBuilder(
+            builder: (ctx, setLocalState) {
+              // km 필드 변경 감지를 위해 addListener
+              _kmCtrl.addListener(() { if (mounted) setState(() {}); });
+              return SizedBox(
             width: double.infinity,
             height: 54,
             child: ElevatedButton(
-              onPressed: _loading ? null : _lookup,
+              onPressed: (_loading || !_kmChanged) ? null : _lookup,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _mOrange,
+                backgroundColor: _kmChanged ? _mOrange : _mBorder,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               child: _loading
                 ? const SizedBox(width: 22, height: 22,
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                : const Row(
+                : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.search, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text('시세 조회하기',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                      const Icon(Icons.search, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Text(_kmChanged ? '시세 조회하기' : '주행거리를 입력해주세요',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
                     ],
                   ),
             ),
           ),
+          ); // StatefulBuilder return
+        },
+          ), // StatefulBuilder end
           const SizedBox(height: 20),
           // 주의사항
           Container(
@@ -4030,25 +4066,26 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                               builder: (_) => CarConsultScreen(
                                 shopName: app['storeName'] as String,
                                 carInfo:  app['carInfo']  as String,
-                                estimatedPrice: pr?['mid'] as int? ?? 0,
+                                estimatedPrice: pr?['mid'] as int? ??
+                                  (app['estimatePrice'] as int? ?? 0),
                               ),
                             ));
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 9),
                             decoration: BoxDecoration(
-                              color: (readStatus == 'replied' ? _mGreen : color).withOpacity(0.15),
+                              color: (readStatus == 'replied' ? _mGreen : _mAccent).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: (readStatus == 'replied' ? _mGreen : color).withOpacity(0.4)),
+                                color: (readStatus == 'replied' ? _mGreen : _mAccent).withOpacity(0.4)),
                             ),
                             child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                              Icon(readStatus == 'replied' ? Icons.chat_bubble : Icons.chat_bubble_outline,
-                                color: readStatus == 'replied' ? _mGreen : color, size: 14),
+                              Icon(readStatus == 'replied' ? Icons.chat_bubble : Icons.handshake_outlined,
+                                color: readStatus == 'replied' ? _mGreen : _mAccent, size: 14),
                               const SizedBox(width: 4),
-                              Text(readStatus == 'replied' ? '견적 확인·상담' : '상담하기',
+                              Text(readStatus == 'replied' ? '견적 확인·상담' : '협상 요청',
                                 style: TextStyle(fontSize: 12,
-                                  color: readStatus == 'replied' ? _mGreen : color,
+                                  color: readStatus == 'replied' ? _mGreen : _mAccent,
                                   fontWeight: FontWeight.w700)),
                             ]),
                           ),
@@ -5743,9 +5780,34 @@ class _CarConsultScreenState extends State<CarConsultScreen>
                         )),
                         const SizedBox(width: 10),
                         Expanded(child: ElevatedButton(
-                          onPressed: _agreed ? () {
+                          onPressed: _agreed ? () async {
+                            // 매칭 성공 → 동일 차량 다른 신청서 거래종료 처리
+                            final prefs = await SharedPreferences.getInstance();
+                            final savedJson = prefs.getString('cp_applications_json');
+                            if (savedJson != null && savedJson.isNotEmpty) {
+                              try {
+                                final items = savedJson.split('|||');
+                                final updated = items.map((item) {
+                                  final parts = item.split('||');
+                                  if (parts.length >= 7) {
+                                    final storeName = parts[0];
+                                    // 동일 carInfo이고 이 매장이 아닌 것들 거래종료
+                                    if (parts[6] == widget.carInfo && storeName != widget.shopName) {
+                                      final newParts = List<String>.from(parts);
+                                      if (newParts.length > 5) newParts[5] = 'true'; // cancelled
+                                      return newParts.join('||');
+                                    }
+                                  }
+                                  return item;
+                                }).join('|||');
+                                await prefs.setString('cp_applications_json', updated);
+                              } catch (_) {}
+                            }
+                            if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('✅ ${_fmt(adjustedPrice)}에 매매 동의 완료!')));
+                              SnackBar(content: Text('✅ ${_fmt(adjustedPrice)}에 매매 동의 완료!
+다른 매장 신청서는 자동 거래종료됩니다.')));
+                            Navigator.pop(context); // 협상 화면 닫기
                           } : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _agreed ? _green : _br,
