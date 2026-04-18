@@ -3246,6 +3246,24 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                 child: const Text('확인', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
               ),
             ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/car-applications');
+                },
+                icon: const Icon(Icons.list_alt_rounded, size: 16, color: _mAccent),
+                label: const Text('신청 내역 보기',
+                  style: TextStyle(color: _mAccent, fontWeight: FontWeight.w600, fontSize: 13)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: _mAccent.withOpacity(0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
           ]),
         ),
       ),
@@ -3289,13 +3307,17 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
               child: Row(
                 children: [
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       if (_step == 1) { setState(() { _step = 0; _priceResult = null; }); }
                       else { Navigator.pop(context); }
                     },
-                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      child: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 4),
                   Text(_step == 0 ? '💰 내차 시세 조회' : '📊 시세 결과',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
                   const Spacer(),

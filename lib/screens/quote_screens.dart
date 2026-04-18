@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_state.dart';
 import '../theme/app_theme.dart';
 
@@ -43,10 +44,64 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   bool _isSubmitting = false;
   bool _isCompressing = false;
 
+  static const _kCarName    = 'qr_car_name';
+  static const _kRegion     = 'qr_region';
+  static const _kRepairType = 'qr_repair_type';
+  static const _kSymptoms   = 'qr_symptoms';
+
   final _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  // ── 저장된 데이터 복원 (사용자 입력 유지) ──────────────
+  Future<void> _loadSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final carName    = prefs.getString(_kCarName);
+    final region     = prefs.getString(_kRegion);
+    final repairType = prefs.getString(_kRepairType);
+    final symptoms   = prefs.getStringList(_kSymptoms) ?? [];
+    setState(() {
+      if (carName != null && carName.isNotEmpty) _carNameCtrl.text = carName;
+      if (region  != null && region.isNotEmpty)  _regionCtrl.text  = region;
+      if (repairType != null && repairType.isNotEmpty) _repairTypeCtrl.text = repairType;
+      _selectedSymptoms.addAll(symptoms);
+    });
+  }
+
+  // ── 입력 데이터 저장 ──────────────────────────────────
+  Future<void> _saveInputData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kCarName,    _carNameCtrl.text.trim());
+    await prefs.setString(_kRegion,     _regionCtrl.text.trim());
+    await prefs.setString(_kRepairType, _repairTypeCtrl.text.trim());
+    await prefs.setStringList(_kSymptoms, _selectedSymptoms.toList());
+  }
+
+  // ── 입력 데이터 초기화 (새 요청 시작 시) ──────────────
+  Future<void> _clearSavedData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kCarName);
+    await prefs.remove(_kRegion);
+    await prefs.remove(_kRepairType);
+    await prefs.remove(_kSymptoms);
+    setState(() {
+      _carNameCtrl.clear();
+      _regionCtrl.text = '대구 수성구';
+      _repairTypeCtrl.clear();
+      _memoCtrl.clear();
+      _selectedSymptoms.clear();
+      _selectedImages.clear();
+      _compressedImages.clear();
+    });
+  }
+
+  @override
   void dispose() {
+    _saveInputData(); // 화면 이탈 시 자동 저장
     _carNameCtrl.dispose();
     _regionCtrl.dispose();
     _repairTypeCtrl.dispose();
@@ -146,6 +201,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
     );
 
     AppState().addEstimateRequest(req);
+    await _clearSavedData(); // 전송 성공 시 캐시 초기화
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -222,21 +278,17 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            // ── 다른 견적 보러가기 버튼 ──
+            // ── 내 요청 현황으로 가기 버튼 ──
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.pop(context); // dialog 닫기
                   Navigator.pop(context); // 요청서 화면 닫기
-                  // 카테고리 랜딩 화면으로 이동 (스택에 있으면 pop, 없으면 홈으로)
-                  Navigator.of(context).popUntil((route) =>
-                    route.settings.name == '/category-landing' ||
-                    route.settings.name == '/home' ||
-                    route.isFirst);
+                  Navigator.pushNamed(context, '/my-quotes');
                 },
-                icon: const Icon(Icons.search, color: _accent, size: 16),
-                label: const Text('다른 견적 보러가기',
+                icon: const Icon(Icons.list_alt_rounded, color: _accent, size: 16),
+                label: const Text('내 요청 현황으로 가기',
                   style: TextStyle(color: _accent, fontWeight: FontWeight.w600, fontSize: 13)),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: _accent.withOpacity(0.5)),
@@ -841,27 +893,56 @@ class _BidPreviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isUnread = !bid.isRead;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // 읽음 처리
+        if (isUnread) {
+          AppState().markBidRead(request.requestId, bid.bidId);
+        }
+        onTap();
+      },
       child: Container(
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: _navy,
+          color: isUnread ? _accent.withOpacity(0.05) : _navy,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _border.withOpacity(0.7)),
+          border: Border.all(
+            color: isUnread ? _accent.withOpacity(0.4) : _border.withOpacity(0.7),
+            width: isUnread ? 1.5 : 1,
+          ),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(bid.storeImage, width: 40, height: 40, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(width: 40, height: 40, color: _card,
-                  child: const Icon(Icons.store, color: _textSec, size: 20))),
-            ),
+            Stack(children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(bid.storeImage, width: 40, height: 40, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(width: 40, height: 40, color: _card,
+                    child: const Icon(Icons.store, color: _textSec, size: 20))),
+              ),
+              if (isUnread)
+                Positioned(top: 0, right: 0,
+                  child: Container(width: 10, height: 10,
+                    decoration: const BoxDecoration(color: _orange, shape: BoxShape.circle))),
+            ]),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(bid.storeName, style: const TextStyle(color: _textPri, fontSize: 12, fontWeight: FontWeight.w700)),
+              Row(children: [
+                Expanded(child: Text(bid.storeName,
+                  style: TextStyle(
+                    color: _textPri, fontSize: 12, fontWeight: FontWeight.w700,
+                  ))),
+                if (isUnread)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(6)),
+                    child: const Text('NEW', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                  ),
+                if (!isUnread)
+                  const Icon(Icons.check_circle_rounded, color: _green, size: 14),
+              ]),
               Row(children: [
                 Text('${bid.storeDistance}  ', style: const TextStyle(color: _textSec, fontSize: 10)),
                 const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 11),
@@ -982,6 +1063,274 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
 
   String _formatKRW(int v) =>
     v.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+
+  // ── 매칭 동의 → 전화번호 팝업 → 매칭 확정 ────────────
+  void _showMatchConfirmDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0D2040), Color(0xFF0A1628)],
+              begin: Alignment.topLeft, end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 56, height: 56,
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: _green.withOpacity(0.5)),
+              ),
+              child: const Icon(Icons.handshake_rounded, color: _green, size: 30),
+            ),
+            const SizedBox(height: 16),
+            const Text('이 점포로 매칭할까요?',
+              style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text('${_bid.storeName}과 매칭되면\n다른 점포의 견적은 자동으로 마감됩니다.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSec, fontSize: 13, height: 1.6)),
+            const SizedBox(height: 20),
+            // 견적 요약
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _navy,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _border),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                _matchInfoItem('예상총액', '${_formatKRW(_bid.totalCost)}원', _accent),
+                _matchInfoItem('소요시간', _bid.estimatedTime, _textSec),
+                _matchInfoItem('평점', '⭐ ${_bid.storeRating}', _textSec),
+              ]),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textSec,
+                  side: const BorderSide(color: Color(0xFF1E3A5F)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('취소'),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showPhoneInputDialog();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('동의하기', style: TextStyle(fontWeight: FontWeight.w800)),
+              )),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _matchInfoItem(String label, String val, Color color) {
+    return Column(children: [
+      Text(label, style: const TextStyle(color: _textSec, fontSize: 10)),
+      const SizedBox(height: 4),
+      Text(val, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800)),
+    ]);
+  }
+
+  // ── 전화번호 입력 팝업 → 매칭 성공 처리 ────────────────
+  void _showPhoneInputDialog() {
+    final phoneCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _accent.withOpacity(0.3), width: 1.5),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.phone_iphone_rounded, color: _accent, size: 40),
+            const SizedBox(height: 12),
+            const Text('연락처 확인',
+              style: TextStyle(color: _textPri, fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            const Text('점포에서 연락할 수 있도록\n전화번호를 입력해 주세요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: _textSec, fontSize: 13, height: 1.6)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              style: const TextStyle(color: _textPri, fontSize: 15, letterSpacing: 1.2),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                hintText: '010-0000-0000',
+                hintStyle: TextStyle(color: _textSec.withOpacity(0.5)),
+                filled: true, fillColor: _navy,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: _accent),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textSec,
+                  side: const BorderSide(color: Color(0xFF1E3A5F)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('뒤로'),
+              )),
+              const SizedBox(width: 12),
+              Expanded(child: ElevatedButton(
+                onPressed: () {
+                  if (phoneCtrl.text.trim().length < 9) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('올바른 전화번호를 입력해 주세요')));
+                    return;
+                  }
+                  Navigator.pop(dialogCtx);
+                  _completeMatch();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('매칭 완료', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800)),
+              )),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── 매칭 완료 처리 + 알림 전송 시뮬레이션 ──────────────
+  void _completeMatch() {
+    AppState().matchRequest(widget.request.requestId, _bid.bidId);
+    setState(() {
+      _bid.phoneRevealed = true;
+      _bid.status = RepairStatus.matched;
+    });
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0D2040), Color(0xFF0A1628)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+            boxShadow: [BoxShadow(color: _green.withOpacity(0.2), blurRadius: 20)],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.15),
+                shape: BoxShape.circle,
+                border: Border.all(color: _green.withOpacity(0.5)),
+              ),
+              child: const Icon(Icons.celebration_rounded, color: _green, size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text('🎉 매칭 성공!',
+              style: TextStyle(color: _textPri, fontSize: 20, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('${_bid.storeName}과 매칭되었습니다!\n점포에서 곧 연락드릴 예정입니다.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSec, fontSize: 13, height: 1.6)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _green.withOpacity(0.3)),
+              ),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.notifications_active, color: _green, size: 14),
+                SizedBox(width: 6),
+                Text('다른 점포에 마감 알림 발송 완료',
+                  style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(context); // 팝업 닫기
+                  final uri = Uri.parse('tel:${_bid.storePhone}');
+                  if (await canLaunchUrl(uri)) launchUrl(uri);
+                },
+                icon: const Icon(Icons.phone_rounded, size: 16),
+                label: Text('📞  ${_bid.storePhone}  전화걸기',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context); // 팝업 닫기
+                  Navigator.pop(context); // 상세 화면 닫기
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textSec,
+                  side: BorderSide(color: _border.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('견적서 목록으로 돌아가기'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1131,8 +1480,43 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
 
                 const SizedBox(height: 14),
 
-                // ── 원터치 액션 버튼 3종 ──────────────────
+                // ── 원터치 액션 버튼 ──────────────────────
                 Column(children: [
+                  // 매칭 상태에 따라 다른 버튼 표시
+                  if (_bid.status == RepairStatus.matched || _bid.status == RepairStatus.bidding) ...[
+                    // ── 매칭 동의 버튼 (아직 매칭 전) ──
+                    if (widget.request.status != RepairStatus.matched)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showMatchConfirmDialog(),
+                          icon: const Icon(Icons.handshake_rounded, size: 18),
+                          label: const Text('이 견적으로 매칭하기',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _green,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    if (widget.request.status == RepairStatus.matched)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: _green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _green.withOpacity(0.4)),
+                        ),
+                        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          Icon(Icons.check_circle_rounded, color: _green, size: 18),
+                          SizedBox(width: 8),
+                          Text('매칭 완료된 점포입니다', style: TextStyle(color: _green, fontWeight: FontWeight.w700, fontSize: 14)),
+                        ]),
+                      ),
+                    const SizedBox(height: 8),
+                  ],
                   // 전화걸기 (즉시 전화 앱 실행)
                   SizedBox(
                     width: double.infinity,
@@ -1153,14 +1537,14 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _green,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: const Color(0xFF1A3A5C),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 1:1 문의 + 다른 견적 보기 나란히
+                  // 1:1 문의 + 뒤로가기 나란히
                   Row(children: [
                     Expanded(
                       child: ElevatedButton.icon(
@@ -1181,8 +1565,8 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.search_rounded, size: 16, color: _accent),
-                        label: const Text('다른 견적 보기',
+                        icon: const Icon(Icons.arrow_back_rounded, size: 16, color: _accent),
+                        label: const Text('뒤로가기',
                           style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: _accent.withOpacity(0.5)),

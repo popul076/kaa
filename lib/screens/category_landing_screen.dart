@@ -523,8 +523,88 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     }).toList();
   }
 
-  // ── 견적 요청 배너 ──────────────────────────────────────
+  // ── 견적 요청 배너 (요청 전/후 상태 전환) ──────────────
   Widget _buildQuoteRequestBanner() {
+    final requests = AppState().estimateRequests;
+    // 현재 카테고리와 관련된 활성 요청 확인
+    final activeRequests = requests.where((r) =>
+      r.status == RepairStatus.bidding || r.status == RepairStatus.pending
+    ).toList();
+    final hasActiveRequest = activeRequests.isNotEmpty;
+    final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
+
+    if (hasActiveRequest) {
+      // ── 요청 후: 견적서 도착 현황 배너 ──
+      return GestureDetector(
+        onTap: () => Navigator.pushNamed(context, '/quote-received'),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_green.withOpacity(0.15), const Color(0xFF0A1628)],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+          ),
+          child: Row(children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.mark_email_unread_rounded,
+                  color: _green, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '견적서 도착 현황',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 15, fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      totalBids > 0
+                        ? '현재 $totalBids곳의 정비소에서 견적서가 도착했습니다'
+                        : '견적 요청 중 · 점포 답변 대기중...',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 11, color: _green.withOpacity(0.9)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _green,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                totalBids > 0 ? '$totalBids건' : '대기중',
+                style: GoogleFonts.notoSansKr(
+                    fontSize: 12, color: Colors.white,
+                    fontWeight: FontWeight.w800)),
+            ),
+          ]),
+        ),
+      );
+    }
+
+    // ── 요청 전: 정비 요청하기 배너 ──
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/quote-request'),
       child: Container(
@@ -553,17 +633,25 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${widget.category} 견적 무료로 받기',
-                    style: GoogleFonts.notoSansKr(
-                        fontSize: 15, fontWeight: FontWeight.w700,
-                        color: Colors.white),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${widget.category} 정비 요청하기',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 15, fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                    ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    '사진 첨부 → 근처 업체 자동 알림 → 10분 내 견적!',
-                    style: GoogleFonts.notoSansKr(
-                        fontSize: 11, color: _t2),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '사진 첨부 → 근처 업체 자동 알림 → 10분 내 견적!',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 11, color: _t2),
+                    ),
                   ),
                 ],
               ),

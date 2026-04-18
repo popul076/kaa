@@ -75,6 +75,7 @@ class QuoteBid {
   bool phoneRevealed; // 전화번호 공개 여부 (1:1문의/예약 후)
   final String storePhone;  // 실제 전화번호 (phoneRevealed=true 시에만 표시)
   RepairStatus status;
+  bool isRead; // 견적서 확인 여부
 
   QuoteBid({
     required this.bidId,
@@ -93,9 +94,10 @@ class QuoteBid {
     required this.storePhone,
     this.phoneRevealed = false,
     this.status = RepairStatus.matched,
+    this.isRead = false,
   });
 
-  QuoteBid copyWith({bool? phoneRevealed, RepairStatus? status}) {
+  QuoteBid copyWith({bool? phoneRevealed, RepairStatus? status, bool? isRead}) {
     return QuoteBid(
       bidId: bidId, storeId: storeId, storeName: storeName,
       storeDistance: storeDistance, storeRating: storeRating,
@@ -105,6 +107,7 @@ class QuoteBid {
       storePhone: storePhone,
       phoneRevealed: phoneRevealed ?? this.phoneRevealed,
       status: status ?? this.status,
+      isRead: isRead ?? this.isRead,
     );
   }
 }
@@ -321,6 +324,44 @@ class AppState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // ── 매칭 확정: 선택한 bid → matched, 나머지 → cancelled ─────
+  void matchRequest(String requestId, String selectedBidId) {
+    final req = estimateRequests.firstWhere(
+      (r) => r.requestId == requestId,
+      orElse: () => estimateRequests.first,
+    );
+    req.status = RepairStatus.matched;
+    for (final bid in req.bids) {
+      bid.status = bid.bidId == selectedBidId
+          ? RepairStatus.matched
+          : RepairStatus.cancelled;
+    }
+    notifyListeners();
+  }
+
+  // ── 견적서 읽음 처리 ─────────────────────────────────────────
+  void markBidRead(String requestId, String bidId) {
+    final req = estimateRequests.firstWhere(
+      (r) => r.requestId == requestId,
+      orElse: () => estimateRequests.first,
+    );
+    for (final bid in req.bids) {
+      if (bid.bidId == bidId) {
+        bid.isRead = true;
+        break;
+      }
+    }
+    notifyListeners();
+  }
+
+  // ── 미읽음 견적서 수 ─────────────────────────────────────────
+  int get unreadBidCount => estimateRequests.fold(
+    0, (sum, r) => sum + r.bids.where((b) => !b.isRead).length);
+
+  // ── 매칭된 요청 수 ───────────────────────────────────────────
+  bool get hasActiveRequest => estimateRequests.any(
+    (r) => r.status == RepairStatus.bidding || r.status == RepairStatus.pending);
 
   // ── 점포 알림 설정 ─────────────────────────────
   ShopNotificationSettings shopNotifSettings = ShopNotificationSettings();
