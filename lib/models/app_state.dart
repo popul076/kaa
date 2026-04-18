@@ -399,7 +399,10 @@ class AppState extends ChangeNotifier {
 
   // ── 매칭된 요청 수 ───────────────────────────────────────────
   bool get hasActiveRequest => _isRequestActive || estimateRequests.any(
-    (r) => r.status == RepairStatus.bidding || r.status == RepairStatus.pending);
+    (r) => r.status == RepairStatus.bidding ||
+           r.status == RepairStatus.pending  ||
+           r.status == RepairStatus.matched  ||
+           r.status == RepairStatus.repairing);
 
   // ── 점포 알림 설정 ─────────────────────────────
   ShopNotificationSettings shopNotifSettings = ShopNotificationSettings();

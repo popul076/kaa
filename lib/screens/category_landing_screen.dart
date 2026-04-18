@@ -58,6 +58,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   @override
   void initState() {
     super.initState();
+    // 견적 데이터 미리 로드 (배너 즉시 표시용)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppState().initDummyEstimates();
+    });
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -334,60 +338,44 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   // ── AppBar ─────────────────────────────────────────────
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 55,
+      expandedHeight: 52,
       pinned: true,
       backgroundColor: _bg,
       surfaceTintColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-        onPressed: () => Navigator.pop(context),
-      ),
-      actions: [
+      automaticallyImplyLeading: false,
+      titleSpacing: 0,
+      // ── 타이틀: 뒤로가기 + 중앙 카테고리명 + 우측 액션 ──
+      title: Row(children: [
+        // 뒤로가기 (필수)
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.pop(context),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          ),
+        ),
+        // 중앙 카테고리명 (굵게, 중앙정렬)
+        Expanded(
+          child: Text(
+            widget.category,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.notoSansKr(
+              fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+          ),
+        ),
+        // 우측 액션
         IconButton(
-          icon: const Icon(Icons.search, color: Colors.white),
+          icon: const Icon(Icons.search_rounded, color: Colors.white, size: 22),
           onPressed: () {},
+          padding: const EdgeInsets.symmetric(horizontal: 4),
         ),
         IconButton(
-          icon: const Icon(Icons.tune, color: Colors.white),
+          icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
           onPressed: _showFilterSheet,
+          padding: const EdgeInsets.only(right: 8),
         ),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        collapseMode: CollapseMode.pin,
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_catColor, _bg],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 90, 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        widget.category,
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 22, fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      ]),
     );
   }
 
@@ -524,45 +512,79 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
 
   // ── 견적 요청 배너 (요청 전/후 상태 전환) ──────────────
   Widget _buildQuoteRequestBanner() {
+    // 배너 표시 전에 더미 데이터 초기화 (비어있으면)
+    AppState().initDummyEstimates();
+
     return AnimatedBuilder(
       animation: AppState(),
       builder: (context, _) {
         final requests = AppState().estimateRequests;
-        // isRequestActive 플래그 또는 실제 활성 요청이 있으면 '도착 확인' 배너 표시
-        final forceActive = AppState().isRequestActive;
         final activeRequests = requests.where((r) =>
-          r.status == RepairStatus.bidding || r.status == RepairStatus.pending
+          r.status == RepairStatus.bidding ||
+          r.status == RepairStatus.pending  ||
+          r.status == RepairStatus.matched
         ).toList();
-        final hasActiveRequest = forceActive || activeRequests.isNotEmpty;
         final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
+        // ── 핵심: 요청이 있거나 isRequestActive 플래그가 있으면 도착확인 배너 ──
+        final hasActiveRequest = AppState().isRequestActive || activeRequests.isNotEmpty;
 
         if (hasActiveRequest) {
-          // ── 요청 후: 견적서 도착 확인하기 배너 (높이 축소, 텍스트만) ──
+          // ── 도착한 견적서 확인하기 배너 (디자인 시안대로 크고 명확하게) ──
           return GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/quote-received'),
+            onTap: () {
+              // 즉시 라우팅 (데이터 없어도 화면 이동)
+              Navigator.pushNamed(context, '/quote-received');
+            },
             child: Container(
               margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               decoration: BoxDecoration(
-                color: _green.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0D3B1E), Color(0xFF0A2E18)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _green.withOpacity(0.6), width: 1.5),
+                boxShadow: [BoxShadow(
+                  color: _green.withOpacity(0.15),
+                  blurRadius: 10, offset: const Offset(0, 3),
+                )],
               ),
               child: Row(children: [
-                const Icon(Icons.mark_email_unread_rounded, color: _green, size: 20),
-                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: _green.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.mark_email_unread_rounded, color: _green, size: 22),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    totalBids > 0
-                      ? '견적서 도착 확인하기  ($totalBids건)'
-                      : '견적서 도착 확인하기  (대기중...)',
-                    style: GoogleFonts.notoSansKr(
-                        fontSize: 13, fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        totalBids > 0
+                          ? '📬 견적서 ${totalBids}건 도착!'
+                          : '📬 도착한 견적서 확인하기',
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 14, fontWeight: FontWeight.w800,
+                          color: Colors.white),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        totalBids > 0
+                          ? '${activeRequests.length}개 점포에서 견적을 보냈습니다 · 지금 확인하세요!'
+                          : '견적 요청 후 점포에서 답변을 검토 중입니다',
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 11, color: Colors.white.withOpacity(0.75)),
+                      ),
+                    ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: _green, size: 20),
+                const Icon(Icons.chevron_right_rounded, color: _green, size: 22),
               ]),
             ),
           );

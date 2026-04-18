@@ -706,10 +706,18 @@ class _QuoteReceivedScreenState extends State<QuoteReceivedScreen> {
   @override
   void initState() {
     super.initState();
-    // StreamBuilder 방식으로 교체: initState에서 데이터 직접 로드하지 않음
-    // AppState가 ChangeNotifier이므로 ValueListenableBuilder로 실시간 반영
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 더미 견적 초기화 (이미 있으면 skip)
       AppState().initDummyEstimates();
+      // SharedPreferences 캐시에서 요청 활성 상태 복원
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final hasActive = prefs.getBool('has_active_request') ?? false;
+        if (hasActive && AppState().estimateRequests.isEmpty) {
+          AppState().initDummyEstimates();
+        }
+        if (hasActive) AppState().setRequestActive(true);
+      } catch (_) {}
     });
   }
 
@@ -823,9 +831,22 @@ class _RequestCard extends StatelessWidget {
               ),
               child: const Text('내 요청서', style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w700)),
             ),
-            const SizedBox(width: 8),
-            Text(request.status.emoji + '  ' + request.status.label,
-              style: TextStyle(color: _statusColor(request.status), fontSize: 11, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 6),
+            if (request.status == RepairStatus.matched)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(6)),
+                child: const Text('✅ 매칭완료', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+              )
+            else if (request.status == RepairStatus.cancelled)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(6)),
+                child: const Text('거래종료', style: TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.w800)),
+              )
+            else
+              Text(request.status.emoji + '  ' + request.status.label,
+                style: TextStyle(color: _statusColor(request.status), fontSize: 11, fontWeight: FontWeight.w600)),
             const Spacer(),
             Text(_timeAgo(request.createdAt), style: const TextStyle(color: _textSec, fontSize: 10)),
           ]),
@@ -867,9 +888,9 @@ class _RequestCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
             child: Row(children: [
-              SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: _textSec.withOpacity(0.4))),
+              const Icon(Icons.hourglass_empty_rounded, size: 14, color: _textSec),
               const SizedBox(width: 8),
-              const Text('견적서 도착 대기중...', style: TextStyle(color: _textSec, fontSize: 11)),
+              const Text('점포에서 견적 검토 중입니다', style: TextStyle(color: _textSec, fontSize: 11)),
             ]),
           ),
       ]),
@@ -904,23 +925,36 @@ class _BidPreviewTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnread = !bid.isRead;
+    final isCancelled = bid.status == RepairStatus.cancelled;
+    final isMatched   = bid.status == RepairStatus.matched;
+
     return GestureDetector(
-      onTap: () {
-        // 읽음 처리
+      onTap: isCancelled ? null : () {
+        // 취소된 견적은 클릭 차단
         if (isUnread) {
           AppState().markBidRead(request.requestId, bid.bidId);
         }
         onTap();
       },
-      child: Container(
+      child: Opacity(
+        opacity: isCancelled ? 0.38 : 1.0,
+        child: Container(
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isUnread ? _accent.withOpacity(0.05) : _navy,
+          color: isMatched
+              ? _green.withOpacity(0.06)
+              : isCancelled
+                  ? _navy.withOpacity(0.5)
+                  : isUnread ? _accent.withOpacity(0.05) : _navy,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isUnread ? _accent.withOpacity(0.4) : _border.withOpacity(0.7),
-            width: isUnread ? 1.5 : 1,
+            color: isMatched
+                ? _green.withOpacity(0.5)
+                : isCancelled
+                    ? _border.withOpacity(0.3)
+                    : isUnread ? _accent.withOpacity(0.4) : _border.withOpacity(0.7),
+            width: isUnread && !isCancelled ? 1.5 : 1,
           ),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -944,13 +978,25 @@ class _BidPreviewTile extends StatelessWidget {
                   style: TextStyle(
                     color: _textPri, fontSize: 12, fontWeight: FontWeight.w700,
                   ))),
-                if (isUnread)
+                if (isCancelled)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(6)),
+                    child: const Text('마감', style: TextStyle(color: Colors.white54, fontSize: 8, fontWeight: FontWeight.w800)),
+                  )
+                else if (isMatched)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(6)),
+                    child: const Text('매칭', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                  )
+                else if (isUnread)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(6)),
                     child: const Text('NEW', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
-                  ),
-                if (!isUnread)
+                  )
+                else
                   const Icon(Icons.check_circle_rounded, color: _green, size: 14),
               ]),
               Row(children: [
@@ -976,7 +1022,8 @@ class _BidPreviewTile extends StatelessWidget {
             Text('예상 소요 ${bid.estimatedTime}', style: const TextStyle(color: _textSec, fontSize: 10)),
           ]),
         ]),
-      ),
+        ), // Container
+      ), // Opacity
     );
   }
 
@@ -1245,13 +1292,15 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
     );
   }
 
-  // ── 매칭 완료 처리 + 알림 전송 시뮬레이션 ──────────────
+  // ── 매칭 완료 처리 + 서버 기록 시뮬레이션 ──────────────
   void _completeMatch({String? selectedSchedule}) {
     AppState().matchRequest(widget.request.requestId, _bid.bidId, selectedSchedule: selectedSchedule);
     setState(() {
       _bid.phoneRevealed = true;
       _bid.status = RepairStatus.matched;
     });
+    // 서버 기록 시뮬레이션 (SharedPreferences 로컬 캐시)
+    _saveMatchToCache(selectedSchedule);
 
     showDialog(
       context: context,
@@ -1374,7 +1423,20 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                 onTap: () => Navigator.pop(context),
                 child: const Icon(Icons.arrow_back_ios_new_rounded, color: _textPri, size: 20)),
               const SizedBox(width: 12),
-              const Text('견적서 상세', style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)),
+              const Expanded(child: Text('견적서 상세', style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800))),
+              // 매칭 상태 배지
+              if (_bid.status == RepairStatus.matched)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(8)),
+                  child: const Text('✅ 매칭완료', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                )
+              else if (_bid.status == RepairStatus.cancelled)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: _border, borderRadius: BorderRadius.circular(8)),
+                  child: const Text('거래종료', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
             ]),
           ),
 
@@ -1698,6 +1760,19 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
         ]),
       ),
     );
+  }
+
+  // ── SharedPreferences 매칭 캐시 저장 ──────────────────
+  Future<void> _saveMatchToCache(String? schedule) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('matched_request_id', widget.request.requestId);
+      await prefs.setString('matched_bid_id', _bid.bidId);
+      await prefs.setString('matched_store', _bid.storeName);
+      await prefs.setString('matched_phone', _bid.storePhone);
+      if (schedule != null) await prefs.setString('matched_schedule', schedule);
+      await prefs.setBool('has_active_request', true);
+    } catch (_) { /* 캐시 저장 실패 시 무시 */ }
   }
 
   Widget _bigCostBox(String label, int amount, Color color, {bool highlight = false}) {
