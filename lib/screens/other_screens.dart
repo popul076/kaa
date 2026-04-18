@@ -3508,11 +3508,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
           ),
           const SizedBox(height: 24),
           // 조회 버튼 (_kmChanged: 새로운 주행거리 입력 시에만 활성화)
-          StatefulBuilder(
-            builder: (ctx, setLocalState) {
-              // km 필드 변경 감지를 위해 addListener
-              _kmCtrl.addListener(() { if (mounted) setState(() {}); });
-              return SizedBox(
+          SizedBox(
             width: double.infinity,
             height: 54,
             child: ElevatedButton(
@@ -3535,9 +3531,6 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                   ),
             ),
           ),
-          ); // StatefulBuilder return
-        },
-          ), // StatefulBuilder end
           const SizedBox(height: 20),
           // 주의사항
           Container(
@@ -5804,9 +5797,7 @@ class _CarConsultScreenState extends State<CarConsultScreen>
                               } catch (_) {}
                             }
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('✅ ${_fmt(adjustedPrice)}에 매매 동의 완료!
-다른 매장 신청서는 자동 거래종료됩니다.')));
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('동의 완료! 다른 매장 신청이 자동 종료됩니다.')));
                             Navigator.pop(context); // 협상 화면 닫기
                           } : null,
                           style: ElevatedButton.styleFrom(

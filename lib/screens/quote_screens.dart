@@ -763,8 +763,7 @@ class _QuoteReceivedScreenState extends State<QuoteReceivedScreen> {
                   ),
           ),
         ]),
-      ),
-          ); // Scaffold
+        ); // Scaffold
         }, // AnimatedBuilder builder
       ), // AnimatedBuilder
     );
