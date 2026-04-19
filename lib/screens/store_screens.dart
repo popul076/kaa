@@ -1911,22 +1911,55 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
   Widget _buildQuickActions() {
     return _MgrSection(
       title: '⚡ 빠른 액션',
-      child: Row(
+      child: Column(
         children: [
-          _QaBtn(icon: Icons.payment, label: '구독결제',    color: _orange,
-            onTap: () => _showPlanDialog()),
-          const SizedBox(width: 8),
-          _QaBtn(icon: Icons.qr_code, label: 'QR코드',     color: _accent,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('QR코드 생성 기능 준비중')))),
-          const SizedBox(width: 8),
-          _QaBtn(icon: Icons.share,   label: '공유하기',   color: _green,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('공유 링크 복사됨')))),
-          const SizedBox(width: 8),
-          _QaBtn(icon: Icons.person_add, label: '관리자초대', color: _purple,
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('관리자 초대 기능 준비중')))),
+          // 견적 신청함 버튼 (상단 강조)
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/shop-inbox'),
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [_accent.withOpacity(0.2), _green.withOpacity(0.15)]),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _accent.withOpacity(0.5)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.inbox_rounded, color: _accent, size: 22),
+                const SizedBox(width: 10),
+                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('견적 신청함', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  Text('고객 견적 요청 확인 및 발송', style: TextStyle(fontSize: 11, color: Color(0xFF8FA8C0))),
+                ])),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(10)),
+                  child: const Text('1건', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
+                const SizedBox(width: 6),
+                const Icon(Icons.chevron_right_rounded, color: _accent, size: 20),
+              ]),
+            ),
+          ),
+          Row(
+            children: [
+              _QaBtn(icon: Icons.payment, label: '구독결제',    color: _orange,
+                onTap: () => _showPlanDialog()),
+              const SizedBox(width: 8),
+              _QaBtn(icon: Icons.qr_code, label: 'QR코드',     color: _accent,
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('QR코드 생성 기능 준비중')))),
+              const SizedBox(width: 8),
+              _QaBtn(icon: Icons.share,   label: '공유하기',   color: _green,
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('공유 링크 복사됨')))),
+              const SizedBox(width: 8),
+              _QaBtn(icon: Icons.person_add, label: '관리자초대', color: _purple,
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('관리자 초대 기능 준비중')))),
+            ],
+          ),
         ],
       ),
     );

@@ -60,6 +60,7 @@ class KaaApp extends StatelessWidget {
           '/store-list': (_) => const StoreListScreen(),
           '/store-detail': (_) => const StoreDetailScreen(),
           '/store-register': (_) => const StoreRegisterScreen(),
+          '/shop-inbox': (_) => const ShopInboxScreen(),
           '/store-mgr': (_) => const StoreMgrScreen(),
           '/coupon': (_) => const CouponScreen(),
           '/cert': (_) => const CertScreen(),

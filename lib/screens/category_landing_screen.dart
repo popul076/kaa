@@ -344,51 +344,30 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
-      title: Row(children: [
-        // ← 뒤로가기
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.pop(context),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-          ),
-        ),
-        // 중앙 '정비' bold
-        Expanded(
-          child: Text(
+      title: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 중앙 '정비' bold - 완전 정중앙
+          Text(
             widget.category,
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansKr(
               fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
           ),
-        ),
-        // 신청 내역 버튼
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/quote-received'),
-          child: Container(
-            margin: const EdgeInsets.only(right: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: _accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _accent.withOpacity(0.35)),
+          // 좌측 뒤로가기
+          Positioned(
+            left: 0,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.pop(context),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              ),
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.receipt_long_rounded, color: _accent, size: 13),
-              const SizedBox(width: 4),
-              Text('신청 내역', style: GoogleFonts.notoSansKr(
-                fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
-            ]),
           ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
-          onPressed: _showFilterSheet,
-          padding: const EdgeInsets.only(right: 6),
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -532,13 +511,15 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       animation: AppState(),
       builder: (context, _) {
         final requests = AppState().estimateRequests;
+        // matched/completed 제외 - 확정 후엔 무료견적 배너로 복귀
         final activeRequests = requests.where((r) =>
           r.status == RepairStatus.bidding ||
           r.status == RepairStatus.pending  ||
-          r.status == RepairStatus.matched
+          r.status == RepairStatus.received
         ).toList();
         final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
         // ── 핵심: 요청이 있거나 isRequestActive 플래그가 있으면 도착확인 배너 ──
+        // matched/completed 는 배너에서 제외 → 무료견적 배너로 복귀
         final hasActiveRequest = AppState().isRequestActive || activeRequests.isNotEmpty;
 
         if (hasActiveRequest) {

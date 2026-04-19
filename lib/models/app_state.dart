@@ -217,6 +217,8 @@ class AppState extends ChangeNotifier {
   String currentPage = 'intro';
   String currentTab = 'home';
   int notificationCount = 4;
+  // 앱 내 알림 목록 (알림탭 전용)
+  final List<Map<String, String>> inAppNotifications = [];
   String location = '대구 수성구';
   bool isLoggedIn = false;
   UserModel? user;
@@ -236,6 +238,17 @@ class AppState extends ChangeNotifier {
   void logout() {
     isLoggedIn = false;
     user = null;
+    notifyListeners();
+  }
+
+  // 알림탭에 알림 추가 (메인배너 대신)
+  void addInAppNotification(String title, String body) {
+    inAppNotifications.insert(0, {
+      'title': title,
+      'body': body,
+      'time': DateTime.now().toString(),
+    });
+    notificationCount += 1;
     notifyListeners();
   }
 
@@ -325,7 +338,8 @@ class AppState extends ChangeNotifier {
 
   void addEstimateRequest(EstimateRequest req) {
     estimateRequests.insert(0, req);
-    notificationCount += 1;
+    // 알림탭에만 추가 (메인배너 대신)
+    addInAppNotification('새로운 견적서가 도착했습니다', '${req.carName} 견적 요청에 점포가 답변했습니다.');
     notifyListeners();
   }
 
