@@ -391,7 +391,13 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    // 정비·세차·타이어·중고차·검사 → CategoryLandingScreen
+    // 중고차 → UsedCarMainScreen 직접 이동
+    if (name == '중고차') {
+      Navigator.pushNamed(context, '/used-car');
+      return;
+    }
+
+    // 정비·세차·타이어·검사 → CategoryLandingScreen
     Navigator.push(
       context,
       MaterialPageRoute(

@@ -755,3 +755,362 @@ class AppData {
     {'id': 'finance', 'icon': '💳', 'label': '할부·금융'},
   ];
 }
+
+// ==========================================
+// 중고차 상태 머신 (헤이딜러 역경매 방식)
+// ==========================================
+
+/// 중고차 판매 상태
+enum UsedCarStatus {
+  waiting,   // 대기 (등록 완료, 딜러 투찰 전)
+  bidding,   // 견적중 (딜러 견적 수신중)
+  matched,   // 매칭완료 (사용자 동의)
+  closed,    // 거래종료 (완료 or 취소)
+}
+
+extension UsedCarStatusExt on UsedCarStatus {
+  String get label {
+    switch (this) {
+      case UsedCarStatus.waiting:  return '대기중';
+      case UsedCarStatus.bidding:  return '견적수신중';
+      case UsedCarStatus.matched:  return '매칭완료';
+      case UsedCarStatus.closed:   return '거래종료';
+    }
+  }
+  String get emoji {
+    switch (this) {
+      case UsedCarStatus.waiting:  return '⏳';
+      case UsedCarStatus.bidding:  return '📩';
+      case UsedCarStatus.matched:  return '🤝';
+      case UsedCarStatus.closed:   return '✅';
+    }
+  }
+}
+
+/// 딜러 투찰 모델
+class DealerBid {
+  final String bidId;
+  final String dealerName;
+  final String dealerBadge;   // 'KAA인증', '우수딜러' 등
+  final String dealerPhone;
+  final double dealerRating;
+  final String dealerLocation;
+  final int offerPrice;       // 제안 매입가
+  final String memo;
+  final DateTime createdAt;
+  UsedCarStatus status;
+  bool isRead;
+
+  DealerBid({
+    required this.bidId,
+    required this.dealerName,
+    required this.dealerBadge,
+    required this.dealerPhone,
+    required this.dealerRating,
+    required this.dealerLocation,
+    required this.offerPrice,
+    required this.memo,
+    required this.createdAt,
+    this.status = UsedCarStatus.bidding,
+    this.isRead = false,
+  });
+}
+
+/// 내 차 팔기 요청 모델
+class UsedCarSaleRequest {
+  final String requestId;
+  final String carNumber;     // 차량번호
+  final String carName;       // 모델명 (API 조회)
+  final String regDate;       // 최초등록일
+  final String modelYear;     // 연식
+  final int mileage;          // 주행거리
+  final bool hasAccident;     // 사고 유무
+  final String memo;
+  final List<String> photoUrls;
+  final DateTime createdAt;
+  UsedCarStatus status;
+  String? matchedDealerId;
+  String? matchedPhone;       // 사용자 연락처 (동의 후 입력)
+  final List<DealerBid> bids;
+
+  UsedCarSaleRequest({
+    required this.requestId,
+    required this.carNumber,
+    required this.carName,
+    required this.regDate,
+    required this.modelYear,
+    required this.mileage,
+    required this.hasAccident,
+    required this.memo,
+    required this.photoUrls,
+    required this.createdAt,
+    this.status = UsedCarStatus.waiting,
+    this.matchedDealerId,
+    this.matchedPhone,
+    List<DealerBid>? bids,
+  }) : bids = bids ?? [];
+
+  int get bidCount => bids.length;
+  int get unreadBidCount => bids.where((b) => !b.isRead).length;
+}
+
+/// 중고차 매물 모델 (엔카/차차차 방식)
+class UsedCarListing {
+  final String listingId;
+  final String title;
+  final String carName;
+  final String modelYear;
+  final int mileage;
+  final int price;
+  final String fuel;
+  final String transmission;
+  final String color;
+  final bool hasAccident;
+  final String region;
+  final String sellerName;
+  final String sellerPhone;
+  final String sellerType;    // 'individual' | 'dealer'
+  final int? storeId;         // 점포 연동
+  final List<String> photoUrls;
+  final String desc;
+  final DateTime createdAt;
+  bool isFavorite;
+
+  UsedCarListing({
+    required this.listingId,
+    required this.title,
+    required this.carName,
+    required this.modelYear,
+    required this.mileage,
+    required this.price,
+    required this.fuel,
+    required this.transmission,
+    required this.color,
+    required this.hasAccident,
+    required this.region,
+    required this.sellerName,
+    required this.sellerPhone,
+    required this.sellerType,
+    this.storeId,
+    required this.photoUrls,
+    required this.desc,
+    required this.createdAt,
+    this.isFavorite = false,
+  });
+}
+
+// ==========================================
+// 중고차 AppState 확장 (AppState 싱글톤에 믹스인)
+// ==========================================
+class UsedCarState extends ChangeNotifier {
+  static final UsedCarState _instance = UsedCarState._internal();
+  factory UsedCarState() => _instance;
+  UsedCarState._internal() { _initDummyData(); }
+
+  final List<UsedCarSaleRequest> saleRequests = [];
+  final List<UsedCarListing> listings = [];
+
+  void _initDummyData() {
+    // ── 더미 판매 요청 (딜러 투찰 있는 상태) ──
+    saleRequests.add(UsedCarSaleRequest(
+      requestId: 'SALE-001',
+      carNumber: '123가4567',
+      carName: '현대 그랜저 IG 3.0',
+      regDate: '2019-03-15',
+      modelYear: '2019년식',
+      mileage: 72000,
+      hasAccident: false,
+      memo: '무사고 1인 소유 차량, 풀옵션',
+      photoUrls: [
+        'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=80',
+        'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80',
+      ],
+      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+      status: UsedCarStatus.bidding,
+      bids: [
+        DealerBid(
+          bidId: 'BID-001',
+          dealerName: 'KAA 인증 중고차센터',
+          dealerBadge: 'KAA인증',
+          dealerPhone: '053-456-7890',
+          dealerRating: 4.8,
+          dealerLocation: '대구 수성구 · 2.1km',
+          offerPrice: 2450,
+          memo: '무사고 실물 확인 후 금액 조정 가능합니다. 당일 이전 처리 가능.',
+          createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+          isRead: false,
+        ),
+        DealerBid(
+          bidId: 'BID-002',
+          dealerName: '범어 중고차 매매단지',
+          dealerBadge: '우수딜러',
+          dealerPhone: '053-567-8901',
+          dealerRating: 4.5,
+          dealerLocation: '대구 수성구 · 1.9km',
+          offerPrice: 2380,
+          memo: '시세 대비 최고가 매입 보장! 즉시 현금 지급.',
+          createdAt: DateTime.now().subtract(const Duration(minutes: 45)),
+          isRead: false,
+        ),
+        DealerBid(
+          bidId: 'BID-003',
+          dealerName: '황금동 오토플라자',
+          dealerBadge: '인기딜러',
+          dealerPhone: '053-678-9012',
+          dealerRating: 4.3,
+          dealerLocation: '대구 수성구 · 3.2km',
+          offerPrice: 2290,
+          memo: '사진 확인 완료. 추가 협의 가능합니다.',
+          createdAt: DateTime.now().subtract(const Duration(minutes: 20)),
+          isRead: false,
+        ),
+      ],
+    ));
+
+    // ── 더미 중고차 매물 ──
+    listings.addAll([
+      UsedCarListing(
+        listingId: 'L-001',
+        title: '2022 현대 아반떼 CN7 1.6 가솔린 풀옵션',
+        carName: '현대 아반떼', modelYear: '2022년식',
+        mileage: 28000, price: 1950,
+        fuel: '가솔린', transmission: '자동', color: '흰색',
+        hasAccident: false, region: '대구 수성구',
+        sellerName: 'KAA 인증 중고차센터', sellerPhone: '053-456-7890',
+        sellerType: 'dealer', storeId: 4,
+        photoUrls: [
+          'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=600&q=80',
+          'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=600&q=80',
+          'https://images.unsplash.com/photo-1558981033-88f754cbde65?w=600&q=80',
+        ],
+        desc: '무사고 1인 소유. 풀옵션 (스마트센스·선루프·통풍시트). 보증기간 잔여 2년. 실물 확인 환영합니다.',
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      UsedCarListing(
+        listingId: 'L-002',
+        title: '2021 기아 K5 DL3 2.0 하이브리드 시그니처',
+        carName: '기아 K5', modelYear: '2021년식',
+        mileage: 45000, price: 2380,
+        fuel: '하이브리드', transmission: '자동', color: '검정',
+        hasAccident: false, region: '대구 동구',
+        sellerName: '범어 중고차 매매단지', sellerPhone: '053-567-8901',
+        sellerType: 'dealer', storeId: 5,
+        photoUrls: [
+          'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=600&q=80',
+          'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80',
+        ],
+        desc: '하이브리드 연비 18km/L. 시그니처 풀옵션. 무사고 깨끗한 차량입니다.',
+        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      ),
+      UsedCarListing(
+        listingId: 'L-003',
+        title: '2020 BMW 320i M스포츠 (G20)',
+        carName: 'BMW 320i', modelYear: '2020년식',
+        mileage: 52000, price: 3450,
+        fuel: '가솔린', transmission: '자동', color: '파랑',
+        hasAccident: false, region: '대구 수성구',
+        sellerName: '홍길동', sellerPhone: '010-1234-5678',
+        sellerType: 'individual',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80',
+          'https://images.unsplash.com/photo-1617531653332-bd46c16f4d68?w=600&q=80',
+        ],
+        desc: 'M스포츠패키지 장착. 순정 상태 유지. 직거래 선호합니다.',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      UsedCarListing(
+        listingId: 'L-004',
+        title: '2023 테슬라 모델3 롱레인지 AWD',
+        carName: '테슬라 모델3', modelYear: '2023년식',
+        mileage: 12000, price: 4800,
+        fuel: '전기', transmission: '자동', color: '흰색',
+        hasAccident: false, region: '대구 달서구',
+        sellerName: '황금동 오토플라자', sellerPhone: '053-678-9012',
+        sellerType: 'dealer', storeId: 4,
+        photoUrls: [
+          'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=600&q=80',
+          'https://images.unsplash.com/photo-1536700503339-1e4b06520771?w=600&q=80',
+        ],
+        desc: '주행거리 12,000km 극저주행. 자율주행 패키지 포함. 세금계산서 발행 가능.',
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      UsedCarListing(
+        listingId: 'L-005',
+        title: '2019 현대 그랜저 IG 3.0 프리미엄',
+        carName: '현대 그랜저', modelYear: '2019년식',
+        mileage: 68000, price: 2750,
+        fuel: '가솔린', transmission: '자동', color: '은색',
+        hasAccident: false, region: '대구 수성구',
+        sellerName: '이민준', sellerPhone: '010-9876-5432',
+        sellerType: 'individual',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=80',
+        ],
+        desc: '무사고 2인 소유. 정기 점검 이력 완비. 가격 협의 가능합니다.',
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+      ),
+      UsedCarListing(
+        listingId: 'L-006',
+        title: '2022 벤츠 E220d 아방가르드',
+        carName: '벤츠 E220d', modelYear: '2022년식',
+        mileage: 18000, price: 5800,
+        fuel: '디젤', transmission: '자동', color: '검정',
+        hasAccident: false, region: '대구 수성구',
+        sellerName: 'KAA 인증 중고차센터', sellerPhone: '053-456-7890',
+        sellerType: 'dealer', storeId: 4,
+        photoUrls: [
+          'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=600&q=80',
+          'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=600&q=80',
+        ],
+        desc: '아방가르드 풀옵션. 18,000km 극저주행. KAA 인증 보증 포함.',
+        createdAt: DateTime.now().subtract(const Duration(days: 4)),
+      ),
+    ]);
+  }
+
+  // ── 판매 요청 등록 ──
+  void addSaleRequest(UsedCarSaleRequest req) {
+    saleRequests.insert(0, req);
+    notifyListeners();
+  }
+
+  // ── 딜러 매칭 확정 ──
+  void matchSaleRequest(String requestId, String bidId, {String? phone}) {
+    try {
+      final req = saleRequests.firstWhere((r) => r.requestId == requestId);
+      req.status = UsedCarStatus.matched;
+      req.matchedDealerId = bidId;
+      req.matchedPhone = phone;
+      for (final bid in req.bids) {
+        bid.status = bid.bidId == bidId
+            ? UsedCarStatus.matched
+            : UsedCarStatus.closed;
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 거래 종료 ──
+  void closeSaleRequest(String requestId) {
+    try {
+      final req = saleRequests.firstWhere((r) => r.requestId == requestId);
+      req.status = UsedCarStatus.closed;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 매물 찜하기 토글 ──
+  void toggleFavorite(String listingId) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.isFavorite = !l.isFavorite;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 매물 등록 ──
+  void addListing(UsedCarListing listing) {
+    listings.insert(0, listing);
+    notifyListeners();
+  }
+}

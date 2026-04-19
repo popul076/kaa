@@ -58,6 +58,12 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   @override
   void initState() {
     super.initState();
+    // 중고차 카테고리는 UsedCarMainScreen으로 직접 리다이렉트
+    if (widget.category == '중고차') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(context, '/used-car');
+      });
+    }
     // 견적 데이터 미리 로드 (배너 즉시 표시용)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AppState().initDummyEstimates();
