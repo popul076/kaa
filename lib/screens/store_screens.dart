@@ -1913,34 +1913,51 @@ class _StoreMgrScreenState extends State<StoreMgrScreen> {
       title: '⚡ 빠른 액션',
       child: Column(
         children: [
-          // 견적 신청함 버튼 (상단 강조)
-          GestureDetector(
-            onTap: () => Navigator.pushNamed(context, '/shop-inbox'),
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [_accent.withOpacity(0.2), _green.withOpacity(0.15)]),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _accent.withOpacity(0.5)),
-              ),
-              child: Row(children: [
-                const Icon(Icons.inbox_rounded, color: _accent, size: 22),
-                const SizedBox(width: 10),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('견적 신청함', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
-                  Text('고객 견적 요청 확인 및 발송', style: TextStyle(fontSize: 11, color: Color(0xFF8FA8C0))),
-                ])),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(10)),
-                  child: const Text('1건', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+          // 견적 신청함 버튼 (상단 강조) - AppState 연동
+          AnimatedBuilder(
+            animation: AppState(),
+            builder: (context, _) {
+              // 신규/대기 중인 요청 수 (AppState + 더미 1건)
+              final activeRequests = AppState().estimateRequests
+                .where((r) => r.status == RepairStatus.pending || r.status == RepairStatus.bidding)
+                .length;
+              final totalCount = activeRequests + 1; // 더미 신규 1건 포함
+              return GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/shop-inbox'),
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      _accent.withOpacity(totalCount > 0 ? 0.25 : 0.15),
+                      _green.withOpacity(totalCount > 0 ? 0.2 : 0.1),
+                    ]),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _accent.withOpacity(totalCount > 0 ? 0.7 : 0.4)),
+                  ),
+                  child: Row(children: [
+                    Icon(Icons.inbox_rounded, color: totalCount > 0 ? Colors.white : _accent, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('견적 신청함', style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w800,
+                        color: totalCount > 0 ? Colors.white : Colors.white)),
+                      Text('고객 견적 요청 확인 및 발송', style: const TextStyle(fontSize: 11, color: Color(0xFF8FA8C0))),
+                    ])),
+                    if (totalCount > 0) Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: totalCount > 1 ? const Color(0xFFE53935) : _accent,
+                        borderRadius: BorderRadius.circular(10)),
+                      child: Text('신규 $totalCount건', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chevron_right_rounded, color: _accent, size: 20),
+                  ]),
                 ),
-                const SizedBox(width: 6),
-                const Icon(Icons.chevron_right_rounded, color: _accent, size: 20),
-              ]),
-            ),
+              );
+            },
           ),
           Row(
             children: [

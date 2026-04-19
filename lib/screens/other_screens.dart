@@ -796,6 +796,16 @@ class _MyScreenState extends State<MyScreen> {
                       _DarkMenuItem(icon: Icons.receipt_long_outlined, label: '견적 내역',
                         color: _accent,
                         onTap: () => Navigator.pushNamed(context, '/my-quotes')),
+                      _DarkMenuItem(
+                        icon: Icons.build_circle_outlined,
+                        label: '정비 내역',
+                        color: _green,
+                        badge: AppState().maintenanceHistory.isNotEmpty
+                          ? '${AppState().maintenanceHistory.length}건' : null,
+                        badgeColor: _green,
+                        onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const VehicleMaintenanceScreen())),
+                      ),
                       _DarkMenuItem(icon: Icons.favorite_border, label: '즐겨찾기 점포',
                         color: _accent, onTap: () {}),
                       _DarkMenuItem(icon: Icons.confirmation_number_outlined, label: '내 쿠폰',
@@ -818,7 +828,6 @@ class _MyScreenState extends State<MyScreen> {
                       _DarkMenuItem(icon: Icons.monetization_on_outlined, label: '내차 시세 조회',
                         color: _orange,
                         onTap: () => Navigator.pushNamed(context, '/car-price')),
-                      // 신청서 내역은 내차시세 페이지 안으로 이동
                     ]),
 
                     const SizedBox(height: 1),
@@ -1340,8 +1349,8 @@ class ShopInboxScreen extends StatefulWidget {
 }
 
 class _ShopInboxScreenState extends State<ShopInboxScreen> {
-  // 더미 신청 데이터
-  final List<Map<String, dynamic>> _requests = [
+  // 더미 신청 데이터 (점포 관점 - 고객 요청 수신함)
+  final List<Map<String, dynamic>> _dummyRequests = [
     {
       'id': 'req001',
       'carName': '현대 아반떼',
@@ -1358,6 +1367,7 @@ class _ShopInboxScreenState extends State<ShopInboxScreen> {
       'message': null,
       'customerPhone': null,
       'schedule': null,
+      'isFromApp': false,
     },
     {
       'id': 'req002',
@@ -1375,6 +1385,7 @@ class _ShopInboxScreenState extends State<ShopInboxScreen> {
       'message': '정품 패드 사용, 당일 작업 가능합니다.',
       'customerPhone': null,
       'schedule': null,
+      'isFromApp': false,
     },
     {
       'id': 'req003',
@@ -1392,8 +1403,46 @@ class _ShopInboxScreenState extends State<ShopInboxScreen> {
       'message': '미쉐린 타이어 재고 있습니다.',
       'customerPhone': '010-****-5678',
       'schedule': '오늘 오후 3시',
+      'isFromApp': false,
     },
   ];
+
+  // AppState의 실제 요청을 점포 인박스 형식으로 변환
+  List<Map<String, dynamic>> get _requests {
+    final appRequests = AppState().estimateRequests
+      .where((r) => r.status == RepairStatus.pending ||
+                    r.status == RepairStatus.bidding ||
+                    r.status == RepairStatus.received)
+      .map((r) => <String, dynamic>{
+        'id': r.requestId,
+        'carName': r.carName,
+        'carNumber': r.carNumber,
+        'repairType': r.repairType,
+        'symptoms': r.symptoms.join(', '),
+        'customerName': '앱 사용자',
+        'receivedAt': _timeAgoFromDate(r.createdAt),
+        'status': r.bids.isNotEmpty ? 'quoted' : 'new',
+        'partCost': r.bids.isNotEmpty ? r.bids.first.partsCost : null,
+        'laborCost': r.bids.isNotEmpty ? r.bids.first.laborCost : null,
+        'totalCost': r.bids.isNotEmpty ? r.bids.first.totalCost : null,
+        'estimatedTime': r.bids.isNotEmpty ? r.bids.first.estimatedTime : null,
+        'message': r.bids.isNotEmpty ? r.bids.first.ownerMessage : null,
+        'customerPhone': null,
+        'schedule': null,
+        'isFromApp': true,
+        'memo': r.memo,
+      }).toList();
+    // 앱 실제 요청을 먼저, 더미 데이터는 뒤에
+    return [...appRequests, ..._dummyRequests];
+  }
+
+  String _timeAgoFromDate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    return '${diff.inDays}일 전';
+  }
 
   String _statusLabel(String status) {
     switch (status) {
@@ -1524,11 +1573,32 @@ class _ShopInboxScreenState extends State<ShopInboxScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('견적 신청함', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+        title: AnimatedBuilder(
+          animation: AppState(),
+          builder: (_, __) {
+            final newCount = _requests.where((r) => r['status'] == 'new').length;
+            return Row(mainAxisSize: MainAxisSize.min, children: [
+              const Text('견적 신청함', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+              if (newCount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2979FF),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text('NEW $newCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ]);
+          },
+        ),
         centerTitle: true,
         elevation: 0,
       ),
-      body: ListView.builder(
+      body: AnimatedBuilder(
+        animation: AppState(),
+        builder: (context, _) => ListView.builder(
         padding: const EdgeInsets.all(14),
         itemCount: _requests.length,
         itemBuilder: (_, i) {
@@ -1642,7 +1712,8 @@ class _ShopInboxScreenState extends State<ShopInboxScreen> {
             ),
           );
         },
-      ),
+        ),  // ListView.builder 닫기
+      ),  // AnimatedBuilder 닫기
     );
   }
 }
@@ -5648,7 +5719,6 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
         );
       },
     );
-  }
   }
 
   void _showAddMaintenanceDialog() {
