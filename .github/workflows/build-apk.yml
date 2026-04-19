@@ -51,10 +51,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
-          cp build/app/outputs/flutter-apk/app-release.apk pages_repo/moincar-v35.apk
+          cp build/app/outputs/flutter-apk/app-release.apk pages_repo/moincar-latest.apk
           cd pages_repo
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git add moincar-v35.apk
-          git commit -m "v35 APK 배포"
+          git add moincar-latest.apk
+          git commit -m "APK 배포 (latest)"
           git push
