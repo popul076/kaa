@@ -1,4 +1,4 @@
-name: Build Flutter APK
+name: Build APK v35
 
 on:
   push:
@@ -7,49 +7,44 @@ on:
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
+      - name: Checkout kaa source
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
           distribution: 'temurin'
+          java-version: '17'
 
-      - name: Set up Flutter
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
-          cache: true
 
-      - name: Get dependencies
+      - name: Flutter pub get
         run: flutter pub get
 
-      - name: Build APK (arm64)
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK to GitHub Pages
         env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2 -Dkotlin.incremental=false -Dorg.gradle.jvmargs=-Xmx4g"
-          JAVA_TOOL_OPTIONS: "-Xmx4g"
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          flutter build apk --release \
-            --target-platform android-arm64
-          VERSION=$(grep 'version:' pubspec.yaml | head -1 | awk '{print $2}' | tr -d '\r')
-          BUILD=$(echo $VERSION | cut -d'+' -f2)
-          cp build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/moincar-v${BUILD}.apk
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: moincar-v32
-          path: build/app/outputs/flutter-apk/moincar-v*.apk
-          retention-days: 30
-
-      - name: Show APK info
-        run: |
-          ls -lh build/app/outputs/flutter-apk/
-          echo "✅ APK 빌드 성공!"
+          cp build/app/outputs/flutter-apk/app-release.apk moincar-v35.apk
+          
+          git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
+          cp moincar-v35.apk pages_repo/moincar-v35.apk
+          
+          cd pages_repo
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add moincar-v35.apk
+          git commit -m "v35 APK 업데이트 (자동빌드)"
+          git push
+          
+          echo "✅ v35 APK 업로드 완료"
