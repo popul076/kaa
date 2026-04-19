@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout kaa source
@@ -19,11 +20,26 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+      - name: Cache Flutter
+        uses: actions/cache@v4
+        with:
+          path: /opt/hostedtoolcache/flutter
+          key: flutter-3.24.5
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.5'
           channel: 'stable'
+          cache: true
 
       - name: Flutter pub get
         run: flutter pub get
@@ -36,15 +52,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk moincar-v35.apk
-          
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp moincar-v35.apk pages_repo/moincar-v35.apk
-          
           cd pages_repo
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add moincar-v35.apk
           git commit -m "v35 APK 업데이트 (자동빌드)"
           git push
-          
           echo "✅ v35 APK 업로드 완료"
