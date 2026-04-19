@@ -1031,10 +1031,20 @@ class NotificationScreen extends StatefulWidget {
 class _NotificationScreenState extends State<NotificationScreen> {
   final List<Map<String, dynamic>> _notifs = [
     {
+      'title': '새로운 견적서가 도착했습니다',
+      'body': '주변 정비점포 3곳에서 견적서를 보냈습니다.\n\n• KAA 수성 협회인증 정비센터 — 270,000원\n• 프리미엄 바디케어 정비소 — 380,000원\n• KAA 스피드 경정비 — 180,000원\n\n지금 견적서를 확인하고 예약을 확정하세요!',
+      'date': '2026-04-18',
+      'time': '방금 전',
+      'icon': '📬',
+      'read': false,
+      'category': '견적',
+      'route': '/quote-received',
+    },
+    {
       'title': '견적 요청 접수',
       'body': 'MOINCAR 프리미엄 정비소에서 견적이 도착했습니다.\n\n견적 금액: 85,000원\n작업 내용: 엔진오일 교환 + 에어필터 교체\n예상 소요 시간: 1시간\n\n지금 바로 확인하고 예약을 확정하세요.',
       'date': '2025-04-12',
-      'time': '방금 전',
+      'time': '1시간 전',
       'icon': '📋',
       'read': false,
       'category': '견적',
@@ -3238,6 +3248,10 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
             const SizedBox(height: 16),
             const Text('전송이 완료되었습니다',
               style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text('[신청 완료] AI 시세 기반 신청서가 선택 매장으로 발송되었습니다',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text('${selectedStores.length}개 매장에 신청서가 전달되었습니다.\n매장에서 확인 후 연락드립니다.',
               textAlign: TextAlign.center,
@@ -4068,7 +4082,7 @@ class _CarPriceScreenState extends State<CarPriceScreen> {
                         _sendToSelectedStores(selected);
                       },
                   icon: const Icon(Icons.send_rounded, size: 16),
-                  label: Text(_carPhotos.isEmpty ? '신청서 전송 (사진 없음)' : '내 차 팔기 신청 완료 📸${_carPhotos.length}장'),
+                  label: Text(_carPhotos.isEmpty ? '[신청 완료] 신청서 전송' : '[신청 완료] 사진 ${_carPhotos.length}장 포함'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _mGreen,
                     foregroundColor: Colors.white,
@@ -6374,7 +6388,7 @@ class _CarApplicationHistoryScreenState extends State<CarApplicationHistoryScree
                   onTap: () => Navigator.pop(context),
                   child: const Icon(Icons.arrow_back_ios_new, color: _mAccent, size: 20)),
                 const SizedBox(width: 12),
-                const Text('📋 신청서 내역',
+                const Text('신청서 내역',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
                 const Spacer(),
                 Container(

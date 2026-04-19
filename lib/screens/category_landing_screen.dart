@@ -338,42 +338,55 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
   // ── AppBar ─────────────────────────────────────────────
   Widget _buildAppBar() {
     return SliverAppBar(
-      expandedHeight: 52,
+      expandedHeight: 44,
       pinned: true,
       backgroundColor: _bg,
       surfaceTintColor: Colors.transparent,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
-      // ── 타이틀: 뒤로가기 + 중앙 카테고리명 + 우측 액션 ──
       title: Row(children: [
-        // 뒤로가기 (필수)
+        // ← 뒤로가기
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => Navigator.pop(context),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           ),
         ),
-        // 중앙 카테고리명 (굵게, 중앙정렬)
+        // 중앙 '정비' bold
         Expanded(
           child: Text(
             widget.category,
             textAlign: TextAlign.center,
             style: GoogleFonts.notoSansKr(
-              fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+              fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
           ),
         ),
-        // 우측 액션
-        IconButton(
-          icon: const Icon(Icons.search_rounded, color: Colors.white, size: 22),
-          onPressed: () {},
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+        // 신청 내역 버튼
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/quote-received'),
+          child: Container(
+            margin: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _accent.withOpacity(0.35)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.receipt_long_rounded, color: _accent, size: 13),
+              const SizedBox(width: 4),
+              Text('신청 내역', style: GoogleFonts.notoSansKr(
+                fontSize: 11, color: _accent, fontWeight: FontWeight.w700)),
+            ]),
+          ),
         ),
         IconButton(
-          icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 22),
+          icon: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
           onPressed: _showFilterSheet,
-          padding: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.only(right: 6),
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         ),
       ]),
     );
@@ -385,7 +398,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       onTap: () => setState(() => _mapExpanded = !_mapExpanded),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        height: _mapExpanded ? 340 : 240,
+        height: _mapExpanded ? 170 : 120,
         margin: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -483,7 +496,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       final py = positions[i][1];
       return Positioned(
         left: MediaQuery.of(context).size.width * px - 56,
-        top: (_mapExpanded ? 340 : 240) * py - 16,
+        top: (_mapExpanded ? 170 : 120) * py - 16,
         child: GestureDetector(
           onTap: () => _goToDetail(s),
           child: Container(
@@ -567,8 +580,8 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
                     children: [
                       Text(
                         totalBids > 0
-                          ? '📬 견적서 ${totalBids}건 도착!'
-                          : '📬 도착한 견적서 확인하기',
+                          ? '견적서 ${totalBids}건 도착!'
+                          : '도착한 견적서 확인하기',
                         style: GoogleFonts.notoSansKr(
                           fontSize: 14, fontWeight: FontWeight.w800,
                           color: Colors.white),

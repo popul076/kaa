@@ -33,6 +33,15 @@ class QuoteRequestScreen extends StatefulWidget {
 }
 
 class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
+  // ── 차량번호 입력 (1단계) ──────────────────────────────
+  final _plateCtrl      = TextEditingController();
+  bool  _isLookingUp    = false;
+  bool  _plateFound     = false;
+  String _foundRegDate  = '';   // 최초 등록일
+  String _foundCarYear  = '';   // 연식
+  String _foundCarName  = '';   // 차명
+
+  // ── 상세 입력 (2단계) ─────────────────────────────────
   final _carNameCtrl    = TextEditingController();
   final _regionCtrl     = TextEditingController(text: '대구 수성구');
   final _repairTypeCtrl = TextEditingController();
@@ -48,6 +57,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   static const _kRegion     = 'qr_region';
   static const _kRepairType = 'qr_repair_type';
   static const _kSymptoms   = 'qr_symptoms';
+  static const _kPlate      = 'qr_plate';
 
   final _picker = ImagePicker();
 
@@ -57,16 +67,47 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
     _loadSavedData();
   }
 
+  // ── 차량번호 조회 (시뮬레이션) ───────────────────────
+  Future<void> _lookupPlate() async {
+    final plate = _plateCtrl.text.trim();
+    if (plate.isEmpty) {
+      _showSnack('차량번호를 입력해 주세요');
+      return;
+    }
+    setState(() => _isLookingUp = true);
+    // 실제 연동 시 자동차 등록 API 호출
+    await Future.delayed(const Duration(milliseconds: 900));
+    // 샘플 매핑 (번호판 → 차량 정보)
+    final sampleData = <String, Map<String, String>>{
+      '123가4567': {'name': '그랜저(IG)', 'regDate': '2019-03-15', 'year': '2019년식'},
+      '456나7890': {'name': '아반떼(AD)', 'regDate': '2017-08-22', 'year': '2017년식'},
+      '789다1234': {'name': '싼타페(TM)', 'regDate': '2020-11-07', 'year': '2020년식'},
+      '111라2222': {'name': 'K5(DL3)',   'regDate': '2021-05-19', 'year': '2021년식'},
+    };
+    final info = sampleData[plate] ??
+      {'name': '알 수 없는 차량', 'regDate': '정보 없음', 'year': '연식 미상'};
+    setState(() {
+      _isLookingUp   = false;
+      _plateFound    = true;
+      _foundRegDate  = info['regDate']!;
+      _foundCarYear  = info['year']!;
+      _foundCarName  = info['name']!;
+      _carNameCtrl.text = info['name']!;
+    });
+  }
+
   // ── 저장된 데이터 복원 (사용자 입력 유지) ──────────────
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
+    final plate      = prefs.getString(_kPlate);
     final carName    = prefs.getString(_kCarName);
     final region     = prefs.getString(_kRegion);
     final repairType = prefs.getString(_kRepairType);
     final symptoms   = prefs.getStringList(_kSymptoms) ?? [];
     setState(() {
-      if (carName != null && carName.isNotEmpty) _carNameCtrl.text = carName;
-      if (region  != null && region.isNotEmpty)  _regionCtrl.text  = region;
+      if (plate    != null && plate.isNotEmpty)    _plateCtrl.text    = plate;
+      if (carName  != null && carName.isNotEmpty)  _carNameCtrl.text  = carName;
+      if (region   != null && region.isNotEmpty)   _regionCtrl.text   = region;
       if (repairType != null && repairType.isNotEmpty) _repairTypeCtrl.text = repairType;
       _selectedSymptoms.addAll(symptoms);
     });
@@ -75,6 +116,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   // ── 입력 데이터 저장 ──────────────────────────────────
   Future<void> _saveInputData() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kPlate,    _plateCtrl.text.trim());
     await prefs.setString(_kCarName,    _carNameCtrl.text.trim());
     await prefs.setString(_kRegion,     _regionCtrl.text.trim());
     await prefs.setString(_kRepairType, _repairTypeCtrl.text.trim());
@@ -102,6 +144,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   @override
   void dispose() {
     _saveInputData(); // 화면 이탈 시 자동 저장
+    _plateCtrl.dispose();
     _carNameCtrl.dispose();
     _regionCtrl.dispose();
     _repairTypeCtrl.dispose();
@@ -109,7 +152,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
     super.dispose();
   }
 
-  // _carNumCtrl 제거됨 — 차량번호는 확정 후 수집
+  // ── 번호판 입력 완료 후 수집됨
 
   // ── 이미지 선택 + 즉시 압축 ──────────────────────────
   Future<void> _pickImages(ImageSource source) async {
@@ -178,8 +221,8 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
 
   // ── 견적 요청 제출 ────────────────────────────────────
   Future<void> _submit() async {
-    if (_carNameCtrl.text.trim().isEmpty) {
-      _showSnack('차량명을 입력해 주세요'); return;
+    if (_plateCtrl.text.trim().isEmpty) {
+      _showSnack('차량번호를 먼저 조회해 주세요'); return;
     }
     if (_selectedSymptoms.isEmpty) {
       _showSnack('증상을 하나 이상 선택해 주세요'); return;
@@ -190,8 +233,10 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
 
     final req = EstimateRequest(
       requestId: 'REQ-${DateTime.now().millisecondsSinceEpoch}',
-      carName:   _carNameCtrl.text.trim(),
-      carNumber: '',  // 차량번호는 확정 후 입력
+      carName:   _carNameCtrl.text.trim().isEmpty ? _foundCarName : _carNameCtrl.text.trim(),
+      carNumber: _plateCtrl.text.trim(),
+      carRegDate: _foundRegDate,
+      carYear:    _foundCarYear,
       region:    _regionCtrl.text.trim(),
       repairType: _repairTypeCtrl.text.trim().isEmpty ? '일반 정비' : _repairTypeCtrl.text.trim(),
       symptoms:  _selectedSymptoms.toList(),
@@ -405,40 +450,119 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                // ── ① 차량 정보 ────────────────────────────
-                _sectionTitle('🚗  차량 정보'),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _accent.withOpacity(0.2)),
-                  ),
-                  child: const Row(children: [
-                    Icon(Icons.info_outline, color: _accent, size: 13),
-                    SizedBox(width: 6),
-                    Text('차량번호는 정비 확정 후 별도로 수집합니다',
-                      style: TextStyle(color: _accent, fontSize: 11)),
-                  ]),
-                ),
+                // ── ① 차량번호 조회 (최우선 입력) ──────────
+                _sectionTitle('🚗  차량번호 조회'),
                 const SizedBox(height: 10),
-                _inputField(_carNameCtrl, '차량명 (예: 그랜저, 쏘나타)', Icons.directions_car_outlined),
-                const SizedBox(height: 10),
-                _inputField(_regionCtrl, '방문 지역', Icons.location_on_outlined),
-                const SizedBox(height: 10),
-                _inputField(_repairTypeCtrl, '정비 유형 (예: 사고수리, 엔진오일 교환)', Icons.build_outlined),
-
-                const SizedBox(height: 24),
-
-                // ── ② 증상 아이콘 선택 ─────────────────────
                 Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _plateCtrl,
+                      style: const TextStyle(color: _textPri, fontSize: 15, fontWeight: FontWeight.w700),
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: (_) => _lookupPlate(),
+                      decoration: InputDecoration(
+                        hintText: '예: 123가4567',
+                        hintStyle: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 13),
+                        prefixIcon: const Icon(Icons.directions_car_outlined, color: _accent, size: 20),
+                        filled: true, fillColor: _card,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _accent, width: 1.5)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLookingUp ? null : _lookupPlate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accent,
+                        disabledBackgroundColor: _border,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                      ),
+                      child: _isLookingUp
+                        ? const SizedBox(width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('조회', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.white)),
+                    ),
+                  ),
+                ]),
+
+                // ── 조회 결과: 등록일/연식 고정 배너 ─────────
+                if (_plateFound) ...[ 
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0D2040), Color(0xFF0A1628)],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        const Icon(Icons.check_circle_rounded, color: _green, size: 16),
+                        const SizedBox(width: 6),
+                        Text('차량 조회 완료  ·  ${_plateCtrl.text.trim()}',
+                          style: const TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                      ]),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        Expanded(child: _infoChip('차명', _foundCarName)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _infoChip('연식', _foundCarYear)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _infoChip('최초등록', _foundRegDate)),
+                      ]),
+                    ]),
+                  ),
+                ],
+
+                if (_plateFound) ...[ 
+                  const SizedBox(height: 24),
+
+                  // ── ② 차량 정보 (조회 후 표시) ──────────────
+                  _sectionTitle('📋  상세 차량 정보'),
+                  const SizedBox(height: 10),
+                  _inputField(_carNameCtrl, '차량명 확인/수정', Icons.directions_car_outlined),
+                  const SizedBox(height: 10),
+                  _inputField(_regionCtrl, '방문 지역', Icons.location_on_outlined),
+                  const SizedBox(height: 10),
+                  _inputField(_repairTypeCtrl, '정비 유형 (예: 사고수리, 엔진오일 교환)', Icons.build_outlined),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _accent.withOpacity(0.2)),
+                    ),
+                    child: const Row(children: [
+                      Icon(Icons.info_outline, color: _accent, size: 14),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('차량번호 조회 후 정비 내용 입력이 가능합니다',
+                        style: TextStyle(color: _accent, fontSize: 12, height: 1.4))),
+                    ]),
+                  ),
+                ],
+
+                if (_plateFound) ...[ const SizedBox(height: 24) ],
+                if (!_plateFound) const SizedBox(height: 0),
+
+                // ── ③ 증상 아이콘 선택 ─────────────────────
+                if (_plateFound) Row(children: [
                   _sectionTitle('🔍  증상 선택'),
                   const SizedBox(width: 6),
-                  const Text('(복수 선택 가능)', style: TextStyle(color: _textSec, fontSize: 11)),
+                  if (_plateFound) const Text('(복수 선택 가능)', style: TextStyle(color: _textSec, fontSize: 11)),
                 ]),
-                const SizedBox(height: 12),
-                Wrap(
+                if (_plateFound) const SizedBox(height: 12),
+                if (_plateFound) Wrap(
                   spacing: 8, runSpacing: 8,
                   children: kSymptomIcons.map((s) {
                     final selected = _selectedSymptoms.contains(s.id);
@@ -472,12 +596,12 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   }).toList(),
                 ),
 
-                const SizedBox(height: 24),
+                if (_plateFound) const SizedBox(height: 24),
 
-                // ── ③ 상세 메모 ────────────────────────────
-                _sectionTitle('📝  상세 메모'),
-                const SizedBox(height: 10),
-                TextField(
+                // ── ④ 상세 메모 ────────────────────────────
+                if (_plateFound) _sectionTitle('📝  상세 메모'),
+                if (_plateFound) const SizedBox(height: 10),
+                if (_plateFound) TextField(
                   controller: _memoCtrl,
                   maxLines: 4,
                   style: const TextStyle(color: _textPri, fontSize: 13),
@@ -492,10 +616,10 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                if (_plateFound) const SizedBox(height: 24),
 
-                // ── ④ 사고/증상 사진 ───────────────────────
-                Row(children: [
+                // ── ⑤ 사고/증상 사진 ───────────────────────
+                if (_plateFound) Row(children: [
                   _sectionTitle('📸  사고/증상 사진'),
                   const Spacer(),
                   Text('${_selectedImages.length}/10',
@@ -514,7 +638,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   ),
 
                 // 이미지 그리드
-                if (_selectedImages.isNotEmpty) ...[
+                if (_plateFound && _selectedImages.isNotEmpty) ...[
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -557,7 +681,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                 ],
 
                 // 사진 추가 버튼 2개
-                if (_selectedImages.length < 10)
+                if (_plateFound && _selectedImages.length < 10)
                   Row(children: [
                     Expanded(
                       child: _photoBtn(Icons.camera_alt_outlined, '사진 찍기',
@@ -570,15 +694,15 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                     ),
                   ]),
 
-                const SizedBox(height: 24),
+                if (_plateFound) const SizedBox(height: 24),
 
-                // ── ⑤ 요청 받는 근처 점포 미리보기 ─────────
-                _sectionTitle('📍  요청 받는 근처 점포'),
-                const SizedBox(height: 10),
-                ...AppData.stores.take(3).map((s) => _nearbyStoreRow(s)),
+                // ── ⑥ 요청 받는 근처 점포 미리보기 ─────────
+                if (_plateFound) _sectionTitle('📍  요청 받는 근처 점포'),
+                if (_plateFound) const SizedBox(height: 10),
+                if (_plateFound) ...AppData.stores.take(3).map((s) => _nearbyStoreRow(s)),
 
-                const SizedBox(height: 8),
-                Center(child: Text('GPS 기반 반경 내 점포에 자동 발송됩니다',
+                if (_plateFound) const SizedBox(height: 8),
+                if (_plateFound) Center(child: Text('GPS 기반 반경 내 점포에 자동 발송됩니다',
                   style: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 11))),
               ]),
             ),
@@ -602,9 +726,9 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                     ? const SizedBox(width: 22, height: 22,
                         child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                     : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                        Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                        Icon(Icons.photo_camera_rounded, size: 18, color: Colors.white),
                         SizedBox(width: 8),
-                        Text('견적 요청하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                        Text('사진 첨부 및 신청 완료', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
                       ]),
               ),
             ),
@@ -650,6 +774,23 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
           Text(label, style: const TextStyle(color: _textSec, fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       ),
+    );
+  }
+
+  Widget _infoChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _navy,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(color: _textSec, fontSize: 9, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 3),
+        Text(value, style: const TextStyle(color: _textPri, fontSize: 11, fontWeight: FontWeight.w700),
+          overflow: TextOverflow.ellipsis),
+      ]),
     );
   }
 
@@ -1202,6 +1343,20 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
     );
   }
 
+  // ── 일정선택 섹션으로 스크롤 (아직 선택 전일 때) ────────
+  void _scrollToSchedule() {
+    // 일정이 아직 없으면 스낵바로 안내
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('위의 예약 가능 일정 중 하나를 선택해 주세요'),
+        backgroundColor: _accent.withOpacity(0.9),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Widget _matchInfoItem(String label, String val, Color color) {
     return Column(children: [
       Text(label, style: const TextStyle(color: _textSec, fontSize: 10)),
@@ -1589,7 +1744,7 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                 const SizedBox(height: 14),
 
                 // ── 예약 가능 일정 선택 ──────────────────
-                if (_bid.availableSchedules.isNotEmpty && _bid.status == RepairStatus.bidding)
+                if (_bid.availableSchedules.isNotEmpty && (_bid.status == RepairStatus.bidding || _bid.status == RepairStatus.received || _bid.status == RepairStatus.pending))
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -1650,79 +1805,107 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                 if (_bid.availableSchedules.isNotEmpty && _bid.status == RepairStatus.bidding)
                   const SizedBox(height: 14),
 
-                // ── 원터치 액션 버튼 ──────────────────────
-                Column(children: [
-                  // 매칭 상태에 따라 다른 버튼 표시
-                  if (_bid.status == RepairStatus.bidding ||
-                      _bid.status == RepairStatus.pending ||
-                      _bid.status == RepairStatus.matched) ...[
-                    // ── 예약 확정하기 버튼 ──
-                    if (widget.request.status != RepairStatus.matched)
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _bid.selectedSchedule != null
-                            ? () => _showMatchConfirmDialog()
-                            : null,
-                          icon: const Icon(Icons.event_available_rounded, size: 18),
-                          label: Text(
-                            _bid.selectedSchedule != null
-                              ? '${_bid.selectedSchedule} 예약 확정하기'
-                              : '위에서 예약 일정을 선택하세요',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _bid.selectedSchedule != null ? _green : _border,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
+                // ── 도착 알림 배너 ──────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _accent.withOpacity(0.07),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _accent.withOpacity(0.3)),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _accent.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    if (widget.request.status == RepairStatus.matched)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _green.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _green.withOpacity(0.4)),
-                        ),
-                        child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Icon(Icons.check_circle_rounded, color: _green, size: 18),
-                          SizedBox(width: 8),
-                          Text('매칭 완료된 점포입니다', style: TextStyle(color: _green, fontWeight: FontWeight.w700, fontSize: 14)),
-                        ]),
-                      ),
-                    const SizedBox(height: 8),
-                  ],
-                  // 전화걸기 (즉시 전화 앱 실행)
+                      child: const Icon(Icons.notifications_active_rounded, color: _accent, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('도착한 견적서 확인하기',
+                          style: TextStyle(color: _textPri, fontSize: 13, fontWeight: FontWeight.w800)),
+                        SizedBox(height: 2),
+                        Text('일정 선택 후 예약을 확정하면 점포에 알림이 발송됩니다',
+                          style: TextStyle(color: _textSec, fontSize: 10, height: 1.4)),
+                      ],
+                    )),
+                  ]),
+                ),
+
+                const SizedBox(height: 14),
+
+                // ── 3개 액션 버튼 ─────────────────────────
+                if (_bid.status == RepairStatus.matched)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: _green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _green.withOpacity(0.4)),
+                    ),
+                    child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.check_circle_rounded, color: _green, size: 18),
+                      SizedBox(width: 8),
+                      Text('매칭 완료된 점포입니다',
+                        style: TextStyle(color: _green, fontWeight: FontWeight.w700, fontSize: 14)),
+                    ]),
+                  )
+                else ...[
+                  // ① 예약일정 선택하기 버튼
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () async {
-                        if (!_bid.phoneRevealed) {
-                          AppState().revealPhone(widget.request.requestId, _bid.bidId);
-                          setState(() { _bid.phoneRevealed = true; });
-                        }
-                        final uri = Uri.parse('tel:${_bid.storePhone}');
-                        if (await canLaunchUrl(uri)) launchUrl(uri);
-                      },
-                      icon: const Icon(Icons.phone_rounded, size: 18),
+                      onPressed: _bid.selectedSchedule != null
+                          ? () => _showMatchConfirmDialog()
+                          : () => _scrollToSchedule(),
+                      icon: Icon(
+                        _bid.selectedSchedule != null
+                            ? Icons.event_available_rounded
+                            : Icons.calendar_month_rounded,
+                        size: 18),
                       label: Text(
-                        _bid.phoneRevealed
-                          ? '📞  ${_bid.storePhone}  바로 전화걸기'
-                          : '📞  전화걸기 (탭하면 번호 공개 + 연결)',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                      ),
+                        _bid.selectedSchedule != null
+                            ? '${_bid.selectedSchedule}  예약 확정하기'
+                            : '예약일정 선택하기',
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A3A5C),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: _bid.selectedSchedule != null ? _green : _accent,
+                        foregroundColor: _bid.selectedSchedule != null ? Colors.white : Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 1:1 문의 + 뒤로가기 나란히
+                  // ② 전화하기  ③ 1:1 문의
                   Row(children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          if (!_bid.phoneRevealed) {
+                            AppState().revealPhone(widget.request.requestId, _bid.bidId);
+                            setState(() { _bid.phoneRevealed = true; });
+                          }
+                          final uri = Uri.parse('tel:${_bid.storePhone}');
+                          if (await canLaunchUrl(uri)) launchUrl(uri);
+                        },
+                        icon: const Icon(Icons.phone_rounded, size: 16),
+                        label: Text(
+                          _bid.phoneRevealed ? _bid.storePhone : '전화하기',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A3A5C),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => Navigator.pushNamed(context, '/chat', arguments: {
@@ -1733,27 +1916,14 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
                         label: const Text('1:1 문의', style: TextStyle(fontWeight: FontWeight.w700)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _accent,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_rounded, size: 16, color: _accent),
-                        label: const Text('뒤로가기',
-                          style: TextStyle(color: _accent, fontWeight: FontWeight.w700)),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: _accent.withOpacity(0.5)),
+                          foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
                   ]),
-                ]),
+                ],
               ]),
             ),
           ),
@@ -1794,16 +1964,23 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
   }
 
   Widget _statusTimeline() {
+    // Requested → Received → Matched → Completed
     final steps = [
-      RepairStatus.pending, RepairStatus.bidding,
-      RepairStatus.matched, RepairStatus.repairing, RepairStatus.completed,
+      RepairStatus.pending,
+      RepairStatus.bidding,
+      RepairStatus.received,
+      RepairStatus.matched,
+      RepairStatus.completed,
     ];
+    final labels = ['요청됨', '수신중', '견적도착', '거래중', '완료'];
     final curIdx = steps.indexOf(_bid.status);
+    final effectiveIdx = curIdx == -1 ? 0 : curIdx;
+
     return Row(
       children: steps.asMap().entries.map((e) {
-        final idx = e.key;
-        final s   = e.value;
-        final done = idx <= curIdx;
+        final idx  = e.key;
+        final done = idx <= effectiveIdx;
+        final isCurrent = idx == effectiveIdx;
         return Expanded(child: Row(children: [
           Expanded(child: Column(children: [
             Container(
@@ -1811,19 +1988,23 @@ class _QuoteDetailScreenState extends State<QuoteDetailScreen> {
               decoration: BoxDecoration(
                 color: done ? _green : _card,
                 shape: BoxShape.circle,
-                border: Border.all(color: done ? _green : _border, width: 1.5),
+                border: Border.all(
+                  color: done ? _green : (isCurrent ? _accent : _border),
+                  width: isCurrent ? 2 : 1.5),
               ),
               child: Center(child: done
                 ? const Icon(Icons.check, color: Colors.white, size: 14)
                 : Text('${idx+1}', style: const TextStyle(color: _textSec, fontSize: 10))),
             ),
             const SizedBox(height: 4),
-            Text(s.label, textAlign: TextAlign.center,
-              style: TextStyle(color: done ? _green : _textSec, fontSize: 8, fontWeight: FontWeight.w600)),
+            Text(labels[idx], textAlign: TextAlign.center,
+              style: TextStyle(
+                color: done ? _green : (isCurrent ? _accent : _textSec),
+                fontSize: 8, fontWeight: FontWeight.w600)),
           ])),
           if (idx < steps.length - 1)
             Container(height: 1.5, width: 12,
-              color: idx < curIdx ? _green : _border),
+              color: idx < effectiveIdx ? _green : _border),
         ]));
       }).toList(),
     );
@@ -1857,7 +2038,7 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
   final _etimeCtrl  = TextEditingController();
   final _bidMemoCtrl = TextEditingController();
 
-  // 신규 요청 시뮬레이션
+  // 신규 요청 목록 (탭1: 신규, 탭2: 견적발송완료, 탭3: 매칭완료)
   final List<Map<String, dynamic>> _incomingRequests = [
     {
       'id': 'REQ-001',
@@ -1868,7 +2049,9 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
       'memo': '급감속 시 소음이 있습니다. 빠른 견적 부탁드립니다.',
       'time': '2분 전',
       'distance': '1.1km',
-      'responded': false,
+      'status': 'new',        // new → sent → confirmed → completed
+      'phone': null,          // 매칭 후 수신
+      'confirmedSchedule': null,
     },
     {
       'id': 'REQ-002',
@@ -1879,7 +2062,22 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
       'memo': '브레이크 밟을 때 소리가 납니다.',
       'time': '15분 전',
       'distance': '2.3km',
-      'responded': true,
+      'status': 'sent',
+      'phone': null,
+      'confirmedSchedule': null,
+    },
+    {
+      'id': 'REQ-003',
+      'car': '싼타페',
+      'carNum': '789다1234',
+      'region': '대구 달서구',
+      'symptoms': ['엔진', '누유'],
+      'memo': '엔진오일 교환 및 하체 점검 부탁드립니다.',
+      'time': '45분 전',
+      'distance': '3.5km',
+      'status': 'confirmed',  // 매칭 완료 — 전화번호 수신됨
+      'phone': '010-1234-5678',
+      'confirmedSchedule': '내일 오전 10시',
     },
   ];
 
@@ -1888,12 +2086,11 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     final s = AppState().shopNotifSettings;
     _soundOn   = s.soundEnabled;
     _textOn    = s.textEnabled;
     _vibration = s.vibration;
-    // 신규 요청 알림 시뮬레이션
     WidgetsBinding.instance.addPostFrameCallback((_) => _simulateNewRequest());
   }
 
@@ -1926,10 +2123,7 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
         ),
       );
     }
-    // 음성 알림은 실제 기기에서만 동작 (audioplayers 필요 시 연동)
-    if (_soundOn) {
-      HapticFeedback.heavyImpact(); // 진동으로 대체 (음성은 audioplayers 연동)
-    }
+    if (_soundOn) HapticFeedback.heavyImpact();
   }
 
   void _submitBid(int idx) {
@@ -1942,19 +2136,47 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
       return;
     }
     setState(() {
-      _incomingRequests[idx]['responded'] = true;
+      _incomingRequests[idx]['status'] = 'sent';
       _respondingIdx = null;
       _partsCtrl.clear(); _laborCtrl.clear();
       _etimeCtrl.clear(); _bidMemoCtrl.clear();
     });
+    // 실제 연동 시 FCM 발송
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ 견적서를 발송했습니다!'),
+      const SnackBar(content: Text('✅ 견적서를 발송했습니다! 고객에게 알림을 전송했습니다.'),
         backgroundColor: Color(0xFF10B981)));
+  }
+
+  // 점주가 '확정 완료' 버튼 누를 때 → 거래 매칭 완료 처리
+  void _confirmDeal(int idx) {
+    setState(() {
+      _incomingRequests[idx]['status'] = 'completed';
+    });
+    // 실제 연동 시: 사용자 앱 배너를 '요청하기'로 초기화 + 다른 점포 요청 마감
+    AppState().setRequestActive(false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: const [
+          Icon(Icons.handshake_rounded, color: Colors.white, size: 18),
+          SizedBox(width: 8),
+          Expanded(child: Text('거래 매칭 완료! 고객에게 최종 확정 알림을 발송했습니다.',
+            style: TextStyle(fontWeight: FontWeight.w700))),
+        ]),
+        backgroundColor: _green,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
+    final newCount = _incomingRequests.where((r) => r['status'] == 'new').length;
+    final sentCount = _incomingRequests.where((r) => r['status'] == 'sent').length;
+    final confirmedCount = _incomingRequests.where((r) =>
+      r['status'] == 'confirmed' || r['status'] == 'completed').length;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(statusBarColor: _bg, statusBarIconBrightness: Brightness.light),
       child: Scaffold(
@@ -1972,11 +2194,10 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('점포 견적 관리', style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)),
-                    Text('PC 점포관리자와 동일 데이터 연동', style: TextStyle(color: _textSec, fontSize: 10)),
+                    Text('점포 Inbox', style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)),
+                    Text('신규요청 → 견적발송 → 매칭확정 → 거래완료', style: TextStyle(color: _textSec, fontSize: 10)),
                   ]),
                 ),
-                // 알림 설정 버튼
                 GestureDetector(
                   onTap: _showNotifSettings,
                   child: Container(
@@ -2002,10 +2223,11 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
                 indicatorColor: _accent,
                 labelColor: _accent,
                 unselectedLabelColor: _textSec,
-                labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                 tabs: [
-                  Tab(text: '신규 요청  ${_incomingRequests.where((r) => !r['responded']).length}건'),
-                  const Tab(text: '답변 완료'),
+                  Tab(text: '신규요청 $newCount건'),
+                  Tab(text: '견적발송 $sentCount건'),
+                  Tab(text: '매칭/완료 $confirmedCount건'),
                 ],
               ),
             ]),
@@ -2015,10 +2237,9 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
             child: TabBarView(
               controller: _tabCtrl,
               children: [
-                // ── 탭1: 신규 요청 ──────────────────
-                _buildRequestList(false),
-                // ── 탭2: 답변 완료 ──────────────────
-                _buildRequestList(true),
+                _buildRequestList('new'),
+                _buildRequestList('sent'),
+                _buildRequestList('confirmed'),
               ],
             ),
           ),
@@ -2027,18 +2248,25 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
     );
   }
 
-  Widget _buildRequestList(bool showResponded) {
+  Widget _buildRequestList(String filterStatus) {
     final list = _incomingRequests
         .asMap().entries
-        .where((e) => e.value['responded'] == showResponded)
+        .where((e) {
+          final s = e.value['status'] as String;
+          if (filterStatus == 'new')       return s == 'new';
+          if (filterStatus == 'sent')      return s == 'sent';
+          if (filterStatus == 'confirmed') return s == 'confirmed' || s == 'completed';
+          return false;
+        })
         .toList();
 
     if (list.isEmpty) {
+      final emojis = {'new': '🎉', 'sent': '📭', 'confirmed': '📋'};
+      final msgs   = {'new': '새로운 견적 요청이 없습니다', 'sent': '발송된 견적이 없습니다', 'confirmed': '매칭 완료 내역이 없습니다'};
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(showResponded ? '📭' : '🎉', style: const TextStyle(fontSize: 48)),
+        Text(emojis[filterStatus] ?? '📭', style: const TextStyle(fontSize: 48)),
         const SizedBox(height: 12),
-        Text(showResponded ? '답변 완료된 요청이 없습니다' : '모든 요청에 답변했습니다!',
-          style: const TextStyle(color: _textSec, fontSize: 14)),
+        Text(msgs[filterStatus] ?? '', style: const TextStyle(color: _textSec, fontSize: 14)),
       ]));
     }
 
@@ -2051,11 +2279,12 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
         return _RequestTile(
           req: req, idx: idx,
           isResponding: _respondingIdx == idx,
-          showResponded: showResponded,
+          filterStatus: filterStatus,
           partsCtrl: _partsCtrl, laborCtrl: _laborCtrl,
           etimeCtrl: _etimeCtrl, memoCtrl: _bidMemoCtrl,
           onRespond: () => setState(() => _respondingIdx = _respondingIdx == idx ? null : idx),
           onSubmit: () => _submitBid(idx),
+          onConfirm: () => _confirmDeal(idx),
         );
       },
     );
@@ -2141,31 +2370,42 @@ class _ShopQuoteScreenState extends State<ShopQuoteScreen>
   }
 }
 
-// ── 점포측 요청 타일 (빠른 투찰 폼 포함) ──────────────────────
+// ── 점포측 요청 타일 (신규/발송/매칭 단계별 UI) ─────────────
 class _RequestTile extends StatelessWidget {
   final Map<String, dynamic> req;
   final int idx;
   final bool isResponding;
-  final bool showResponded;
+  final String filterStatus;
   final TextEditingController partsCtrl, laborCtrl, etimeCtrl, memoCtrl;
-  final VoidCallback onRespond, onSubmit;
+  final VoidCallback onRespond, onSubmit, onConfirm;
 
   const _RequestTile({
     required this.req, required this.idx,
-    required this.isResponding, required this.showResponded,
+    required this.isResponding, required this.filterStatus,
     required this.partsCtrl, required this.laborCtrl,
     required this.etimeCtrl, required this.memoCtrl,
-    required this.onRespond, required this.onSubmit,
+    required this.onRespond, required this.onSubmit, required this.onConfirm,
   });
 
   @override
   Widget build(BuildContext context) {
+    final status = req['status'] as String;
+    final isNew       = status == 'new';
+    final isSent      = status == 'sent';
+    final isConfirmed = status == 'confirmed';
+    final isCompleted = status == 'completed';
+
+    Color borderColor = _border;
+    if (isNew)       borderColor = _accent.withOpacity(isResponding ? 0.7 : 0.4);
+    if (isConfirmed) borderColor = _green.withOpacity(0.5);
+    if (isCompleted) borderColor = _textSec.withOpacity(0.3);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: _card,
+        color: isCompleted ? _navy.withOpacity(0.5) : _card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isResponding ? _accent.withOpacity(0.5) : _border),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
@@ -2173,22 +2413,39 @@ class _RequestTile extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // 요청 헤더
             Row(children: [
-              if (!showResponded)
-                Container(
-                  width: 8, height: 8,
-                  decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+              if (isNew) Container(width: 8, height: 8,
+                decoration: const BoxDecoration(color: _red, shape: BoxShape.circle)),
+              if (isNew) const SizedBox(width: 6),
+              Expanded(
+                child: Text('${req['car']}  ·  ${req['carNum']}',
+                  style: TextStyle(
+                    color: isCompleted ? _textSec : _textPri,
+                    fontSize: 14, fontWeight: FontWeight.w800)),
+              ),
+              // 상태 뱃지
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isNew ? _accent.withOpacity(0.15) :
+                         isSent ? _orange.withOpacity(0.15) :
+                         isConfirmed ? _green.withOpacity(0.15) :
+                         _textSec.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              if (!showResponded) const SizedBox(width: 6),
-              Text('${req['car']}  ·  ${req['carNum']}',
-                style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w800)),
-              const Spacer(),
+                child: Text(
+                  isNew ? '신규' : isSent ? '견적발송' : isConfirmed ? '매칭완료' : '거래완료',
+                  style: TextStyle(
+                    color: isNew ? _accent : isSent ? _orange : isConfirmed ? _green : _textSec,
+                    fontSize: 10, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 6),
               Text(req['time'], style: const TextStyle(color: _textSec, fontSize: 10)),
             ]),
             const SizedBox(height: 4),
             Text('${req['region']}  ·  ${req['distance']}',
               style: const TextStyle(color: _textSec, fontSize: 11)),
             const SizedBox(height: 6),
-            // 증상 태그
             Wrap(spacing: 6, children: (req['symptoms'] as List<String>).map((s) =>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2200,20 +2457,71 @@ class _RequestTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(req['memo'], style: const TextStyle(color: _textSec, fontSize: 11, height: 1.4),
               maxLines: 2, overflow: TextOverflow.ellipsis),
+
+            // ── 매칭 완료: 전화번호 + 예약일정 표시 ──────────
+            if (isConfirmed || isCompleted) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _green.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _green.withOpacity(0.3)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Row(children: [
+                    Icon(Icons.check_circle_rounded, color: _green, size: 14),
+                    SizedBox(width: 6),
+                    Text('매칭 완료 — 고객 확정 메시지 수신',
+                      style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    const Icon(Icons.phone_rounded, color: _textSec, size: 13),
+                    const SizedBox(width: 6),
+                    Text('고객 번호: ${req['phone'] ?? '-'}',
+                      style: const TextStyle(color: _textPri, fontSize: 12, fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.parse('tel:${req['phone']}');
+                        if (await canLaunchUrl(uri)) launchUrl(uri);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _accent.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('전화하기', style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    const Icon(Icons.calendar_today_rounded, color: _textSec, size: 13),
+                    const SizedBox(width: 6),
+                    Text('예약 시간: ${req['confirmedSchedule'] ?? '-'}',
+                      style: const TextStyle(color: _textSec, fontSize: 12)),
+                  ]),
+                ]),
+              ),
+            ],
           ]),
         ),
 
-        if (!showResponded) ...[
-          Divider(color: _border, height: 1),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(children: [
+        // ── 하단 액션 버튼 ─────────────────────────────
+        Divider(color: _border, height: 1),
+        Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(children: [
+            // 신규: 견적서 작성/발송
+            if (isNew) ...[
               if (isResponding) ...[
-                // 빠른 투찰 폼 (10초 내 답변 목표)
                 const Row(children: [
                   Icon(Icons.flash_on_rounded, color: _orange, size: 14),
                   SizedBox(width: 4),
-                  Text('빠른 견적 입력  (10초 안에 보내세요!)',
+                  Text('빠른 견적 입력 (10초 안에 보내세요!)',
                     style: TextStyle(color: _orange, fontSize: 11, fontWeight: FontWeight.w700)),
                 ]),
                 const SizedBox(height: 10),
@@ -2234,7 +2542,7 @@ class _RequestTile extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: onSubmit,
                     icon: const Icon(Icons.send_rounded, size: 16),
-                    label: const Text('견적서 발송', style: TextStyle(fontWeight: FontWeight.w800)),
+                    label: const Text('견적서 발송하기', style: TextStyle(fontWeight: FontWeight.w800)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _accent,
                       padding: const EdgeInsets.symmetric(vertical: 13),
@@ -2257,17 +2565,43 @@ class _RequestTile extends StatelessWidget {
                     ),
                   ),
                 ),
-            ]),
-          ),
-        ] else
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
-            child: Row(children: [
-              const Icon(Icons.check_circle_outline_rounded, color: _green, size: 16),
+            ],
+
+            // 견적발송: 대기 안내
+            if (isSent) Row(children: [
+              const Icon(Icons.hourglass_top_rounded, color: _orange, size: 16),
               const SizedBox(width: 6),
-              const Text('견적서 발송 완료', style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w600)),
+              const Expanded(child: Text('견적서 발송 완료 — 고객 확정 대기 중',
+                style: TextStyle(color: _orange, fontSize: 12, fontWeight: FontWeight.w600))),
             ]),
-          ),
+
+            // 매칭완료: 점주 확인 버튼
+            if (isConfirmed) ...[
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onConfirm,
+                  icon: const Icon(Icons.handshake_rounded, size: 16),
+                  label: const Text('점주 확인 완료 → 거래 매칭 완료', style: TextStyle(fontWeight: FontWeight.w800)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+
+            // 거래완료
+            if (isCompleted) Row(children: [
+              const Icon(Icons.verified_rounded, color: _green, size: 16),
+              const SizedBox(width: 6),
+              const Text('거래 완료 — 리스트 정리됨',
+                style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w600)),
+            ]),
+          ]),
+        ),
       ]),
     );
   }

@@ -8,8 +8,9 @@ import 'package:flutter/foundation.dart';
 /// 수리 현황 상태
 enum RepairStatus {
   pending,     // 견적 요청 대기
-  bidding,     // 투찰 진행중
-  matched,     // 매칭 완료
+  bidding,     // 투찰 진행중(점포 견적 수신중)
+  received,    // 견적 도착(사용자 확인 전)
+  matched,     // 매칭 완료(거래 중)
   repairing,   // 수리중
   completed,   // 수리완료
   cancelled,   // 취소
@@ -18,9 +19,10 @@ enum RepairStatus {
 extension RepairStatusExt on RepairStatus {
   String get label {
     switch (this) {
-      case RepairStatus.pending:   return '대기중';
+      case RepairStatus.pending:   return '요청됨';
       case RepairStatus.bidding:   return '견적 수신중';
-      case RepairStatus.matched:   return '매칭완료';
+      case RepairStatus.received:  return '견적 도착';
+      case RepairStatus.matched:   return '거래 중';
       case RepairStatus.repairing: return '수리중';
       case RepairStatus.completed: return '수리완료';
       case RepairStatus.cancelled: return '취소됨';
@@ -30,7 +32,8 @@ extension RepairStatusExt on RepairStatus {
     switch (this) {
       case RepairStatus.pending:   return '⏳';
       case RepairStatus.bidding:   return '📩';
-      case RepairStatus.matched:   return '✅';
+      case RepairStatus.received:  return '📬';
+      case RepairStatus.matched:   return '🔧';
       case RepairStatus.repairing: return '🔧';
       case RepairStatus.completed: return '🎉';
       case RepairStatus.cancelled: return '❌';
@@ -125,7 +128,9 @@ class QuoteBid {
 class EstimateRequest {
   final String requestId;
   final String carName;       // 차량명
-  final String carNumber;     // 차량번호
+  final String carNumber;     // 차량번호(번호판)
+  final String carRegDate;    // 최초 등록일 (예: 2019-03-15)
+  final String carYear;       // 연식 (예: 2019년식)
   final String region;        // 방문 지역
   final String repairType;    // 정비 유형
   final List<String> symptoms;// 증상 아이콘 ID 목록
@@ -134,11 +139,15 @@ class EstimateRequest {
   final DateTime createdAt;
   RepairStatus status;
   final List<QuoteBid> bids;  // 도착한 견적서 목록
+  String? matchedBidId;       // 매칭된 bid ID
+  String? matchedSchedule;    // 예약 확정 일정
 
   EstimateRequest({
     required this.requestId,
     required this.carName,
     required this.carNumber,
+    this.carRegDate = '',
+    this.carYear = '',
     required this.region,
     required this.repairType,
     required this.symptoms,
@@ -147,6 +156,8 @@ class EstimateRequest {
     required this.createdAt,
     this.status = RepairStatus.bidding,
     List<QuoteBid>? bids,
+    this.matchedBidId,
+    this.matchedSchedule,
   }) : bids = bids ?? [];
 
   int get bidCount => bids.length;
@@ -343,31 +354,68 @@ class AppState extends ChangeNotifier {
   // ── 매칭 확정: 선택한 bid → matched, 나머지 → cancelled ─────
   // 동일 차량(carName)의 다른 요청도 모두 거래종료(cancelled) 처리
   void matchRequest(String requestId, String selectedBidId, {String? selectedSchedule}) {
-    final req = estimateRequests.firstWhere(
-      (r) => r.requestId == requestId,
-      orElse: () => estimateRequests.first,
-    );
-    req.status = RepairStatus.matched;
-    for (final bid in req.bids) {
-      bid.status = bid.bidId == selectedBidId
-          ? RepairStatus.matched
-          : RepairStatus.cancelled;
-    }
-    // 동일 차량의 다른 요청 → 거래종료
-    for (final other in estimateRequests) {
-      if (other.requestId != requestId &&
-          other.carName == req.carName &&
-          other.status != RepairStatus.cancelled) {
-        other.status = RepairStatus.cancelled;
-        for (final b in other.bids) {
-          if (b.status != RepairStatus.matched) {
-            b.status = RepairStatus.cancelled;
+    try {
+      final req = estimateRequests.firstWhere(
+        (r) => r.requestId == requestId,
+        orElse: () => estimateRequests.first,
+      );
+      req.status = RepairStatus.matched;
+      req.matchedBidId = selectedBidId;
+      req.matchedSchedule = selectedSchedule;
+      for (final bid in req.bids) {
+        bid.status = bid.bidId == selectedBidId
+            ? RepairStatus.matched
+            : RepairStatus.cancelled;
+      }
+      // 동일 차량의 다른 요청 → 거래종료
+      for (final other in estimateRequests) {
+        if (other.requestId != requestId &&
+            other.carName == req.carName &&
+            other.status != RepairStatus.cancelled) {
+          other.status = RepairStatus.cancelled;
+          for (final b in other.bids) {
+            if (b.status != RepairStatus.matched) {
+              b.status = RepairStatus.cancelled;
+            }
           }
         }
       }
-    }
-    _isRequestActive = false; // 매칭 완료 시 배너 플래그 해제
+      _isRequestActive = false; // 매칭 완료 시 배너 플래그 해제
+      // 정비 내역 저장 (마이페이지 연동)
+      _saveMaintenanceRecord(req);
+    } catch (_) {}
     notifyListeners();
+  }
+
+  // ── 거래 완료 처리 (점주 확인 후 호출) ───────────────────────
+  void completeRequest(String requestId) {
+    try {
+      final req = estimateRequests.firstWhere(
+        (r) => r.requestId == requestId,
+        orElse: () => estimateRequests.first,
+      );
+      req.status = RepairStatus.completed;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 정비 내역 저장 (마이페이지 자동 저장) ──────────────────
+  final List<MaintenanceRecord> maintenanceHistory = [];
+
+  void _saveMaintenanceRecord(EstimateRequest req) {
+    final matched = req.bids.where((b) => b.bidId == req.matchedBidId).toList();
+    if (matched.isEmpty) return;
+    final bid = matched.first;
+    maintenanceHistory.add(MaintenanceRecord(
+      requestId: req.requestId,
+      carName: req.carName,
+      carNumber: req.carNumber,
+      repairType: req.repairType,
+      storeName: bid.storeName,
+      totalCost: bid.totalCost,
+      schedule: req.matchedSchedule ?? bid.selectedSchedule ?? '',
+      createdAt: req.createdAt,
+    ));
   }
 
   // ── 견적서 읽음 처리 ─────────────────────────────────────────
@@ -399,9 +447,10 @@ class AppState extends ChangeNotifier {
 
   // ── 매칭된 요청 수 ───────────────────────────────────────────
   bool get hasActiveRequest => _isRequestActive || estimateRequests.any(
-    (r) => r.status == RepairStatus.bidding ||
-           r.status == RepairStatus.pending  ||
-           r.status == RepairStatus.matched  ||
+    (r) => r.status == RepairStatus.bidding   ||
+           r.status == RepairStatus.pending    ||
+           r.status == RepairStatus.received   ||
+           r.status == RepairStatus.matched    ||
            r.status == RepairStatus.repairing);
 
   // ── 점포 알림 설정 ─────────────────────────────
@@ -500,6 +549,29 @@ class Banner {
   final String title;
   final String subtitle;
   Banner({required this.image, required this.label, required this.title, required this.subtitle});
+}
+
+// ==================== 정비 내역 레코드 ====================
+class MaintenanceRecord {
+  final String requestId;
+  final String carName;
+  final String carNumber;
+  final String repairType;
+  final String storeName;
+  final int totalCost;
+  final String schedule;
+  final DateTime createdAt;
+
+  MaintenanceRecord({
+    required this.requestId,
+    required this.carName,
+    required this.carNumber,
+    required this.repairType,
+    required this.storeName,
+    required this.totalCost,
+    required this.schedule,
+    required this.createdAt,
+  });
 }
 
 // ==================== 정적 데이터 ====================
