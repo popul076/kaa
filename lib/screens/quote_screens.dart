@@ -33,15 +33,11 @@ class QuoteRequestScreen extends StatefulWidget {
 }
 
 class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
-  // ── 차량번호 입력 (1단계) ──────────────────────────────
-  final _plateCtrl      = TextEditingController();
-  bool  _isLookingUp    = false;
-  bool  _plateFound     = false;
-  String _foundRegDate  = '';   // 최초 등록일
-  String _foundCarYear  = '';   // 연식
-  String _foundCarName  = '';   // 차명
+  // ── 차량번호 조회 제거: SharedPreferences에서 저장된 차량 정보 사용 ──
+  String _savedPlate   = '';
+  String _savedCarName = '';
 
-  // ── 상세 입력 (2단계) ─────────────────────────────────
+  // ── 상세 입력 ─────────────────────────────────────────
   final _carNameCtrl    = TextEditingController();
   final _regionCtrl     = TextEditingController(text: '대구 수성구');
   final _repairTypeCtrl = TextEditingController();
@@ -67,46 +63,20 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
     _loadSavedData();
   }
 
-  // ── 차량번호 조회 (시뮬레이션) ───────────────────────
-  Future<void> _lookupPlate() async {
-    final plate = _plateCtrl.text.trim();
-    if (plate.isEmpty) {
-      _showSnack('차량번호를 입력해 주세요');
-      return;
-    }
-    setState(() => _isLookingUp = true);
-    // 실제 연동 시 자동차 등록 API 호출
-    await Future.delayed(const Duration(milliseconds: 900));
-    // 샘플 매핑 (번호판 → 차량 정보)
-    final sampleData = <String, Map<String, String>>{
-      '123가4567': {'name': '그랜저(IG)', 'regDate': '2019-03-15', 'year': '2019년식'},
-      '456나7890': {'name': '아반떼(AD)', 'regDate': '2017-08-22', 'year': '2017년식'},
-      '789다1234': {'name': '싼타페(TM)', 'regDate': '2020-11-07', 'year': '2020년식'},
-      '111라2222': {'name': 'K5(DL3)',   'regDate': '2021-05-19', 'year': '2021년식'},
-    };
-    final info = sampleData[plate] ??
-      {'name': '알 수 없는 차량', 'regDate': '정보 없음', 'year': '연식 미상'};
-    setState(() {
-      _isLookingUp   = false;
-      _plateFound    = true;
-      _foundRegDate  = info['regDate']!;
-      _foundCarYear  = info['year']!;
-      _foundCarName  = info['name']!;
-      _carNameCtrl.text = info['name']!;
-    });
-  }
+  // ── 차량번호 조회 단계 제거됨 (저장 데이터 활용) ──────────
 
-  // ── 저장된 데이터 복원 (사용자 입력 유지) ──────────────
+  // ── 저장된 데이터 복원 ──────────────────────────────────
   Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
-    final plate      = prefs.getString(_kPlate);
-    final carName    = prefs.getString(_kCarName);
+    final plate      = prefs.getString(_kPlate) ?? '';
+    final carName    = prefs.getString(_kCarName) ?? '';
     final region     = prefs.getString(_kRegion);
     final repairType = prefs.getString(_kRepairType);
     final symptoms   = prefs.getStringList(_kSymptoms) ?? [];
     setState(() {
-      if (plate    != null && plate.isNotEmpty)    _plateCtrl.text    = plate;
-      if (carName  != null && carName.isNotEmpty)  _carNameCtrl.text  = carName;
+      _savedPlate   = plate;
+      _savedCarName = carName;
+      if (carName.isNotEmpty)  _carNameCtrl.text  = carName;
       if (region   != null && region.isNotEmpty)   _regionCtrl.text   = region;
       if (repairType != null && repairType.isNotEmpty) _repairTypeCtrl.text = repairType;
       _selectedSymptoms.addAll(symptoms);
@@ -116,7 +86,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   // ── 입력 데이터 저장 ──────────────────────────────────
   Future<void> _saveInputData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kPlate,    _plateCtrl.text.trim());
+    await prefs.setString(_kPlate,    _savedPlate);
     await prefs.setString(_kCarName,    _carNameCtrl.text.trim());
     await prefs.setString(_kRegion,     _regionCtrl.text.trim());
     await prefs.setString(_kRepairType, _repairTypeCtrl.text.trim());
@@ -144,7 +114,6 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
   @override
   void dispose() {
     _saveInputData(); // 화면 이탈 시 자동 저장
-    _plateCtrl.dispose();
     _carNameCtrl.dispose();
     _regionCtrl.dispose();
     _repairTypeCtrl.dispose();
@@ -221,9 +190,6 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
 
   // ── 견적 요청 제출 ────────────────────────────────────
   Future<void> _submit() async {
-    if (_plateCtrl.text.trim().isEmpty) {
-      _showSnack('차량번호를 먼저 조회해 주세요'); return;
-    }
     if (_selectedSymptoms.isEmpty) {
       _showSnack('증상을 하나 이상 선택해 주세요'); return;
     }
@@ -233,10 +199,10 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
 
     final req = EstimateRequest(
       requestId: 'REQ-${DateTime.now().millisecondsSinceEpoch}',
-      carName:   _carNameCtrl.text.trim().isEmpty ? _foundCarName : _carNameCtrl.text.trim(),
-      carNumber: _plateCtrl.text.trim(),
-      carRegDate: _foundRegDate,
-      carYear:    _foundCarYear,
+      carName:   _carNameCtrl.text.trim().isEmpty ? (_savedCarName.isNotEmpty ? _savedCarName : '차량 정보 없음') : _carNameCtrl.text.trim(),
+      carNumber: _savedPlate,
+      carRegDate: '',
+      carYear:    '',
       region:    _regionCtrl.text.trim(),
       repairType: _repairTypeCtrl.text.trim().isEmpty ? '일반 정비' : _repairTypeCtrl.text.trim(),
       symptoms:  _selectedSymptoms.toList(),
@@ -450,119 +416,44 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-                // ── ① 차량번호 조회 (최우선 입력) ──────────
-                _sectionTitle('🚗  차량번호 조회'),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _plateCtrl,
-                      style: const TextStyle(color: _textPri, fontSize: 15, fontWeight: FontWeight.w700),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (_) => _lookupPlate(),
-                      decoration: InputDecoration(
-                        hintText: '예: 123가4567',
-                        hintStyle: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 13),
-                        prefixIcon: const Icon(Icons.directions_car_outlined, color: _accent, size: 20),
-                        filled: true, fillColor: _card,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _border)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _accent, width: 1.5)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isLookingUp ? null : _lookupPlate,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accent,
-                        disabledBackgroundColor: _border,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                      ),
-                      child: _isLookingUp
-                        ? const SizedBox(width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('조회', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.white)),
-                    ),
-                  ),
-                ]),
-
-                // ── 조회 결과: 등록일/연식 고정 배너 ─────────
-                if (_plateFound) ...[ 
-                  const SizedBox(height: 12),
+                // ── ① 저장된 차량 정보 표시 ─────────────────
+                if (_savedCarName.isNotEmpty || _savedPlate.isNotEmpty) ...[
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0D2040), Color(0xFF0A1628)],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
-                    ),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        const Icon(Icons.check_circle_rounded, color: _green, size: 16),
-                        const SizedBox(width: 6),
-                        Text('차량 조회 완료  ·  ${_plateCtrl.text.trim()}',
-                          style: const TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
-                      ]),
-                      const SizedBox(height: 10),
-                      Row(children: [
-                        Expanded(child: _infoChip('차명', _foundCarName)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _infoChip('연식', _foundCarYear)),
-                        const SizedBox(width: 8),
-                        Expanded(child: _infoChip('최초등록', _foundRegDate)),
-                      ]),
-                    ]),
-                  ),
-                ],
-
-                if (_plateFound) ...[ 
-                  const SizedBox(height: 24),
-
-                  // ── ② 차량 정보 (조회 후 표시) ──────────────
-                  _sectionTitle('📋  상세 차량 정보'),
-                  const SizedBox(height: 10),
-                  _inputField(_carNameCtrl, '차량명 확인/수정', Icons.directions_car_outlined),
-                  const SizedBox(height: 10),
-                  _inputField(_regionCtrl, '방문 지역', Icons.location_on_outlined),
-                  const SizedBox(height: 10),
-                  _inputField(_repairTypeCtrl, '정비 유형 (예: 사고수리, 엔진오일 교환)', Icons.build_outlined),
-                ] else ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.06),
+                      color: _green.withOpacity(0.07),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _accent.withOpacity(0.2)),
+                      border: Border.all(color: _green.withOpacity(0.3)),
                     ),
-                    child: const Row(children: [
-                      Icon(Icons.info_outline, color: _accent, size: 14),
-                      SizedBox(width: 8),
-                      Expanded(child: Text('차량번호 조회 후 정비 내용 입력이 가능합니다',
-                        style: TextStyle(color: _accent, fontSize: 12, height: 1.4))),
+                    child: Row(children: [
+                      const Icon(Icons.directions_car_rounded, color: _green, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(
+                        '저장된 차량: ${_savedCarName.isNotEmpty ? _savedCarName : _savedPlate}',
+                        style: const TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w600))),
                     ]),
                   ),
                 ],
 
-                if (_plateFound) ...[ const SizedBox(height: 24) ],
-                if (!_plateFound) const SizedBox(height: 0),
+                // ── ② 차량명 및 기본 정보 ────────────────────
+                _sectionTitle('🚗  차량명 (선택)'),
+                const SizedBox(height: 8),
+                _inputField(_carNameCtrl, '차량명 입력 (예: 그랜저, K5)', Icons.directions_car_outlined),
+                const SizedBox(height: 10),
+                _inputField(_regionCtrl, '방문 지역', Icons.location_on_outlined),
+                const SizedBox(height: 10),
+                _inputField(_repairTypeCtrl, '정비 유형 (예: 사고수리, 엔진오일 교환)', Icons.build_outlined),
+                const SizedBox(height: 24),
 
                 // ── ③ 증상 아이콘 선택 ─────────────────────
-                if (_plateFound) Row(children: [
-                  _sectionTitle('🔍  증상 선택'),
+                Row(children: [
+                  _sectionTitle('🔍  증상 선택 *'),
                   const SizedBox(width: 6),
-                  if (_plateFound) const Text('(복수 선택 가능)', style: TextStyle(color: _textSec, fontSize: 11)),
+                  const Text('(복수 선택 가능)', style: TextStyle(color: _textSec, fontSize: 11)),
                 ]),
-                if (_plateFound) const SizedBox(height: 12),
-                if (_plateFound) Wrap(
+                const SizedBox(height: 12),
+                Wrap(
                   spacing: 8, runSpacing: 8,
                   children: kSymptomIcons.map((s) {
                     final selected = _selectedSymptoms.contains(s.id);
@@ -596,12 +487,12 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   }).toList(),
                 ),
 
-                if (_plateFound) const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // ── ④ 상세 메모 ────────────────────────────
-                if (_plateFound) _sectionTitle('📝  상세 메모'),
-                if (_plateFound) const SizedBox(height: 10),
-                if (_plateFound) TextField(
+                _sectionTitle('📝  상세 메모'),
+                const SizedBox(height: 10),
+                TextField(
                   controller: _memoCtrl,
                   maxLines: 4,
                   style: const TextStyle(color: _textPri, fontSize: 13),
@@ -616,11 +507,11 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   ),
                 ),
 
-                if (_plateFound) const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // ── ⑤ 사고/증상 사진 ───────────────────────
-                if (_plateFound) Row(children: [
-                  _sectionTitle('📸  사고/증상 사진'),
+                Row(children: [
+                  _sectionTitle('📸  사진 첨부 (최대 10장)'),
                   const Spacer(),
                   Text('${_selectedImages.length}/10',
                     style: TextStyle(color: _selectedImages.length >= 10 ? _orange : _textSec, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -638,7 +529,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   ),
 
                 // 이미지 그리드
-                if (_plateFound && _selectedImages.isNotEmpty) ...[
+                if (_selectedImages.isNotEmpty) ...[
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -667,7 +558,6 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                           ),
                         ),
                       ),
-                      // 압축 크기 표시 (시뮬레이션)
                       Positioned(bottom: 4, left: 4,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -680,8 +570,7 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   const SizedBox(height: 10),
                 ],
 
-                // 사진 추가 버튼 2개
-                if (_plateFound && _selectedImages.length < 10)
+                if (_selectedImages.length < 10)
                   Row(children: [
                     Expanded(
                       child: _photoBtn(Icons.camera_alt_outlined, '사진 찍기',
@@ -694,15 +583,15 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                     ),
                   ]),
 
-                if (_plateFound) const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // ── ⑥ 요청 받는 근처 점포 미리보기 ─────────
-                if (_plateFound) _sectionTitle('📍  요청 받는 근처 점포'),
-                if (_plateFound) const SizedBox(height: 10),
-                if (_plateFound) ...AppData.stores.take(3).map((s) => _nearbyStoreRow(s)),
+                _sectionTitle('📍  요청 받는 근처 점포'),
+                const SizedBox(height: 10),
+                ...AppData.stores.take(3).map((s) => _nearbyStoreRow(s)),
 
-                if (_plateFound) const SizedBox(height: 8),
-                if (_plateFound) Center(child: Text('GPS 기반 반경 내 점포에 자동 발송됩니다',
+                const SizedBox(height: 8),
+                Center(child: Text('GPS 기반 반경 내 점포에 자동 발송됩니다',
                   style: TextStyle(color: _textSec.withOpacity(0.6), fontSize: 11))),
               ]),
             ),

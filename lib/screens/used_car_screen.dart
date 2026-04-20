@@ -431,7 +431,117 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
               )),
             ]),
           ),
+
+          const SizedBox(height: 24),
+          const Divider(color: _border),
+          const SizedBox(height: 16),
+
+          // 직거래 매물 등록 섹션
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_purple.withOpacity(0.15), _purple.withOpacity(0.05)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _purple.withOpacity(0.3)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _purple.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, color: _purple, size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('직거래 매물 등록하기',
+                      style: GoogleFonts.notoSansKr(
+                        color: _textPri, fontSize: 15, fontWeight: FontWeight.w800)),
+                    Text('협회 인증 배지 · 매물 바로 노출',
+                      style: GoogleFonts.notoSansKr(
+                        color: _purple, fontSize: 11)),
+                  ],
+                )),
+              ]),
+              const SizedBox(height: 12),
+              _bulletPoint('내 차 정보(시세 기반)를 직거래 매물로 등록'),
+              _bulletPoint('[협회 인증] 배지 즉시 부여'),
+              _bulletPoint('개인간 거래: 1:1 문의 → 전화번호 교환'),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _showRegisterIndividualListing(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _purple,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('직거래 매물 등록',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ]),
+          ),
         ],
+      ),
+    );
+  }
+
+  void _showRegisterIndividualListing(BuildContext context) {
+    final plateData = _plateDB[_plateCtrl.text.trim().replaceAll(' ', '')];
+    if (plateData == null && _plateCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('차량번호를 입력하거나 조회 후 등록해 주세요'),
+          backgroundColor: _orange),
+      );
+      return;
+    }
+
+    final model = plateData?['model'] ?? '내 차량';
+    final year = plateData?['year'] ?? '연식 미상';
+    final mktMin = int.tryParse(plateData?['mktMin'] ?? '0') ?? 0;
+    final mktMax = int.tryParse(plateData?['mktMax'] ?? '0') ?? 0;
+
+    final newListing = UsedCarListing(
+      listingId: 'MY-${DateTime.now().millisecondsSinceEpoch}',
+      title: '$year $model (직거래)',
+      carName: model,
+      modelYear: year,
+      mileage: int.tryParse(_mileCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+      price: mktMin > 0 ? ((mktMin + mktMax) ~/ 2) : 1500,
+      fuel: '가솔린',
+      transmission: '자동',
+      color: '기타',
+      hasAccident: _hasAccident,
+      region: '대구 수성구',
+      sellerName: '나',
+      sellerPhone: '010-0000-0000',
+      sellerType: 'individual',
+      photoUrls: _photos.isNotEmpty
+          ? _photos.map((f) => f.path).toList()
+          : ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=600&q=80'],
+      desc: _memoCtrl.text.trim().isEmpty
+          ? '직거래 매물입니다. 협회 인증 완료.'
+          : _memoCtrl.text.trim(),
+      createdAt: DateTime.now(),
+      isCertified: true, // 협회 인증 즉시 부여
+    );
+
+    UsedCarState().addListing(newListing);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ 협회 인증 매물로 등록되었습니다! [중고차 사기] 탭에서 확인하세요.'),
+        backgroundColor: _green,
+        duration: Duration(seconds: 4),
       ),
     );
   }
@@ -1191,11 +1301,12 @@ class _UsedCarListingsTab extends StatefulWidget {
 class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   String _filter = '전체';
   String _sort = '최신순';
-  final _filters = ['전체', '국산차', '수입차', '전기차', '직거래', '딜러'];
+  final _filters = ['전체', '국산차', '수입차', '전기차', '직거래', '딜러', '인증'];
   final _sorts = ['최신순', '가격낮은순', '가격높은순', '주행거리순'];
 
   List<UsedCarListing> get _filtered {
     var list = List<UsedCarListing>.from(UsedCarState().listings);
+    // 판매완료 항목은 기본적으로 맨 뒤로
     switch (_filter) {
       case '국산차':
         list = list.where((l) => ['현대', '기아', '쌍용', '르노'].any(
@@ -1214,6 +1325,9 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       case '딜러':
         list = list.where((l) => l.sellerType == 'dealer').toList();
         break;
+      case '인증':
+        list = list.where((l) => l.isCertified).toList();
+        break;
     }
     switch (_sort) {
       case '가격낮은순': list.sort((a, b) => a.price.compareTo(b.price)); break;
@@ -1221,6 +1335,12 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       case '주행거리순': list.sort((a, b) => a.mileage.compareTo(b.mileage)); break;
       default: list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
+    // 판매완료 맨 뒤로
+    list.sort((a, b) {
+      if (a.isSold && !b.isSold) return 1;
+      if (!a.isSold && b.isSold) return -1;
+      return 0;
+    });
     return list;
   }
 
@@ -1354,14 +1474,18 @@ class _ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSold = listing.isSold;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
+      onTap: isSold ? null : onTap,
+      child: Opacity(
+        opacity: isSold ? 0.55 : 1.0,
+        child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: _card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
+          border: Border.all(
+            color: isSold ? _border.withOpacity(0.3) : _border),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1400,6 +1524,36 @@ class _ListingCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // 협회 인증 배지
+                  if (listing.isCertified)
+                    Positioned(
+                      top: 6, right: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _green.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.verified_rounded, color: Colors.white, size: 9),
+                          SizedBox(width: 2),
+                          Text('협회인증',
+                            style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                        ]),
+                      ),
+                    ),
+                  // 판매완료 오버레이
+                  if (isSold)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.45),
+                        child: const Center(
+                          child: Text('SOLD', style: TextStyle(
+                            color: Colors.white, fontSize: 18,
+                            fontWeight: FontWeight.w900, letterSpacing: 2)),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1460,7 +1614,8 @@ class _ListingCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
+        ), // Container
+      ), // Opacity
     );
   }
 }
@@ -1732,6 +1887,34 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                               ),
                           ]),
                         ),
+                        // 판매완료 처리 버튼 (개인 직거래 + 미판매 상태에서만)
+                        if (l.sellerType == 'individual' && !l.isSold) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.done_all_rounded, size: 16),
+                              label: const Text('판매완료 처리'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: _textSec,
+                                side: BorderSide(color: _border),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () {
+                                UsedCarState().markSold(l.listingId);
+                                setState(() {});
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('판매완료로 처리되었습니다.'),
+                                    backgroundColor: _green,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                         // 하단 버튼 공간 확보
                         const SizedBox(height: 90),
                       ],
@@ -1752,54 +1935,318 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                   border: Border(top: BorderSide(color: _border)),
                 ),
                 child: Row(children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                      label: const Text('1:1 문의'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _accent,
-                        side: BorderSide(color: _accent.withOpacity(0.5)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                  // 개인간 거래: 1:1 문의 (전화번호 교환)
+                  // 딜러 거래: 점포에 견적 신청
+                  if (l.sellerType == 'individual') ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                        label: const Text('1:1 문의'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _accent,
+                          side: BorderSide(color: _accent.withOpacity(0.5)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () => _showIndividualInquiryDialog(context, l),
                       ),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${l.sellerName}에게 1:1 문의를 보냈습니다.'),
-                            backgroundColor: _accent,
-                          ),
-                        );
-                      },
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.phone_rounded, size: 16),
-                      label: const Text('전화하기'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.phone_rounded, size: 16),
+                        label: const Text('전화하기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: l.isSold ? null : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('📞 ${l.sellerPhone}'),
+                              backgroundColor: _green,
+                            ),
+                          );
+                        },
                       ),
-                      onPressed: () async {
-                        final uri = Uri.parse('tel:${l.sellerPhone}');
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('📞 ${l.sellerPhone}'),
-                            backgroundColor: _green,
-                          ),
-                        );
-                      },
                     ),
-                  ),
+                  ] else ...[
+                    // 딜러 매물: 점포에 신청 버튼
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.storefront_rounded, size: 16),
+                        label: const Text('점포 신청'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _accent,
+                          side: BorderSide(color: _accent.withOpacity(0.5)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: l.isSold ? null : () => _showDealerApplyDialog(context, l),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.phone_rounded, size: 16),
+                        label: const Text('전화하기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: l.isSold ? null : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('📞 ${l.sellerPhone}'),
+                              backgroundColor: _green,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ]),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ── 개인간 1:1 문의: 전화번호 교환 다이얼로그 ─────────────
+  void _showIndividualInquiryDialog(BuildContext ctx, UsedCarListing l) {
+    final phoneCtrl = TextEditingController();
+    showDialog(
+      context: ctx,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _accent.withOpacity(0.4)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 52, height: 52,
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.verified_user_rounded, color: _accent, size: 26),
+            ),
+            const SizedBox(height: 14),
+            const Text('협회 인증 1:1 거래',
+              style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 6),
+            Text('${l.sellerName} 판매자와 연결합니다',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSec, fontSize: 12)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _accent.withOpacity(0.2)),
+              ),
+              child: const Text(
+                '전화번호를 입력하면 협회에서 인증 후\n판매자에게 연락처를 전달합니다.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _textSec, fontSize: 11, height: 1.5)),
+            ),
+            const SizedBox(height: 16),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('내 연락처', style: TextStyle(color: _textSec, fontSize: 12))),
+            const SizedBox(height: 6),
+            Container(
+              decoration: BoxDecoration(
+                color: _bg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _border),
+              ),
+              child: TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                style: const TextStyle(color: _textPri, fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: '010-0000-0000',
+                  hintStyle: TextStyle(color: _textSec),
+                  border: InputBorder.none,
+                  prefixIcon: Icon(Icons.phone_rounded, color: _accent, size: 18),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _showPhoneExchangeSuccess(ctx, l, phoneCtrl.text.trim());
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('연락처 전달하기',
+                  style: TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w800)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소', style: TextStyle(color: _textSec)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _showPhoneExchangeSuccess(BuildContext ctx, UsedCarListing l, String myPhone) {
+    showDialog(
+      context: ctx,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _green.withOpacity(0.4)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle_rounded, color: _green, size: 52),
+            const SizedBox(height: 14),
+            const Text('연락처 전달 완료!',
+              style: TextStyle(color: _green, fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('${l.sellerName} 판매자에게 연락처가 전달되었습니다.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSec, fontSize: 12, height: 1.5)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _green.withOpacity(0.2)),
+              ),
+              child: Row(children: [
+                const Icon(Icons.phone_rounded, color: _green, size: 16),
+                const SizedBox(width: 8),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('판매자 번호', style: TextStyle(color: _textSec, fontSize: 10)),
+                  Text(l.sellerPhone,
+                    style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w800)),
+                ]),
+              ]),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('확인', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ── 점포 역경매 신청 다이얼로그 ──────────────────────────────
+  void _showDealerApplyDialog(BuildContext ctx, UsedCarListing l) {
+    showDialog(
+      context: ctx,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _orange.withOpacity(0.4)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 52, height: 52,
+              decoration: BoxDecoration(
+                color: _orange.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.storefront_rounded, color: _orange, size: 26),
+            ),
+            const SizedBox(height: 14),
+            const Text('점포 방문 신청',
+              style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text(l.sellerName,
+              style: const TextStyle(color: _accent, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Text('${_formatNum(l.price)}만원 매물에 관심을 표시합니다',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: _textSec, fontSize: 12)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _orange.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _orange.withOpacity(0.2)),
+              ),
+              child: const Text(
+                '신청 후 점포에서 24시간 내 연락드립니다.\n실물 확인 후 최종 가격을 협의하세요.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _textSec, fontSize: 11, height: 1.5)),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(
+                      content: Text('✅ ${l.sellerName}에 방문 신청이 완료되었습니다!'),
+                      backgroundColor: _green,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _orange,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('신청하기',
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소', style: TextStyle(color: _textSec)),
+            ),
+          ]),
         ),
       ),
     );

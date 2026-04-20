@@ -875,6 +875,8 @@ class UsedCarListing {
   final String desc;
   final DateTime createdAt;
   bool isFavorite;
+  bool isSold;           // 판매완료 여부
+  bool isCertified;      // 협회 인증 배지
 
   UsedCarListing({
     required this.listingId,
@@ -896,6 +898,8 @@ class UsedCarListing {
     required this.desc,
     required this.createdAt,
     this.isFavorite = false,
+    this.isSold = false,
+    this.isCertified = false,
   });
 }
 
@@ -1111,6 +1115,24 @@ class UsedCarState extends ChangeNotifier {
   // ── 매물 등록 ──
   void addListing(UsedCarListing listing) {
     listings.insert(0, listing);
+    notifyListeners();
+  }
+
+  // ── 판매완료 처리 ──
+  void markSold(String listingId) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.isSold = true;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 인증 배지 추가 ──
+  void certifyListing(String listingId) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.isCertified = true;
+    } catch (_) {}
     notifyListeners();
   }
 }
