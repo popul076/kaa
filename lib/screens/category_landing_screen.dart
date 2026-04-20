@@ -1263,7 +1263,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
           ),
         );
 
-      case 2: // ── Stage 2: 견적서 도착! (compact 단일행 + 클릭 → 견적 목록) ──
+      case 2: // ── Stage 2: 정비 견적서 도착! (compact 단일행 + 클릭 → 견적 목록) ──
         final bidCount = latestReq?.bids.length ?? 0;
         final firstStoreName = latestReq?.bids.isNotEmpty == true
             ? latestReq!.bids.first.storeName : '';
@@ -1299,7 +1299,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('타이어 견적서 도착!',
+                  Text('견적서 도착! 확인하기',
                     style: GoogleFonts.notoSansKr(
                       fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
                   Text(firstStoreName.isNotEmpty

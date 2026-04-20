@@ -413,6 +413,7 @@ class AppState extends ChangeNotifier {
         ],
       ),
     ]);
+    _isRequestActive = true; // ← 배너 즉시 stage1 표시
     notifyListeners();
   }
 
@@ -494,7 +495,45 @@ class AppState extends ChangeNotifier {
   }
 
   // ── 정비 내역 저장 (마이페이지 자동 저장) ──────────────────
-  final List<MaintenanceRecord> maintenanceHistory = [];
+  // 하드코딩 초기 이력: StoreDetail '이력 기반 재견적' 버튼이 즉시 표시되도록
+  final List<MaintenanceRecord> maintenanceHistory = [
+    MaintenanceRecord(
+      requestId: 'HIST-001',
+      carName: '현대 아반떼 2021',
+      carNumber: '123가4567',
+      repairType: '엔진오일 교환',
+      storeName: 'KAA 추천 프리미엄 정비소',
+      storeId: 1,
+      storePhone: '053-123-4567',
+      totalCost: 89000,
+      schedule: '2024-12-10 오전 10시',
+      createdAt: DateTime(2024, 12, 10),
+    ),
+    MaintenanceRecord(
+      requestId: 'HIST-002',
+      carName: '현대 아반떼 2021',
+      carNumber: '123가4567',
+      repairType: '타이어 교체 (앞 2개)',
+      storeName: 'KAA 타이어 전문점',
+      storeId: 3,
+      storePhone: '053-345-6789',
+      totalCost: 280000,
+      schedule: '2024-09-05 오후 2시',
+      createdAt: DateTime(2024, 9, 5),
+    ),
+    MaintenanceRecord(
+      requestId: 'HIST-003',
+      carName: '현대 아반떼 2021',
+      carNumber: '123가4567',
+      repairType: '브레이크 패드 교환',
+      storeName: 'KAA 추천 프리미엄 정비소',
+      storeId: 1,
+      storePhone: '053-123-4567',
+      totalCost: 150000,
+      schedule: '2024-06-22 오전 11시',
+      createdAt: DateTime(2024, 6, 22),
+    ),
+  ];
 
   void _saveMaintenanceRecord(EstimateRequest req) {
     final matched = req.bids.where((b) => b.bidId == req.matchedBidId).toList();
