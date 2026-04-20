@@ -1718,10 +1718,69 @@ class _ShopInboxScreenState extends State<ShopInboxScreen>
                       req['status']        = 'quoted';
                     });
                     Navigator.pop(ctx);
-                    // 앱 사용자면 AppState에도 반영 (FCM 알림 트리거)
+                    // ── 앱 사용자 요청이면 AppState.shopSendBid() 호출 → 배너 즉시 전환 ──
                     if (req['isFromApp'] == true) {
-                      AppState().updateNotificationCount(
-                        AppState().notificationCount + 1);
+                      final reqId  = req['id'] as String? ?? '';
+                      final totalC = req['totalCost'] as int? ?? 0;
+                      final sched  = req['schedule']  as String? ?? '';
+                      if (cat == 'tire') {
+                        // 타이어 견적 발송
+                        final tireSpec = req['tireSpec'] as String? ?? '215/65/R15';
+                        final specParts = tireSpec.split('/');
+                        final tw = specParts.isNotEmpty ? specParts[0] : '215';
+                        final ta = specParts.length > 1 ? specParts[1] : '65';
+                        final ti = specParts.length > 2
+                            ? specParts[2].replaceAll('R', '')
+                            : '15';
+                        AppState().shopSendTireBid(
+                          requestId: reqId,
+                          bid: TireBid(
+                            bidId: 'SB-$reqId-${DateTime.now().millisecondsSinceEpoch}',
+                            storeId: 1,
+                            storeName: '관리자 점포',
+                            storeDistance: '0.5km',
+                            storeRating: 5.0,
+                            tireWidth: tw,
+                            tireAspect: ta,
+                            tireInch: ti,
+                            tireBrand: brandCtrl.text.isNotEmpty ? brandCtrl.text : '미정',
+                            isUsed: req['isUsed'] as bool? ?? false,
+                            pricePerTire: (req['tireQty'] as int? ?? 4) > 0
+                                ? part ~/ (req['tireQty'] as int? ?? 4)
+                                : part,
+                            quantity: req['tireQty'] as int? ?? 4,
+                            totalCost: totalC,
+                            estimatedTime: timeCtrl.text.isNotEmpty ? timeCtrl.text : '1시간',
+                            memo: msgCtrl.text,
+                            storePhone: '',
+                            createdAt: DateTime.now(),
+                          ),
+                        );
+                      } else {
+                        // 정비 견적 발송
+                        AppState().shopSendBid(
+                          requestId: reqId,
+                          bid: QuoteBid(
+                            bidId: 'SB-${reqId}-${DateTime.now().millisecondsSinceEpoch}',
+                            storeId: 1,
+                            storeName: '관리자 점포',
+                            storeDistance: '0.5km',
+                            storeRating: 5.0,
+                            storeBadge: 'KAA 인증',
+                            storeImage: '',
+                            partsCost: part,
+                            laborCost: labor,
+                            totalCost: totalC,
+                            estimatedTime: timeCtrl.text.isNotEmpty ? timeCtrl.text : '2시간',
+                            memo: msgCtrl.text,
+                            ownerMessage: msgCtrl.text,
+                            availableSchedules: sched.isNotEmpty ? [sched] : [],
+                            selectedSchedule: sched.isNotEmpty ? sched : null,
+                            createdAt: DateTime.now(),
+                            storePhone: '',
+                          ),
+                        );
+                      }
                     }
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: const Text('🎉 견적서가 고객에게 발송되었습니다'),
@@ -6033,6 +6092,7 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8, top: 4),
                           child: Row(children: [
+                            // 월 레이블 pill
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
@@ -6044,7 +6104,30 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
                                 style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
                             ),
                             const SizedBox(width: 8),
-                            Text('${items.length}건',
+                            // ── Circle Badge: 해당 월 서비스 건수 ──
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: _accent,
+                                shape: BoxShape.circle,
+                                boxShadow: [BoxShadow(
+                                  color: _accent.withOpacity(0.45),
+                                  blurRadius: 6, offset: const Offset(0, 2),
+                                )],
+                              ),
+                              child: Center(
+                                child: Text('${items.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.0,
+                                  )),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text('건',
                               style: TextStyle(color: _textSec.withOpacity(0.7), fontSize: 11)),
                           ]),
                         ),

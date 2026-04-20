@@ -524,127 +524,120 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       return _buildTireBanner();
     }
     if (active.status == TireRequestStatus.bidding) {
-      // stage 1: 견적 수신 대기
-      return _bannerContainer(
-        gradient: [const Color(0xFF0A2A1A), const Color(0xFF0D3B28)],
-        glowColor: _green,
-        child: Row(children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _green.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+      // ── Stage 1: 견적 요청 중 (compact 단일행) ──
+      return GestureDetector(
+        onTap: () {/* 클릭 시 상세는 아직 없음 – 대기 상태 */},
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0xFF0A2A1A), Color(0xFF0D3B28)],
             ),
-            child: const Icon(Icons.hourglass_top_rounded, color: Colors.white, size: 28),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: _green.withOpacity(0.4)),
+            boxShadow: [BoxShadow(
+              color: _green.withOpacity(0.18),
+              blurRadius: 10, offset: const Offset(0, 3),
+            )],
           ),
-          const SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('타이어 견적 요청 중',
-              style: GoogleFonts.notoSansKr(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-            const SizedBox(height: 4),
-            Text('${active.tireWidth}/${active.tireAspect}/R${active.tireInch} · 상세 내역 보기 →',
-              style: GoogleFonts.notoSansKr(fontSize: 12, color: _green)),
-          ])),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: _green.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: _green.withOpacity(0.4)),
-            ),
-            child: Text('대기중', style: GoogleFonts.notoSansKr(fontSize: 11, color: _green, fontWeight: FontWeight.w700)),
-          ),
-        ]),
-      );
-    }
-    // stage 2: 타이어 견적 도착
-    final bidCount = active.bids.length;
-    final firstStore = active.bids.isNotEmpty ? active.bids.first.storeName : '';
-    return _bannerContainer(
-      gradient: [const Color(0xFF1A0A00), const Color(0xFF2A1200)],
-      glowColor: _orange,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        GestureDetector(
-          onTap: () => _showTireBidSheet(active),
           child: Row(children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: _orange.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.tire_repair_rounded, color: Colors.white, size: 28),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('타이어 견적 도착! (내용 확인하기)',
-                style: GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-              const SizedBox(height: 4),
-              Text('${active.tireWidth}/${active.tireAspect}/R${active.tireInch} · $bidCount개 점포',
-                style: GoogleFonts.notoSansKr(fontSize: 12, color: _orange.withOpacity(0.9))),
-            ])),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _orange.withOpacity(0.2), borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _orange.withOpacity(0.5)),
+            // 로딩 인디케이터
+            SizedBox(
+              width: 22, height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation<Color>(_green),
               ),
-              child: Text('$bidCount건', style: GoogleFonts.notoSansKr(fontSize: 12, color: _orange, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('견적 요청 중',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                Text('${active.tireWidth}/${active.tireAspect}/R${active.tireInch} · 점포 답변 대기 중',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 11, color: _green.withOpacity(0.85))),
+              ],
+            )),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _green.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _green.withOpacity(0.4)),
+              ),
+              child: Text('대기중',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 11, color: _green, fontWeight: FontWeight.w800)),
             ),
           ]),
         ),
-        const SizedBox(height: 12),
-        // ── 점포 상세보기 버튼 → StoreDetail 연동 ──
-        Row(children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _showTireBidSheet(active),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _orange.withOpacity(0.4)),
-                ),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.format_list_bulleted_rounded, color: _orange, size: 16),
-                  const SizedBox(width: 6),
-                  Text('견적 목록 보기',
-                    style: GoogleFonts.notoSansKr(fontSize: 12, color: _orange, fontWeight: FontWeight.w700)),
-                ]),
-              ),
-            ),
+      );
+    }
+    // ── Stage 2: 타이어 견적서 도착! (compact 단일행 + 클릭 → 바텀시트) ──
+    final bidCount = active.bids.length;
+    final firstStore = active.bids.isNotEmpty ? active.bids.first.storeName : '';
+    return GestureDetector(
+      onTap: () => _showTireBidSheet(active),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF1A0A00), Color(0xFF2D1200)],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                // 첫 번째 입찰 점포로 이동
-                if (active.bids.isNotEmpty) {
-                  final storeId = active.bids.first.storeId;
-                  final store = AppData.stores.firstWhere(
-                    (s) => s.id == storeId,
-                    orElse: () => AppData.stores.first,
-                  );
-                  Navigator.pushNamed(context, '/store-detail', arguments: store);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: _accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _accent.withOpacity(0.4)),
-                ),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.store_rounded, color: _accent, size: 16),
-                  const SizedBox(width: 6),
-                  Text(firstStore.isNotEmpty ? '$firstStore' : '점포 상세',
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.notoSansKr(fontSize: 12, color: _accent, fontWeight: FontWeight.w700)),
-                ]),
-              ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _orange.withOpacity(0.5)),
+          boxShadow: [BoxShadow(
+            color: _orange.withOpacity(0.22),
+            blurRadius: 10, offset: const Offset(0, 3),
+          )],
+        ),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: const Icon(Icons.mark_email_unread_rounded,
+                color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('타이어 견적서 도착!',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+              Text(firstStore.isNotEmpty
+                  ? '$firstStore 외 ${bidCount - 1 > 0 ? '${bidCount - 1}개' : ''} 점포'
+                  : '$bidCount개 점포에서 견적 도착 · 탭하여 확인',
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 11, color: _orange.withOpacity(0.9))),
+            ],
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _orange.withOpacity(0.55)),
+            ),
+            child: Text('$bidCount건',
+              style: GoogleFonts.notoSansKr(
+                fontSize: 12, color: _orange, fontWeight: FontWeight.w900)),
           ),
         ]),
-      ]),
+      ),
     );
   }
 
@@ -1058,73 +1051,60 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     );
   }
 
-  // ── [타이어] 사이즈 검색 배너 ─────────────────────────────
-  // ── [타이어] stage 0 배너: 타이어 사이즈 검색 및 재고 문의 ──
+  // ── [타이어] stage 0 배너: compact 단일행 ─────────────────
   Widget _buildTireBanner() {
     return GestureDetector(
       onTap: () => _showTireSizePickerDialog(),
       child: Container(
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
             colors: [Color(0xFF0D2744), Color(0xFF1A3D6E)],
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _accent.withOpacity(0.45)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _accent.withOpacity(0.4)),
           boxShadow: [BoxShadow(
-            color: _accent.withOpacity(0.2),
-            blurRadius: 14, offset: const Offset(0, 4),
+            color: _accent.withOpacity(0.18),
+            blurRadius: 10, offset: const Offset(0, 3),
           )],
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.tire_repair_rounded, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _accent.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.tire_repair_rounded, color: Colors.white, size: 26),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('타이어 사이즈 검색 및 재고 문의',
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text('단면폭 / 편평비 / 인치 선택 → 신품 · 중고 모두 문의',
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 11, color: Colors.white.withOpacity(0.8))),
-                  ],
-                )),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
-              ]),
-              const SizedBox(height: 12),
-              Row(children: [
-                _tireSizeChip('245 / 45 / R18'),
-                const SizedBox(width: 6),
-                _tireSizeChip('225 / 60 / R16'),
-                const SizedBox(width: 6),
-                _tireSizeChip('직접 입력'),
-              ]),
-              const SizedBox(height: 10),
-              // 신품/중고 안내 태그
-              Row(children: [
-                _tireTypeTag(Icons.fiber_new_rounded, '신품 견적', _accent),
-                const SizedBox(width: 8),
-                _tireTypeTag(Icons.recycling_rounded, '중고 재고 문의', _orange),
-              ]),
+              Text('타이어 사이즈 검색 및 재고 문의',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+              const SizedBox(height: 2),
+              Text('사이즈 선택 후 신품·중고 모두 견적 가능',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 11, color: Colors.white.withOpacity(0.75))),
             ],
+          )),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _accent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _accent.withOpacity(0.5)),
+            ),
+            child: Text('검색',
+              style: GoogleFonts.notoSansKr(
+                fontSize: 12, color: _accent, fontWeight: FontWeight.w800)),
           ),
-        ),
+        ]),
       ),
     );
   }
@@ -1226,131 +1206,122 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
           ),
         );
 
-      case 1: // 요청 후 대기
+      case 1: // ── Stage 1: 견적 요청 중 (compact 단일행 + 클릭 → 요청 상세) ──
         return GestureDetector(
           onTap: () {
-            if (latestReq != null) {
-              _showMyRequestSheet(latestReq);
-            }
+            if (latestReq != null) _showMyRequestSheet(latestReq);
           },
-          child: _bannerContainer(
-            gradient: [const Color(0xFF0A2A1A), const Color(0xFF0D3B28)],
-            glowColor: _green,
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _green.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.hourglass_top_rounded,
-                    color: Colors.white, size: 28),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF0A2A1A), Color(0xFF0D3B28)],
               ),
-              const SizedBox(width: 14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _green.withOpacity(0.4)),
+              boxShadow: [BoxShadow(
+                color: _green.withOpacity(0.18),
+                blurRadius: 10, offset: const Offset(0, 3),
+              )],
+            ),
+            child: Row(children: [
+              SizedBox(
+                width: 22, height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(_green),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('견적 요청 중',
                     style: GoogleFonts.notoSansKr(
-                      fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Text('상세 내역 보기 →',
+                      fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  Text('${latestReq?.repairType ?? ''} · 점포 답변 대기 중 (탭하여 상세 확인)',
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.notoSansKr(
-                      fontSize: 12, color: _green)),
+                      fontSize: 11, color: _green.withOpacity(0.85))),
                 ],
               )),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: _green.withOpacity(0.2),
+                  color: _green.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _green.withOpacity(0.4)),
                 ),
-                child: Text('대기중', style: GoogleFonts.notoSansKr(
-                    fontSize: 11, color: _green, fontWeight: FontWeight.w700)),
+                child: Text('대기중',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 11, color: _green, fontWeight: FontWeight.w800)),
               ),
             ]),
           ),
         );
 
-      case 2: // 견적 도착
+      case 2: // ── Stage 2: 견적서 도착! (compact 단일행 + 클릭 → 견적 목록) ──
         final bidCount = latestReq?.bids.length ?? 0;
-        // 첫 번째 견적을 보낸 점포 정보 (상세보기용)
         final firstStoreName = latestReq?.bids.isNotEmpty == true
-            ? (latestReq!.bids.first.storeName)
-            : '';
-        return _bannerContainer(
-          gradient: [const Color(0xFF1A0A00), const Color(0xFF2A1200)],
-          glowColor: _orange,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 배너 상단 (견적 도착 정보)
-              GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/quote-received'),
-                child: Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: _orange.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.mark_email_unread_rounded,
-                        color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('견적서 도착! (내용 확인하기)',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      const SizedBox(height: 4),
-                      Text('$bidCount개 점포에서 견적이 왔습니다',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 12, color: _orange.withOpacity(0.9))),
-                    ],
-                  )),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _orange.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _orange.withOpacity(0.5)),
-                    ),
-                    child: Text('$bidCount건', style: GoogleFonts.notoSansKr(
-                        fontSize: 12, color: _orange, fontWeight: FontWeight.w800)),
-                  ),
-                ]),
+            ? latestReq!.bids.first.storeName : '';
+        return GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/quote-received'),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF1A0A00), Color(0xFF2D1200)],
               ),
-              // ── 점포 상세보기 버튼 (별도) ──
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () {
-                  // 견적 목록에서 첫 점포 상세로 이동
-                  Navigator.pushNamed(context, '/quote-received');
-                },
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _orange.withOpacity(0.4)),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.store_rounded, color: _orange, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      firstStoreName.isNotEmpty
-                          ? '[$firstStoreName] 점포 상세보기'
-                          : '점포 상세보기',
-                      style: GoogleFonts.notoSansKr(
-                          fontSize: 13, color: _orange, fontWeight: FontWeight.w700)),
-                  ]),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _orange.withOpacity(0.5)),
+              boxShadow: [BoxShadow(
+                color: _orange.withOpacity(0.22),
+                blurRadius: 10, offset: const Offset(0, 3),
+              )],
+            ),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _orange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: const Icon(Icons.mark_email_unread_rounded,
+                    color: Colors.white, size: 22),
               ),
-            ],
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('타이어 견적서 도착!',
+                    style: GoogleFonts.notoSansKr(
+                      fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  Text(firstStoreName.isNotEmpty
+                      ? '$firstStoreName 등 $bidCount개 점포 · 탭하여 확인'
+                      : '$bidCount개 점포에서 견적이 도착했습니다',
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.notoSansKr(
+                      fontSize: 11, color: _orange.withOpacity(0.9))),
+                ],
+              )),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _orange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _orange.withOpacity(0.55)),
+                ),
+                child: Text('$bidCount건',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 12, color: _orange, fontWeight: FontWeight.w900)),
+              ),
+            ]),
           ),
         );
 

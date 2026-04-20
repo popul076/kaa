@@ -1132,64 +1132,292 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   // ── 하단 고정: 전화걸기 + 1:1 채팅 (동일 크기) ──
   Widget _buildBottomBar(BuildContext context, Store store) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    // ── 이 점포와 관련된 정비 이력 찾기 ──
+    final pastRecords = AppState().maintenanceHistory
+        .where((r) => r.storeId == store.id)
+        .toList();
+
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPad),
+      padding: EdgeInsets.fromLTRB(16, 10, 16, 10 + bottomPad),
       decoration: BoxDecoration(
         color: _card,
         border: Border(top: BorderSide(color: _border)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, -4))],
       ),
-      child: Row(children: [
-        // 전화걸기
-        Expanded(
-          child: GestureDetector(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(backgroundColor: _green,
-                content: Row(children: [
-                  const Icon(Icons.phone, color: Colors.white, size: 16),
-                  const SizedBox(width: 8),
-                  Text('${store.phone} 연결 중...', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                ]))),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: _green.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── 이력 기반 재견적 버튼 (이력 있을 때만 표시) ──
+          if (pastRecords.isNotEmpty) ...[
+            GestureDetector(
+              onTap: () => _showReEstimateSheet(context, store, pastRecords),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_orange.withOpacity(0.85), const Color(0xFFFF8C42)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [BoxShadow(
+                    color: _orange.withOpacity(0.35),
+                    blurRadius: 8, offset: const Offset(0, 3),
+                  )],
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.history_edu_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 7),
+                  Text('이력 기반 재견적 요청',
+                    style: TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('${pastRecords.length}건',
+                      style: const TextStyle(
+                        fontSize: 10, color: Colors.white, fontWeight: FontWeight.w800)),
+                  ),
+                ]),
               ),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.phone_rounded, color: _green, size: 18),
-                const SizedBox(width: 6),
-                Text('전화걸기', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _green)),
-              ]),
+            ),
+          ],
+          // ── 전화걸기 + 1:1 채팅 ──
+          Row(children: [
+            // 전화걸기
+            Expanded(
+              child: GestureDetector(
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(backgroundColor: _green,
+                    content: Row(children: [
+                      const Icon(Icons.phone, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Text('${store.phone} 연결 중...', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ]))),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _green.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _green.withOpacity(0.5), width: 1.5),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(Icons.phone_rounded, color: _green, size: 18),
+                    const SizedBox(width: 6),
+                    Text('전화걸기', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _green)),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // 1:1 채팅
+            Expanded(
+              child: GestureDetector(
+                onTap: () => Navigator.pushNamed(
+                  context, '/chat',
+                  arguments: {'storeName': store.name, 'storeId': store.id},
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0D2A4A), Color(0xFF0A1E3A)]),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _accent.withOpacity(0.5), width: 1.5),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Icon(Icons.chat_bubble_outline_rounded, color: _accent, size: 18),
+                    const SizedBox(width: 6),
+                    Text('1:1 채팅', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _accent)),
+                  ]),
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  // ── 이력 기반 재견적 바텀시트 ─────────────────────────────────
+  void _showReEstimateSheet(BuildContext context, Store store,
+      List<MaintenanceRecord> records) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.60,
+        minChildSize: 0.4,
+        maxChildSize: 0.88,
+        expand: false,
+        builder: (_, ctrl) => Column(children: [
+          // ── 핸들 ──
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+                color: const Color(0xFF1E3A5F),
+                borderRadius: BorderRadius.circular(2)),
+          ),
+          // ── 헤더 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _orange.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.history_edu_rounded, color: _orange, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('이력 기반 재견적 요청',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
+                        color: Colors.white)),
+                  Text('${store.name} · 과거 정비 이력으로 바로 신청',
+                    style: TextStyle(fontSize: 11, color: const Color(0xFFB0BEC5))),
+                ]),
+              ),
+            ]),
+          ),
+          const Divider(color: Color(0xFF1E3A5F), height: 1),
+          // ── 이력 목록 ──
+          Expanded(
+            child: ListView.builder(
+              controller: ctrl,
+              padding: const EdgeInsets.all(16),
+              itemCount: records.length,
+              itemBuilder: (_, i) {
+                final rec = records[i];
+                final costStr = rec.totalCost.toString()
+                    .replaceAllMapped(
+                        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                        (m) => '${m[1]},');
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A1628),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: _orange.withOpacity(0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _green.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: _green.withOpacity(0.4)),
+                          ),
+                          child: Text('KAA 확정',
+                            style: TextStyle(
+                                color: _green,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(rec.repairType,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                        ),
+                        Text(
+                          '${rec.createdAt.year}-'
+                          '${rec.createdAt.month.toString().padLeft(2, "0")}-'
+                          '${rec.createdAt.day.toString().padLeft(2, "0")}',
+                          style: const TextStyle(
+                              color: Color(0xFFB0BEC5), fontSize: 10)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        const Text('비용 ',
+                          style: TextStyle(
+                              color: Color(0xFFB0BEC5), fontSize: 11)),
+                        Text('${costStr}원',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                        if (rec.schedule.isNotEmpty) ...[
+                          const Spacer(),
+                          Text(rec.schedule,
+                            style: TextStyle(
+                                color: _green,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600)),
+                        ],
+                      ]),
+                      const SizedBox(height: 10),
+                      // ── 이 이력으로 재견적 신청 버튼 ──
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          // 과거 정비 데이터를 인수로 견적 요청 화면 이동
+                          Navigator.pushNamed(
+                            context, '/quote-request',
+                            arguments: {
+                              'prefillRepairType': rec.repairType,
+                              'prefillStoreName': store.name,
+                              'prefillStoreId': store.id,
+                              'isReEstimate': true,
+                              'originalRecordId': rec.requestId,
+                            },
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [_orange.withOpacity(0.8),
+                                const Color(0xFFFF8C42)],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.send_rounded,
+                                  color: Colors.white, size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                '이 이력으로 재견적 신청하기',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        // 1:1 채팅
-        Expanded(
-          child: GestureDetector(
-            onTap: () => Navigator.pushNamed(
-              context, '/chat',
-              arguments: {'storeName': store.name, 'storeId': store.id},
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF0D2A4A), Color(0xFF0A1E3A)]),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _accent.withOpacity(0.5), width: 1.5),
-              ),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(Icons.chat_bubble_outline_rounded, color: _accent, size: 18),
-                const SizedBox(width: 6),
-                Text('1:1 채팅', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _accent)),
-              ]),
-            ),
-          ),
-        ),
-      ]),
+        ]),
+      ),
     );
   }
 }

@@ -514,6 +514,67 @@ class AppState extends ChangeNotifier {
     ));
   }
 
+  // ── [핵심] 점포가 견적서 발송 → 사용자 배너 즉시 received 전환 ─
+  // shopRequestId: ShopInbox의 더미 req['id'] (isFromApp=true인 경우 AppState requestId와 매핑)
+  // 직접 EstimateRequest에 QuoteBid를 추가하고 status = received 로 변경
+  void shopSendBid({
+    required String requestId,   // AppState.estimateRequests 의 requestId
+    required QuoteBid bid,       // 점포가 작성한 견적서
+  }) {
+    try {
+      final req = estimateRequests.firstWhere(
+        (r) => r.requestId == requestId,
+        orElse: () => estimateRequests.first,
+      );
+      // 이미 같은 점포가 낸 bid가 있으면 업데이트, 없으면 추가
+      final existing = req.bids.indexWhere((b) => b.storeId == bid.storeId);
+      if (existing >= 0) {
+        req.bids[existing] = bid;
+      } else {
+        req.bids.add(bid);
+      }
+      // 배너를 즉시 'received'로 전환
+      if (req.status == RepairStatus.pending ||
+          req.status == RepairStatus.bidding) {
+        req.status = RepairStatus.received;
+      }
+      // 사용자에게 인앱 알림
+      addInAppNotification(
+        '새 견적서 도착! 🎉',
+        '${bid.storeName}에서 ${req.carName} 견적서를 보냈습니다.',
+      );
+      _isRequestActive = true; // 배너 강제 표시
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 타이어: 점포가 견적 발송 → 배너 received 전환 ──────────
+  void shopSendTireBid({
+    required String requestId,
+    required TireBid bid,
+  }) {
+    try {
+      final req = tireRequests.firstWhere(
+        (r) => r.requestId == requestId,
+        orElse: () => tireRequests.first,
+      );
+      final existing = req.bids.indexWhere((b) => b.storeId == bid.storeId);
+      if (existing >= 0) {
+        req.bids[existing] = bid;
+      } else {
+        req.bids.add(bid);
+      }
+      if (req.status == TireRequestStatus.bidding) {
+        req.status = TireRequestStatus.received;
+      }
+      addInAppNotification(
+        '타이어 견적서 도착! 🛞',
+        '${bid.storeName}에서 타이어 견적서를 보냈습니다.',
+      );
+    } catch (_) {}
+    notifyListeners();
+  }
+
   // ── 견적서 읽음 처리 ─────────────────────────────────────────
   void markBidRead(String requestId, String bidId) {
     final req = estimateRequests.firstWhere(
