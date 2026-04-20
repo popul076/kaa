@@ -1225,7 +1225,6 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
         );
 
       case 2: // 견적 도착
-      default: // 예비
         final bidCount = latestReq?.bids.length ?? 0;
         // 첫 번째 견적을 보낸 점포 정보 (상세보기용)
         final firstStoreName = latestReq?.bids.isNotEmpty == true
@@ -1307,6 +1306,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
         );
 
       case 3: // 수리 완료 → 배너 [무료요청]으로 리셋
+      default:
         // 완료 상태: isRequestActive를 false로 해제하여 stage 0 동작
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -1345,6 +1345,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
           ),
         );
     }
+    return const SizedBox.shrink();
   }
 
   Widget _bannerContainer({
