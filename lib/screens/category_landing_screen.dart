@@ -302,6 +302,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     return ranges[cat] ?? '문의 후 안내';
   }
 
+  // 서비스 카테고리 여부 (지도 사이즈 330×270 고정 대상)
+  bool get _isServiceCat => ['정비', '세차', '타이어', '검사', '주유소', '주차장', '렌트카']
+      .contains(widget.category);
+
   // 카테고리별 배경색
   Color get _catColor {
     final colors = {
@@ -328,6 +332,8 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
             _buildAppBar(),
             SliverToBoxAdapter(child: _buildMapSection()),
             SliverToBoxAdapter(child: _buildQuoteRequestBanner()),
+            if (widget.category == '타이어')
+              SliverToBoxAdapter(child: _buildUsedTireBanner()),
             SliverToBoxAdapter(child: _buildFilterBar()),
             SliverToBoxAdapter(child: _buildStoreCount()),
             SliverList(
@@ -380,13 +386,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     );
   }
 
-  // ── 지도 섹션 (시뮬레이션) 270×330 고정 ──────────────────
+  // ── 지도 섹션 (시뮬레이션) 330×270 고정 ──────────────────
   Widget _buildMapSection() {
-    // 정비/세차/타이어/검사 카테고리에서 지도 크기 270×330 고정
-    final isServiceCat = ['정비', '세차', '타이어', '검사', '주유소', '주차장', '렌트카']
-        .contains(widget.category);
-    final mapW = isServiceCat ? 270.0 : double.infinity;
-    final mapH = isServiceCat ? 330.0 : (_mapExpanded ? 170.0 : 120.0);
+    final mapW = _isServiceCat ? 330.0 : double.infinity;
+    final mapH = _isServiceCat ? 270.0 : (_mapExpanded ? 170.0 : 120.0);
 
     return Center(
       child: Container(
@@ -427,7 +430,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
                   Text('대구 수성구 기준',
                       style: GoogleFonts.notoSansKr(fontSize: 12, color: _t2)),
                   const Spacer(),
-                  if (!isServiceCat)
+                  if (!_isServiceCat)
                     GestureDetector(
                       onTap: () => setState(() => _mapExpanded = !_mapExpanded),
                       child: Text(
@@ -488,7 +491,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       final py = positions[i][1];
       return Positioned(
         left: MediaQuery.of(context).size.width * px - 56,
-        top: (_mapExpanded ? 170 : 120) * py - 16,
+        top: (_isServiceCat ? 270 : (_mapExpanded ? 170 : 120)) * py - 16,
         child: GestureDetector(
           onTap: () => _goToDetail(s),
           child: Container(
@@ -515,60 +518,138 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     }).toList();
   }
 
-  // ── 견적 요청 배너 (정비: 3단계 동적, 나머지: 단순) ─────────
+  // ── 견적 요청 배너 (정비: 3단계 동적, 타이어: 사이즈 검색, 세차/검사: 없음) ────
   Widget _buildQuoteRequestBanner() {
     if (widget.category == '정비') {
       return _buildRepairBanner();
     }
-    // 세차/검사/타이어: 예약/정보 중심 단순 배너
-    final icon = widget.category == '세차'
-        ? Icons.local_car_wash_rounded
-        : widget.category == '검사'
-            ? Icons.fact_check_outlined
-            : widget.category == '타이어'
-                ? Icons.tire_repair_rounded
-                : Icons.store_rounded;
+    // 타이어: 사이즈 검색 배너
+    if (widget.category == '타이어') {
+      return _buildTireBanner();
+    }
+    // 세차/검사: 견적 요청 배너 없음
+    return const SizedBox.shrink();
+  }
+
+  // ── [타이어] 사이즈 검색 배너 ─────────────────────────────
+  Widget _buildTireBanner() {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/quote-request'),
+      onTap: () => _showTireSizePickerDialog(),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [const Color(0xFF1565C0), _accent.withOpacity(0.85)],
+            colors: [Color(0xFF1A2E4A), Color(0xFF0D3B6E)],
           ),
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _accent.withOpacity(0.4)),
           boxShadow: [BoxShadow(
-            color: _accent.withOpacity(0.3),
+            color: _accent.withOpacity(0.2),
             blurRadius: 12, offset: const Offset(0, 4),
           )],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.tire_repair_rounded, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('타이어 사이즈 검색',
+                      style: GoogleFonts.notoSansKr(
+                        fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                    const SizedBox(height: 3),
+                    Text('단면폭 / 편평비 / 인치 선택 → 주변 재고 검색',
+                      style: GoogleFonts.notoSansKr(
+                        fontSize: 11, color: Colors.white.withOpacity(0.8))),
+                  ],
+                )),
+                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                _tireSizeChip('245 / 45 / R18'),
+                const SizedBox(width: 6),
+                _tireSizeChip('225 / 60 / R16'),
+                const SizedBox(width: 6),
+                _tireSizeChip('직접 입력'),
+              ]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tireSizeChip(String label) {
+    return GestureDetector(
+      onTap: () => _showTireSizePickerDialog(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: _accent.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _accent.withOpacity(0.4)),
+        ),
+        child: Text(label, style: GoogleFonts.notoSansKr(
+            fontSize: 11, color: _accent, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  // ── [타이어] 중고 타이어 배너 ──────────────────────────────
+  Widget _buildUsedTireBanner() {
+    return GestureDetector(
+      onTap: () => _showUsedTireRequestDialog(),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A0A),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _orange.withOpacity(0.4)),
+          boxShadow: [BoxShadow(
+            color: _orange.withOpacity(0.15),
+            blurRadius: 8, offset: const Offset(0, 3),
+          )],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
           child: Row(children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
+                color: _orange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: const Icon(Icons.recycling_rounded, color: _orange, size: 22),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${widget.category} 예약·견적 요청하기',
+                Text('중고 타이어 재고 문의',
                   style: GoogleFonts.notoSansKr(
-                    fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-                const SizedBox(height: 4),
-                Text('근처 점포에서 빠르게 견적을 보내드립니다',
+                    fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                const SizedBox(height: 3),
+                Text('동일 규격의 중고 타이어를 주변에서 찾아드립니다',
                   style: GoogleFonts.notoSansKr(
-                    fontSize: 12, color: Colors.white.withOpacity(0.85))),
+                    fontSize: 11, color: _t2)),
               ],
             )),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
+            const Icon(Icons.arrow_forward_ios_rounded, color: _orange, size: 14),
           ]),
         ),
       ),
@@ -651,11 +732,8 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
                   color: _green.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const SizedBox(
-                  width: 28, height: 28,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Colors.white),
-                ),
+                child: const Icon(Icons.hourglass_top_rounded,
+                    color: Colors.white, size: 28),
               ),
               const SizedBox(width: 14),
               Expanded(child: Column(
@@ -687,45 +765,82 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       case 2: // 견적 도착
       default:
         final bidCount = latestReq?.bids.length ?? 0;
-        return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/quote-received'),
-          child: _bannerContainer(
-            gradient: [const Color(0xFF1A0A00), const Color(0xFF2A1200)],
-            glowColor: _orange,
-            child: Row(children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: _orange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.mark_email_unread_rounded,
-                    color: Colors.white, size: 28),
+        // 첫 번째 견적을 보낸 점포 정보 (상세보기용)
+        final firstStoreName = latestReq?.bids.isNotEmpty == true
+            ? (latestReq!.bids.first.storeName)
+            : '';
+        return _bannerContainer(
+          gradient: [const Color(0xFF1A0A00), const Color(0xFF2A1200)],
+          glowColor: _orange,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 배너 상단 (견적 도착 정보)
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/quote-received'),
+                child: Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.mark_email_unread_rounded,
+                        color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('견적서 도착! (내용 확인하기)',
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                      const SizedBox(height: 4),
+                      Text('$bidCount개 점포에서 견적이 왔습니다',
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 12, color: _orange.withOpacity(0.9))),
+                    ],
+                  )),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _orange.withOpacity(0.5)),
+                    ),
+                    child: Text('$bidCount건', style: GoogleFonts.notoSansKr(
+                        fontSize: 12, color: _orange, fontWeight: FontWeight.w800)),
+                  ),
+                ]),
               ),
-              const SizedBox(width: 14),
-              Expanded(child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('견적서 도착! (내용 확인하기)',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(height: 4),
-                  Text('$bidCount개 점포에서 견적이 왔습니다',
-                    style: GoogleFonts.notoSansKr(
-                      fontSize: 12, color: _orange.withOpacity(0.9))),
-                ],
-              )),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _orange.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: _orange.withOpacity(0.5)),
+              // ── 점포 상세보기 버튼 (별도) ──
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () {
+                  // 견적 목록에서 첫 점포 상세로 이동
+                  Navigator.pushNamed(context, '/quote-received');
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _orange.withOpacity(0.4)),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.store_rounded, color: _orange, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      firstStoreName.isNotEmpty
+                          ? '[$firstStoreName] 점포 상세보기'
+                          : '점포 상세보기',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 13, color: _orange, fontWeight: FontWeight.w700)),
+                  ]),
                 ),
-                child: Text('$bidCount건', style: GoogleFonts.notoSansKr(
-                    fontSize: 12, color: _orange, fontWeight: FontWeight.w800)),
               ),
-            ]),
+            ],
           ),
         );
     }
@@ -1288,6 +1403,139 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
       await launchUrl(uri);
     }
   }
+
+  // ════════════════════════════════════════════════════════════
+  // [타이어] 3단 Picker 다이얼로그 (단면폭 / 편평비 / 인치)
+  // ════════════════════════════════════════════════════════════
+  void _showTireSizePickerDialog() {
+    // 제조사→모델→연식 자동매칭 또는 직접선택 탭 분기
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _TireSizePickerSheet(
+        onSizeSelected: (width, aspect, inch, isUsed) {
+          Navigator.pop(context);
+          _showTireRequestConfirmDialog(width, aspect, inch, isUsed);
+        },
+      ),
+    );
+  }
+
+  // ── 타이어 견적 요청 확인 다이얼로그 ────────────────────────
+  void _showTireRequestConfirmDialog(
+      String width, String aspect, String inch, bool isUsed) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _accent.withOpacity(0.4)),
+            boxShadow: [BoxShadow(color: _accent.withOpacity(0.15), blurRadius: 20)],
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              const Icon(Icons.tire_repair_rounded, color: _accent, size: 28),
+              const SizedBox(width: 10),
+              Text(isUsed ? '중고 타이어 재고 문의' : '타이어 견적 요청',
+                style: GoogleFonts.notoSansKr(
+                  fontSize: 16, fontWeight: FontWeight.w800, color: _t1)),
+            ]),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: _navy,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _border),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                _tireSizeTag(width, '단면폭'),
+                Text(' / ', style: GoogleFonts.notoSansKr(
+                    fontSize: 20, color: _t2, fontWeight: FontWeight.w300)),
+                _tireSizeTag(aspect, '편평비'),
+                Text(' / ', style: GoogleFonts.notoSansKr(
+                    fontSize: 20, color: _t2, fontWeight: FontWeight.w300)),
+                _tireSizeTag('R$inch', '인치'),
+              ]),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isUsed
+                  ? '위 규격의 중고 타이어 재고를\n주변 점포에 문의합니다.'
+                  : '위 규격의 타이어 가격을\n주변 점포에서 견적 받습니다.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.notoSansKr(fontSize: 13, color: _t2, height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _t2,
+                    side: BorderSide(color: _border),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text('취소', style: GoogleFonts.notoSansKr(fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(
+                        isUsed
+                          ? '중고 타이어($width/$aspect/R$inch) 재고 문의 발송 완료!'
+                          : '타이어($width/$aspect/R$inch) 견적 요청 완료!',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: _green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isUsed ? _orange : _accent,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Text(isUsed ? '재고 문의 발송' : '견적 요청',
+                    style: GoogleFonts.notoSansKr(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800, fontSize: 14)),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _tireSizeTag(String value, String label) {
+    return Column(children: [
+      Text(value, style: GoogleFonts.notoSansKr(
+          fontSize: 22, fontWeight: FontWeight.w900, color: _accent)),
+      const SizedBox(height: 2),
+      Text(label, style: GoogleFonts.notoSansKr(fontSize: 10, color: _t2)),
+    ]);
+  }
+
+  // ── 중고 타이어 요청 다이얼로그 ──────────────────────────────
+  void _showUsedTireRequestDialog() {
+    _showTireSizePickerDialog(); // 동일한 Picker에서 isUsed=true로 분기
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1405,4 +1653,460 @@ class _MapGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_) => false;
+}
+
+// ══════════════════════════════════════════════════════════════
+// [타이어] 사이즈 Picker 바텀시트
+// 탭 1: 제조사→모델→연식 자동매칭
+// 탭 2: 단면폭 / 편평비 / 인치 직접 선택
+// ══════════════════════════════════════════════════════════════
+class _TireSizePickerSheet extends StatefulWidget {
+  final void Function(String width, String aspect, String inch, bool isUsed) onSizeSelected;
+  const _TireSizePickerSheet({required this.onSizeSelected});
+
+  @override
+  State<_TireSizePickerSheet> createState() => _TireSizePickerSheetState();
+}
+
+class _TireSizePickerSheetState extends State<_TireSizePickerSheet>
+    with SingleTickerProviderStateMixin {
+  late TabController _tab;
+  bool _isUsed = false;
+
+  // ── 직접 선택 데이터 ───────────────────────────────────────
+  final _widths  = ['155','165','175','185','195','205','215','225','235','245','255','265','275','285','295','305'];
+  final _aspects = ['30','35','40','45','50','55','60','65','70','75','80'];
+  final _inches  = ['13','14','15','16','17','18','19','20','21','22'];
+
+  int _widthIdx  = 7;  // 225
+  int _aspectIdx = 4;  // 50
+  int _inchIdx   = 3;  // 16
+
+  // ── 제조사→모델→연식 데이터 ────────────────────────────────
+  final _makers = ['현대', '기아', 'BMW', '벤츠', '제네시스', '쉐보레', '르노', 'KG 모빌리티'];
+  final _modelMap = {
+    '현대': ['아반떼', '소나타', '그랜저', '투싼', '팰리세이드', '싼타페'],
+    '기아': ['K3', 'K5', 'K8', '스포티지', '쏘렌토', 'EV6'],
+    'BMW': ['3시리즈', '5시리즈', '7시리즈', 'X3', 'X5'],
+    '벤츠': ['C클래스', 'E클래스', 'S클래스', 'GLE', 'GLC'],
+    '제네시스': ['G70', 'G80', 'G90', 'GV70', 'GV80'],
+    '쉐보레': ['트레일블레이저', '트랙스', '이쿼녹스', '말리부'],
+    '르노': ['SM3', 'SM6', 'QM6', 'XM3'],
+    'KG 모빌리티': ['티볼리', '코란도', '렉스턴'],
+  };
+  // 차종별 표준 타이어 규격 (단면폭/편평비/인치)
+  final _tireSizeMap = {
+    '아반떼':  {'width': '205', 'aspect': '55', 'inch': '16'},
+    '소나타':  {'width': '215', 'aspect': '55', 'inch': '17'},
+    '그랜저':  {'width': '235', 'aspect': '50', 'inch': '18'},
+    '투싼':    {'width': '225', 'aspect': '60', 'inch': '17'},
+    '팰리세이드':{'width': '265', 'aspect': '50', 'inch': '20'},
+    '싼타페':  {'width': '235', 'aspect': '60', 'inch': '18'},
+    'K3':      {'width': '205', 'aspect': '55', 'inch': '16'},
+    'K5':      {'width': '225', 'aspect': '45', 'inch': '18'},
+    'K8':      {'width': '235', 'aspect': '50', 'inch': '18'},
+    '스포티지': {'width': '225', 'aspect': '55', 'inch': '18'},
+    '쏘렌토':  {'width': '235', 'aspect': '55', 'inch': '19'},
+    'EV6':     {'width': '235', 'aspect': '45', 'inch': '20'},
+    '3시리즈':  {'width': '225', 'aspect': '45', 'inch': '18'},
+    '5시리즈':  {'width': '245', 'aspect': '45', 'inch': '18'},
+    '7시리즈':  {'width': '255', 'aspect': '40', 'inch': '19'},
+    'X3':      {'width': '245', 'aspect': '50', 'inch': '19'},
+    'X5':      {'width': '275', 'aspect': '45', 'inch': '20'},
+    'C클래스':  {'width': '225', 'aspect': '45', 'inch': '18'},
+    'E클래스':  {'width': '245', 'aspect': '45', 'inch': '18'},
+    'S클래스':  {'width': '255', 'aspect': '40', 'inch': '19'},
+    'GLE':     {'width': '265', 'aspect': '45', 'inch': '20'},
+    'GLC':     {'width': '235', 'aspect': '50', 'inch': '19'},
+    'G70':     {'width': '225', 'aspect': '45', 'inch': '18'},
+    'G80':     {'width': '245', 'aspect': '45', 'inch': '19'},
+    'G90':     {'width': '265', 'aspect': '40', 'inch': '20'},
+    'GV70':    {'width': '235', 'aspect': '50', 'inch': '19'},
+    'GV80':    {'width': '265', 'aspect': '50', 'inch': '20'},
+    '트레일블레이저': {'width': '225', 'aspect': '55', 'inch': '18'},
+    '트랙스':   {'width': '205', 'aspect': '60', 'inch': '16'},
+    '이쿼녹스':  {'width': '235', 'aspect': '50', 'inch': '18'},
+    '말리부':   {'width': '215', 'aspect': '50', 'inch': '18'},
+    'SM3':     {'width': '195', 'aspect': '55', 'inch': '16'},
+    'SM6':     {'width': '225', 'aspect': '45', 'inch': '18'},
+    'QM6':     {'width': '235', 'aspect': '55', 'inch': '18'},
+    'XM3':     {'width': '215', 'aspect': '55', 'inch': '17'},
+    '티볼리':   {'width': '215', 'aspect': '55', 'inch': '17'},
+    '코란도':   {'width': '225', 'aspect': '60', 'inch': '17'},
+    '렉스턴':   {'width': '265', 'aspect': '60', 'inch': '18'},
+  };
+
+  String? _selectedMaker;
+  String? _selectedModel;
+  String? _selectedYear;
+
+  final _years = ['2018년식', '2019년식', '2020년식', '2021년식', '2022년식', '2023년식', '2024년식'];
+
+  void _applyAutoSize(String model) {
+    final size = _tireSizeMap[model];
+    if (size == null) return;
+    final wi = _widths.indexOf(size['width']!);
+    final ai = _aspects.indexOf(size['aspect']!);
+    final ii = _inches.indexOf(size['inch']!);
+    setState(() {
+      if (wi >= 0) _widthIdx  = wi;
+      if (ai >= 0) _aspectIdx = ai;
+      if (ii >= 0) _inchIdx   = ii;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tab.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, ctrl) => Column(children: [
+        // 핸들
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          width: 40, height: 4,
+          decoration: BoxDecoration(
+              color: const Color(0xFF1E3A5F),
+              borderRadius: BorderRadius.circular(2)),
+        ),
+        // 타이틀
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            const Icon(Icons.tire_repair_rounded, color: Color(0xFF4FC3F7), size: 22),
+            const SizedBox(width: 8),
+            Text('타이어 사이즈 선택',
+              style: GoogleFonts.notoSansKr(
+                fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+            const Spacer(),
+            // 중고 타이어 토글
+            GestureDetector(
+              onTap: () => setState(() => _isUsed = !_isUsed),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _isUsed
+                      ? const Color(0xFFFF6B35).withOpacity(0.2)
+                      : const Color(0xFF0D1B2A),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _isUsed
+                        ? const Color(0xFFFF6B35)
+                        : const Color(0xFF1E3A5F),
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.recycling_rounded,
+                    color: _isUsed ? const Color(0xFFFF6B35) : const Color(0xFFB0BEC5),
+                    size: 14),
+                  const SizedBox(width: 4),
+                  Text('중고',
+                    style: GoogleFonts.notoSansKr(
+                      fontSize: 11,
+                      color: _isUsed ? const Color(0xFFFF6B35) : const Color(0xFFB0BEC5),
+                      fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+        // 탭
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A1628),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: TabBar(
+            controller: _tab,
+            indicator: BoxDecoration(
+              color: const Color(0xFF4FC3F7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: Colors.black,
+            unselectedLabelColor: const Color(0xFFB0BEC5),
+            labelStyle: GoogleFonts.notoSansKr(fontWeight: FontWeight.w700, fontSize: 13),
+            tabs: const [
+              Tab(text: '차종으로 자동 매칭'),
+              Tab(text: '직접 사이즈 선택'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 탭 컨텐츠
+        Expanded(
+          child: TabBarView(
+            controller: _tab,
+            children: [
+              _buildCarSelectTab(ctrl),
+              _buildDirectPickerTab(ctrl),
+            ],
+          ),
+        ),
+        // 하단 확인 버튼
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 12),
+          child: Column(children: [
+            // 선택된 사이즈 표시
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A1628),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.3)),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text('선택 사이즈: ',
+                  style: GoogleFonts.notoSansKr(fontSize: 13, color: const Color(0xFFB0BEC5))),
+                Text(
+                  '${_widths[_widthIdx]} / ${_aspects[_aspectIdx]} / R${_inches[_inchIdx]}',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 15, fontWeight: FontWeight.w900,
+                    color: const Color(0xFF4FC3F7)),
+                ),
+              ]),
+            ),
+            Row(children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => widget.onSizeSelected(
+                    _widths[_widthIdx], _aspects[_aspectIdx],
+                    _inches[_inchIdx], false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4FC3F7),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('새 타이어 견적 요청',
+                    style: GoogleFonts.notoSansKr(
+                      color: Colors.black, fontWeight: FontWeight.w800, fontSize: 14)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => widget.onSizeSelected(
+                    _widths[_widthIdx], _aspects[_aspectIdx],
+                    _inches[_inchIdx], true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B35),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('중고 타이어 재고 문의',
+                    style: GoogleFonts.notoSansKr(
+                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  // ── 탭1: 차종 선택 ─────────────────────────────────────────
+  Widget _buildCarSelectTab(ScrollController ctrl) {
+    return ListView(
+      controller: ctrl,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      children: [
+        _carSelectLabel('제조사'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8, runSpacing: 8,
+          children: _makers.map((m) {
+            final sel = _selectedMaker == m;
+            return GestureDetector(
+              onTap: () => setState(() {
+                _selectedMaker = m;
+                _selectedModel = null;
+                _selectedYear  = null;
+              }),
+              child: _selChip(m, sel, const Color(0xFF4FC3F7)),
+            );
+          }).toList(),
+        ),
+        if (_selectedMaker != null) ...[
+          const SizedBox(height: 16),
+          _carSelectLabel('모델'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: (_modelMap[_selectedMaker!] ?? []).map((m) {
+              final sel = _selectedModel == m;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  _selectedModel = m;
+                  _selectedYear  = null;
+                  _applyAutoSize(m);
+                }),
+                child: _selChip(m, sel, const Color(0xFF10B981)),
+              );
+            }).toList(),
+          ),
+        ],
+        if (_selectedModel != null) ...[
+          const SizedBox(height: 16),
+          _carSelectLabel('연식'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _years.map((y) {
+              final sel = _selectedYear == y;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedYear = y),
+                child: _selChip(y, sel, const Color(0xFFFF6B35)),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          // 자동 매칭된 규격 표시
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1628),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+            ),
+            child: Column(children: [
+              Row(children: [
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                const SizedBox(width: 6),
+                Text('$_selectedMaker $_selectedModel 표준 규격 자동 매칭',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 12, color: const Color(0xFF10B981), fontWeight: FontWeight.w700)),
+              ]),
+              const SizedBox(height: 10),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                _tireNumTag(_widths[_widthIdx], '단면폭(mm)'),
+                Text(' / ', style: GoogleFonts.notoSansKr(
+                    fontSize: 18, color: const Color(0xFFB0BEC5))),
+                _tireNumTag(_aspects[_aspectIdx], '편평비(%)'),
+                Text(' / ', style: GoogleFonts.notoSansKr(
+                    fontSize: 18, color: const Color(0xFFB0BEC5))),
+                _tireNumTag('R${_inches[_inchIdx]}', '인치'),
+              ]),
+            ]),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ── 탭2: 직접 3단 Picker ────────────────────────────────────
+  Widget _buildDirectPickerTab(ScrollController ctrl) {
+    return Column(children: [
+      const SizedBox(height: 8),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _pickerColumnLabel('단면폭 (mm)'),
+            _pickerColumnLabel('편평비 (%)'),
+            _pickerColumnLabel('인치'),
+          ],
+        ),
+      ),
+      const SizedBox(height: 4),
+      Expanded(
+        child: Row(children: [
+          Expanded(child: _scrollPicker(_widths,  _widthIdx,  (i) => setState(() => _widthIdx  = i))),
+          Container(width: 1, color: const Color(0xFF1E3A5F)),
+          Expanded(child: _scrollPicker(_aspects, _aspectIdx, (i) => setState(() => _aspectIdx = i))),
+          Container(width: 1, color: const Color(0xFF1E3A5F)),
+          Expanded(child: _scrollPicker(_inches,  _inchIdx,   (i) => setState(() => _inchIdx   = i))),
+        ]),
+      ),
+      const SizedBox(height: 8),
+    ]);
+  }
+
+  Widget _scrollPicker(List<String> items, int selectedIdx, void Function(int) onChanged) {
+    return ListWheelScrollView.useDelegate(
+      controller: FixedExtentScrollController(initialItem: selectedIdx),
+      itemExtent: 48,
+      diameterRatio: 1.5,
+      onSelectedItemChanged: onChanged,
+      physics: const FixedExtentScrollPhysics(),
+      childDelegate: ListWheelChildBuilderDelegate(
+        childCount: items.length,
+        builder: (_, i) {
+          final sel = i == selectedIdx;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            alignment: Alignment.center,
+            decoration: sel
+              ? BoxDecoration(
+                  color: const Color(0xFF4FC3F7).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF4FC3F7).withOpacity(0.5)),
+                )
+              : null,
+            child: Text(items[i],
+              style: GoogleFonts.notoSansKr(
+                fontSize: sel ? 22 : 16,
+                fontWeight: sel ? FontWeight.w900 : FontWeight.w400,
+                color: sel ? const Color(0xFF4FC3F7) : const Color(0xFFB0BEC5),
+              )),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _carSelectLabel(String t) => Text(t,
+    style: GoogleFonts.notoSansKr(
+      fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFFB0BEC5)));
+
+  Widget _selChip(String label, bool sel, Color color) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: sel ? color.withOpacity(0.18) : const Color(0xFF0A1628),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: sel ? color : const Color(0xFF1E3A5F)),
+      ),
+      child: Text(label, style: GoogleFonts.notoSansKr(
+        fontSize: 12,
+        color: sel ? color : const Color(0xFFB0BEC5),
+        fontWeight: sel ? FontWeight.w700 : FontWeight.w400,
+      )),
+    );
+  }
+
+  Widget _pickerColumnLabel(String t) => Expanded(
+    child: Text(t, textAlign: TextAlign.center,
+      style: GoogleFonts.notoSansKr(
+        fontSize: 11, color: const Color(0xFFB0BEC5), fontWeight: FontWeight.w600)),
+  );
+
+  Widget _tireNumTag(String val, String label) {
+    return Column(children: [
+      Text(val, style: GoogleFonts.notoSansKr(
+          fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF4FC3F7))),
+      const SizedBox(height: 2),
+      Text(label, style: GoogleFonts.notoSansKr(fontSize: 9, color: const Color(0xFFB0BEC5))),
+    ]);
+  }
 }

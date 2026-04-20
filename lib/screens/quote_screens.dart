@@ -399,15 +399,8 @@ class _QuoteRequestScreenState extends State<QuoteRequestScreen> {
                   Text('사진으로 근처 정비점에 견적을 요청하세요', style: TextStyle(color: _textSec, fontSize: 11)),
                 ]),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.photo_camera, color: _accent, size: 12),
-                  SizedBox(width: 4),
-                  Text('최대 10장', style: TextStyle(color: _accent, fontSize: 10, fontWeight: FontWeight.w600)),
-                ]),
-              ),
+              Text('사진 최대 10장',
+                style: TextStyle(color: _accent.withOpacity(0.75), fontSize: 10)),
             ]),
           ),
 
