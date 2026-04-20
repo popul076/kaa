@@ -595,25 +595,34 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         const Spacer(),
-        // 알림
-        GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/notification'),
-          child: Stack(clipBehavior: Clip.none, children: [
-            Container(
-              width: 38, height: 38,
-              decoration: BoxDecoration(color: _s1,
-                  borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
-              child: const Icon(Icons.notifications_none_rounded, color: _t2, size: 19),
-            ),
-            Positioned(right: -1, top: -1,
-              child: Container(
-                width: 15, height: 15,
-                decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
-                child: const Center(child: Text('2',
-                    style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))),
-              ),
-            ),
-          ]),
+        // 알림 (종 아이콘 - 모든 알림 통합, 배지 동적 표시)
+        AnimatedBuilder(
+          animation: AppState(),
+          builder: (_, __) {
+            final badgeCount = AppState().totalBidCount + AppState().inAppNotifications.length;
+            return GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/notification'),
+              child: Stack(clipBehavior: Clip.none, children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(color: _s1,
+                      borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
+                  child: const Icon(Icons.notifications_none_rounded, color: _t2, size: 19),
+                ),
+                if (badgeCount > 0)
+                  Positioned(right: -1, top: -1,
+                    child: Container(
+                      width: 16, height: 16,
+                      decoration: const BoxDecoration(color: Color(0xFFE53935), shape: BoxShape.circle),
+                      child: Center(child: Text(
+                        badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      )),
+                    ),
+                  ),
+              ]),
+            );
+          },
         ),
         const SizedBox(width: 8),
         // 마이버튼 → 마이페이지 이동
@@ -625,57 +634,6 @@ class _HomeScreenState extends State<HomeScreen>
                 borderRadius: BorderRadius.circular(50), border: Border.all(color: _br)),
             child: const Icon(Icons.person_outline_rounded, color: _t2, size: 19),
           ),
-        ),
-        const SizedBox(width: 8),
-        // 신청 내역 버튼 (항상 표시 - GestureDetector → QuoteReceivedScreen)
-        AnimatedBuilder(
-          animation: AppState(),
-          builder: (_, __) {
-            final hasActive = AppState().hasActiveRequest;
-            return GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/quote-received'),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: hasActive ? const Color(0xFF1A4A2E) : _s1,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: hasActive ? const Color(0xFF2ECC71) : _br,
-                    width: hasActive ? 1.5 : 1,
-                  ),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(
-                    hasActive ? Icons.mark_email_unread_rounded : Icons.list_alt_rounded,
-                    color: hasActive ? const Color(0xFF2ECC71) : _t2,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    hasActive ? '견적도착' : '신청내역',
-                    style: TextStyle(
-                      color: hasActive ? const Color(0xFF2ECC71) : _t2,
-                      fontSize: 10,
-                      fontWeight: hasActive ? FontWeight.w800 : FontWeight.w600,
-                    ),
-                  ),
-                  if (hasActive && AppState().totalBidCount > 0) ...[ 
-                    const SizedBox(width: 4),
-                    Container(
-                      width: 16, height: 16,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE53935), shape: BoxShape.circle),
-                      child: Center(child: Text(
-                        '${AppState().totalBidCount}',
-                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                      )),
-                    ),
-                  ],
-                ]),
-              ),
-            );
-          },
         ),
       ]),
     );

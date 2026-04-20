@@ -508,135 +508,52 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
     }).toList();
   }
 
-  // ── 견적 요청 배너 (요청 전/후 상태 전환) ──────────────
+  // ── 견적 요청 배너 (항상 견적요청하기 배너만 표시) ──────────────
   Widget _buildQuoteRequestBanner() {
-    // 배너 표시 전에 더미 데이터 초기화 (비어있으면)
-    AppState().initDummyEstimates();
-
-    return AnimatedBuilder(
-      animation: AppState(),
-      builder: (context, _) {
-        final requests = AppState().estimateRequests;
-        // matched/completed 제외 - 확정 후엔 무료견적 배너로 복귀
-        final activeRequests = requests.where((r) =>
-          r.status == RepairStatus.bidding ||
-          r.status == RepairStatus.pending  ||
-          r.status == RepairStatus.received
-        ).toList();
-        final totalBids = activeRequests.fold(0, (sum, r) => sum + r.bidCount);
-        // ── 핵심: 요청이 있거나 isRequestActive 플래그가 있으면 도착확인 배너 ──
-        // matched/completed 는 배너에서 제외 → 무료견적 배너로 복귀
-        final hasActiveRequest = AppState().isRequestActive || activeRequests.isNotEmpty;
-
-        if (hasActiveRequest) {
-          // ── 도착한 견적서 확인하기 배너 (디자인 시안대로 크고 명확하게) ──
-          return GestureDetector(
-            onTap: () {
-              // 즉시 라우팅 (데이터 없어도 화면 이동)
-              Navigator.pushNamed(context, '/quote-received');
-            },
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0D3B1E), Color(0xFF0A2E18)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _green.withOpacity(0.6), width: 1.5),
-                boxShadow: [BoxShadow(
-                  color: _green.withOpacity(0.15),
-                  blurRadius: 10, offset: const Offset(0, 3),
-                )],
-              ),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: _green.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.mark_email_unread_rounded, color: _green, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        totalBids > 0
-                          ? '견적서 ${totalBids}건 도착!'
-                          : '도착한 견적서 확인하기',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 14, fontWeight: FontWeight.w800,
-                          color: Colors.white),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        totalBids > 0
-                          ? '${activeRequests.length}개 점포에서 견적을 보냈습니다 · 지금 확인하세요!'
-                          : '견적 요청 후 점포에서 답변을 검토 중입니다',
-                        style: GoogleFonts.notoSansKr(
-                          fontSize: 11, color: Colors.white.withOpacity(0.75)),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded, color: _green, size: 22),
-              ]),
-            ),
-          );
-        }
-
-        // ── 요청 전: 견적 요청하기 배너 (크고 명확하게) ──
-        return GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/quote-request'),
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [const Color(0xFF1565C0), _accent.withOpacity(0.85)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(
-                color: _accent.withOpacity(0.3),
-                blurRadius: 12, offset: const Offset(0, 4),
-              )],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.build_circle_outlined, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('${widget.category} 견적 요청하기',
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text('근처 점포에서 빠르게 견적을 보내드립니다',
-                      style: GoogleFonts.notoSansKr(
-                        fontSize: 12, color: Colors.white.withOpacity(0.85))),
-                  ],
-                )),
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
-              ]),
-            ),
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/quote-request'),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [const Color(0xFF1565C0), _accent.withOpacity(0.85)],
           ),
-        );
-      },
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(
+            color: _accent.withOpacity(0.3),
+            blurRadius: 12, offset: const Offset(0, 4),
+          )],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.build_circle_outlined, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${widget.category} 견적 요청하기',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                const SizedBox(height: 4),
+                Text('근처 점포에서 빠르게 견적을 보내드립니다',
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 12, color: Colors.white.withOpacity(0.85))),
+              ],
+            )),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
+          ]),
+        ),
+      ),
     );
   }
 

@@ -1039,18 +1039,53 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   List<Map<String, dynamic>> get _allNotifs {
-    // AppState 실시간 알림 + 기존 알림 합치기
-    final live = AppState().inAppNotifications.map((n) => {
-      'title': n['title'] ?? '',
-      'body': n['body'] ?? '',
-      'date': DateTime.now().toString().substring(0, 10),
-      'time': '방금 전',
-      'icon': '📬',
-      'read': false,
-      'category': '견적',
-      'route': '/quote-received',
-    } as Map<String, dynamic>).toList();
-    return [...live, ..._notifs];
+    final List<Map<String, dynamic>> result = [];
+
+    // 1) 신청내역 / 견적도착 → AppState estimateRequests에서 동적 생성
+    AppState().initDummyEstimates();
+    for (final req in AppState().estimateRequests) {
+      if (req.bidCount > 0) {
+        result.add({
+          'title': '견적서 ${req.bidCount}건 도착!',
+          'body': '${req.carName} · ${req.repairType}\n${req.bidCount}개 점포에서 견적을 보냈습니다. 지금 확인하세요!',
+          'date': DateTime.now().toString().substring(0, 10),
+          'time': '방금 전',
+          'icon': '📬',
+          'read': false,
+          'category': '견적',
+          'route': '/quote-received',
+        });
+      } else {
+        result.add({
+          'title': '견적 신청 접수됨',
+          'body': '${req.carName} · ${req.repairType}\n근처 점포에서 견적을 검토 중입니다.',
+          'date': DateTime.now().toString().substring(0, 10),
+          'time': '방금 전',
+          'icon': '📋',
+          'read': false,
+          'category': '견적',
+          'route': '/quote-received',
+        });
+      }
+    }
+
+    // 2) AppState 실시간 인앱 알림 (기타 알림)
+    for (final n in AppState().inAppNotifications) {
+      result.add({
+        'title': n['title'] ?? '',
+        'body': n['body'] ?? '',
+        'date': DateTime.now().toString().substring(0, 10),
+        'time': '방금 전',
+        'icon': '🔔',
+        'read': false,
+        'category': '알림',
+        'route': '/notification',
+      });
+    }
+
+    // 3) 정적 알림 목록
+    result.addAll(_notifs);
+    return result;
   }
 
   final List<Map<String, dynamic>> _notifs = [
@@ -1141,8 +1176,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                   ),
                   const SizedBox(width: 12),
-                  const Text('🔔 알림',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                  const Text('알림',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
                   if (_unreadCount > 0) ...[
                     const SizedBox(width: 8),
                     Container(
@@ -1198,9 +1233,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               _expanded.add(i);
                             }
                           });
-                          // 견적 카테고리 알림 → 마이페이지 견적 내역으로 이동
-                          if (n['category'] == '견적') {
-                            Navigator.pushNamed(context, '/my-quotes');
+                          // route 있으면 해당 페이지로, 없으면 카테고리별 이동
+                          final route = n['route'] as String?;
+                          if (route != null && route.isNotEmpty && route != '/notification') {
+                            Navigator.pushNamed(context, route);
+                          } else if (n['category'] == '견적') {
+                            Navigator.pushNamed(context, '/quote-received');
                           }
                         },
                         child: Container(
