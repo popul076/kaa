@@ -27,21 +27,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Cache Gradle + NDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.android/build-cache
-            /usr/local/lib/android/sdk/ndk
-          key: ${{ runner.os }}-gradle-ndk-${{ hashFiles('**/*.gradle*', '**/pubspec.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-ndk-
-            ${{ runner.os }}-gradle-
-
       - name: Flutter pub get
         run: flutter pub get
+
+      - name: Clean build cache
+        run: flutter clean
 
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
@@ -56,5 +46,5 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git add moincar-v37.apk
-          git commit -m "v37 APK 배포"
+          git commit -m "v37 APK 재배포 (캐시 제거 후 클린빌드)"
           git push
