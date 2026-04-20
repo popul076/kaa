@@ -163,6 +163,86 @@ class EstimateRequest {
   int get bidCount => bids.length;
 }
 
+// ══════════════════════════════════════════════════════════
+// 타이어 견적 요청 모델
+// ══════════════════════════════════════════════════════════
+enum TireRequestStatus {
+  bidding,   // 견적 수신 대기
+  received,  // 견적 도착
+  confirmed, // 확정
+  cancelled,
+}
+
+class TireBid {
+  final String bidId;
+  final int storeId;
+  final String storeName;
+  final String storeDistance;
+  final double storeRating;
+  final String tireWidth;
+  final String tireAspect;
+  final String tireInch;
+  final String tireBrand;    // 브랜드 (한국, 금호, 미쉐린 등)
+  final bool isUsed;         // 중고 여부
+  final int pricePerTire;    // 1개 가격
+  final int quantity;        // 수량
+  final int totalCost;
+  final String estimatedTime;
+  final String memo;
+  final String storePhone;
+  final DateTime createdAt;
+  bool isRead;
+
+  TireBid({
+    required this.bidId,
+    required this.storeId,
+    required this.storeName,
+    required this.storeDistance,
+    required this.storeRating,
+    required this.tireWidth,
+    required this.tireAspect,
+    required this.tireInch,
+    required this.tireBrand,
+    required this.isUsed,
+    required this.pricePerTire,
+    required this.quantity,
+    required this.totalCost,
+    required this.estimatedTime,
+    required this.memo,
+    required this.storePhone,
+    required this.createdAt,
+    this.isRead = false,
+  });
+}
+
+class TireRequest {
+  final String requestId;
+  final String tireWidth;
+  final String tireAspect;
+  final String tireInch;
+  final bool isUsed;
+  final String carName;
+  final String region;
+  final DateTime createdAt;
+  TireRequestStatus status;
+  final List<TireBid> bids;
+
+  TireRequest({
+    required this.requestId,
+    required this.tireWidth,
+    required this.tireAspect,
+    required this.tireInch,
+    required this.isUsed,
+    required this.carName,
+    required this.region,
+    required this.createdAt,
+    this.status = TireRequestStatus.bidding,
+    List<TireBid>? bids,
+  }) : bids = bids ?? [];
+
+  int get bidCount => bids.length;
+}
+
 /// 점포 알림 설정 (PC 점포관리자 연동 대비)
 class ShopNotificationSettings {
   bool soundEnabled;    // 음성 알림
@@ -426,6 +506,8 @@ class AppState extends ChangeNotifier {
       carNumber: req.carNumber,
       repairType: req.repairType,
       storeName: bid.storeName,
+      storeId: bid.storeId,
+      storePhone: bid.storePhone,
       totalCost: bid.totalCost,
       schedule: req.matchedSchedule ?? bid.selectedSchedule ?? '',
       createdAt: req.createdAt,
@@ -445,6 +527,76 @@ class AppState extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  // ── 타이어 견적 요청 ─────────────────────────────────────────
+  final List<TireRequest> tireRequests = [];
+
+  void addTireRequest(TireRequest req) {
+    tireRequests.insert(0, req);
+    // 더미 견적 자동 생성 (시뮬레이션)
+    Future.delayed(const Duration(seconds: 2), () {
+      _addDummyTireBids(req);
+    });
+    notifyListeners();
+  }
+
+  void _addDummyTireBids(TireRequest req) {
+    req.bids.addAll([
+      TireBid(
+        bidId: 'TB-${req.requestId}-1',
+        storeId: 1,
+        storeName: 'KAA 추천 프리미엄 정비소',
+        storeDistance: '1.8km',
+        storeRating: 4.9,
+        tireWidth: req.tireWidth,
+        tireAspect: req.tireAspect,
+        tireInch: req.tireInch,
+        tireBrand: req.isUsed ? '한국타이어 (중고 A급)' : '한국타이어 Ventus S1',
+        isUsed: req.isUsed,
+        pricePerTire: req.isUsed ? 45000 : 128000,
+        quantity: 4,
+        totalCost: req.isUsed ? 180000 : 512000,
+        estimatedTime: '약 1시간',
+        memo: req.isUsed
+          ? '상태 양호한 A급 중고 재고 있습니다. 당일 작업 가능.'
+          : '신품 재고 있음. 균형 잡기 포함 가격.',
+        storePhone: '053-123-4567',
+        createdAt: DateTime.now(),
+      ),
+      TireBid(
+        bidId: 'TB-${req.requestId}-2',
+        storeId: 2,
+        storeName: '타이어 스피드 전문점',
+        storeDistance: '2.3km',
+        storeRating: 4.7,
+        tireWidth: req.tireWidth,
+        tireAspect: req.tireAspect,
+        tireInch: req.tireInch,
+        tireBrand: req.isUsed ? '금호타이어 (중고 B급)' : '금호타이어 SOLUS 4S',
+        isUsed: req.isUsed,
+        pricePerTire: req.isUsed ? 35000 : 98000,
+        quantity: 4,
+        totalCost: req.isUsed ? 140000 : 392000,
+        estimatedTime: '약 45분',
+        memo: req.isUsed
+          ? '저렴한 B급 중고 재고. 주행 가능 상태.'
+          : '당일 장착 가능. 공임비 포함.',
+        storePhone: '053-234-5678',
+        createdAt: DateTime.now(),
+      ),
+    ]);
+    req.status = TireRequestStatus.received;
+    notifyListeners();
+  }
+
+  TireRequest? get activeTireRequest {
+    try {
+      return tireRequests.firstWhere(
+        (r) => r.status == TireRequestStatus.bidding ||
+               r.status == TireRequestStatus.received,
+      );
+    } catch (_) { return null; }
   }
 
   // ── 미읽음 견적서 수 ─────────────────────────────────────────
@@ -572,9 +724,13 @@ class MaintenanceRecord {
   final String carNumber;
   final String repairType;
   final String storeName;
+  final int storeId;        // 점포 상세 연결용
+  final String storePhone;  // 다시 신청 시 전화
   final int totalCost;
   final String schedule;
   final DateTime createdAt;
+  String? reviewText;       // 리뷰 텍스트
+  int? reviewRating;        // 리뷰 별점 (1~5)
 
   MaintenanceRecord({
     required this.requestId,
@@ -582,9 +738,13 @@ class MaintenanceRecord {
     required this.carNumber,
     required this.repairType,
     required this.storeName,
+    this.storeId = 1,
+    this.storePhone = '',
     required this.totalCost,
     required this.schedule,
     required this.createdAt,
+    this.reviewText,
+    this.reviewRating,
   });
 }
 
