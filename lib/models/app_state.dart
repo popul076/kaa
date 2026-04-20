@@ -699,6 +699,38 @@ class AppState extends ChangeNotifier {
     } catch (_) { return null; }
   }
 
+  // ── 타이어 견적 확정: 선택 점포 확정 + 나머지 '거래 완료' + 배너 리셋 ──
+  void confirmTireRequest(String requestId, String selectedBidId) {
+    try {
+      final req = tireRequests.firstWhere(
+        (r) => r.requestId == requestId,
+        orElse: () => tireRequests.first,
+      );
+      req.status = TireRequestStatus.confirmed;
+      for (final bid in req.bids) {
+        bid.isRead = bid.bidId != selectedBidId; // 미선택 점포 → 거래완료(비활성화)
+      }
+      // 타이어 정비 이력 저장
+      final confirmed = req.bids.where((b) => b.bidId == selectedBidId).toList();
+      if (confirmed.isNotEmpty) {
+        final bid = confirmed.first;
+        maintenanceHistory.add(MaintenanceRecord(
+          requestId: req.requestId,
+          carName: req.carName,
+          carNumber: '',
+          repairType: '타이어 교체 (${req.tireWidth}/${req.tireAspect}/R${req.tireInch})',
+          storeName: bid.storeName,
+          storeId: bid.storeId,
+          storePhone: bid.storePhone,
+          totalCost: bid.totalCost,
+          schedule: '',
+          createdAt: DateTime.now(),
+        ));
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
   // ── 미읽음 견적서 수 ─────────────────────────────────────────
   int get unreadBidCount => estimateRequests.fold(
     0, (sum, r) => sum + r.bids.where((b) => !b.isRead).length);

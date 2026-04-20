@@ -757,17 +757,11 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: isDeactivated ? null : () {
-                          // 확정: 선택한 점포 외 나머지 bids 비활성화
-                          for (final other in req.bids) {
-                            if (other.bidId != bid.bidId) {
-                              other.isRead = true; // 비활성화 마킹
-                            }
-                          }
-                          req.status = TireRequestStatus.confirmed;
-                          AppState().notifyListeners();
+                          // 확정: AppState.confirmTireRequest 호출 → 배너 Stage0 리셋
+                          AppState().confirmTireRequest(req.requestId, bid.bidId);
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('✅ ${bid.storeName}으로 확정! 나머지 견적은 자동 종료됩니다'),
+                            content: Text('✅ ${bid.storeName}으로 확정! 나머지 견적은 거래 완료 처리됩니다'),
                             backgroundColor: _green,
                             behavior: SnackBarBehavior.floating,
                             duration: const Duration(seconds: 3),

@@ -5921,63 +5921,25 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
   static const Color _textSec = Color(0xFFB0BEC5);
   static const Color _border  = Color(0xFF1E3A5F);
 
-  // storeId 추가: AppData.stores id와 매핑 (1=KAA정비소, 3=타이어전문점)
-  final List<Map<String, dynamic>> _history = [
-    {'date': '2024-12-10', 'type': '엔진오일 교환', 'shop': 'MOINCAR 추천 정비소',
-     'cost': '89,000원', 'mile': '44,100km', 'next': '45,100km', 'color': 0xFF4FC3F7, 'icon': '🛢️', 'storeId': 1},
-    {'date': '2024-09-05', 'type': '타이어 교체 (앞 2개)', 'shop': '타이어뱅크 수성점',
-     'cost': '280,000원', 'mile': '40,200km', 'next': '-', 'color': 0xFFFF6B35, 'icon': '🔄', 'storeId': 3},
-    {'date': '2024-06-22', 'type': '브레이크 패드 교환', 'shop': 'MOINCAR 추천 정비소',
-     'cost': '150,000원', 'mile': '37,500km', 'next': '57,500km', 'color': 0xFF10B981, 'icon': '🔧', 'storeId': 1},
-    {'date': '2024-03-11', 'type': '종합 점검 + 에어필터', 'shop': '현대 오토에버',
-     'cost': '65,000원', 'mile': '33,000km', 'next': '-', 'color': 0xFF8B5CF6, 'icon': '🔍', 'storeId': 1},
-  ];
-
-  int get _totalCost => _history.fold(0, (s, h) {
-    final val = (h['cost'] as String).replaceAll(RegExp(r'[^0-9]'), '');
-    return s + (int.tryParse(val) ?? 0);
-  });
-
   // ── 날짜 키: 'YYYY-MM' 단위로 그룹화 ─────────────────────────
   String _monthKey(DateTime dt) =>
       '${dt.year}년 ${dt.month.toString().padLeft(2, '0')}월';
-
-  String _monthKeyFromStr(String dateStr) {
-    final parts = dateStr.split('-');
-    if (parts.length < 2) return dateStr;
-    return '${parts[0]}년 ${parts[1]}월';
-  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: AppState(),
       builder: (context, _) {
-        final matchedRecords = AppState().maintenanceHistory;
-        final totalCost = _history.fold(0, (s, h) {
-          final val = (h['cost'] as String).replaceAll(RegExp(r'[^0-9]'), '');
-          return s + (int.tryParse(val) ?? 0);
-        }) + matchedRecords.fold(0, (s, r) => s + r.totalCost);
+        final allRecords = AppState().maintenanceHistory;
+        final totalCost = allRecords.fold(0, (s, r) => s + r.totalCost);
 
-        // ── 모든 항목을 통합 후 날짜 역순 그룹화 ────────────────
-        // KAA 확정 내역 → Map 형태로 변환
-        final kaaItems = matchedRecords.map((rec) => {
+        // ── maintenanceHistory만 사용 (하드코딩 이력 제거) ──
+        final allItems = allRecords.map((rec) => <String, dynamic>{
           'isKaa': true,
           'date': '${rec.createdAt.year}-${rec.createdAt.month.toString().padLeft(2,"0")}-${rec.createdAt.day.toString().padLeft(2,"0")}',
           'monthKey': _monthKey(rec.createdAt),
           'rec': rec,
-        }).toList();
-
-        // 하드코딩 이력
-        final histItems = _history.map((h) => {
-          'isKaa': false,
-          'date': h['date'],
-          'monthKey': _monthKeyFromStr(h['date'] as String),
-          ...h,
-        }).toList();
-
-        // 합쳐서 날짜 역순 정렬
-        final allItems = [...kaaItems, ...histItems]
+        }).toList()
           ..sort((a, b) => (b['date'] as String).compareTo(a['date'] as String));
 
         // 월별 그룹화
@@ -6132,17 +6094,13 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
                             ),
                           ]),
                         ),
-                        // 해당 월 항목들
+                        // 해당 월 항목들 (모두 KAA 이력)
                         ...items.asMap().entries.map((e) {
                           final idx = e.key;
                           final item = e.value;
                           final isLast = idx == items.length - 1;
-                          if (item['isKaa'] == true) {
-                            final rec = item['rec'] as MaintenanceRecord;
-                            return _buildKaaRecordCard(context, rec, isLast);
-                          } else {
-                            return _buildHistoryCard(item, isLast);
-                          }
+                          final rec = item['rec'] as MaintenanceRecord;
+                          return _buildKaaRecordCard(context, rec, isLast);
                         }),
                         const SizedBox(height: 8),
                       ];
@@ -6270,112 +6228,7 @@ class _VehicleMaintenanceScreenState extends State<VehicleMaintenanceScreen> {
     );
   }
 
-  // ── 하드코딩 정비 이력 카드 ────────────────────────────────
-  // storeId 필드로 StoreDetail 이동 + 이력 기반 재견적 버튼
-  Widget _buildHistoryCard(Map<String, dynamic> h, bool isLast) {
-    final color = Color(h['color'] as int);
-    final storeId = h['storeId'] as int? ?? 1;
-
-    return GestureDetector(
-      onTap: () {
-        // 카드 탭 → 점포 상세로 이동
-        final store = AppData.stores.firstWhere(
-          (s) => s.id == storeId,
-          orElse: () => AppData.stores.first,
-        );
-        Navigator.pushNamed(context, '/store-detail', arguments: store);
-      },
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(children: [
-            Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.4)),
-              ),
-              child: Center(child: Text(h['icon'] as String,
-                style: const TextStyle(fontSize: 14))),
-            ),
-            if (!isLast) Container(width: 1, height: 130, color: _border),
-          ]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _border),
-              ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Text(h['date'] as String,
-                    style: const TextStyle(color: _textSec, fontSize: 10)),
-                  const Spacer(),
-                  Text(h['mile'] as String,
-                    style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700)),
-                ]),
-                const SizedBox(height: 6),
-                Text(h['type'] as String,
-                  style: const TextStyle(color: _textPri, fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 3),
-                Row(children: [
-                  const Icon(Icons.store_outlined, size: 11, color: _textSec),
-                  const SizedBox(width: 4),
-                  Text(h['shop'] as String,
-                    style: const TextStyle(color: _textSec, fontSize: 11)),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: _textSec),
-                ]),
-                const SizedBox(height: 6),
-                Row(children: [
-                  const Text('비용: ', style: TextStyle(color: _textSec, fontSize: 11)),
-                  Text(h['cost'] as String,
-                    style: const TextStyle(color: _textPri, fontSize: 12, fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  if (h['next'] != '-') ...[
-                    const Text('다음: ', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
-                    Text(h['next'] as String,
-                      style: const TextStyle(color: Color(0xFF10B981), fontSize: 10, fontWeight: FontWeight.w600)),
-                  ],
-                ]),
-                const SizedBox(height: 8),
-                // ── 이력 기반 재견적 버튼 ──
-                GestureDetector(
-                  onTap: () {
-                    final store = AppData.stores.firstWhere(
-                      (s) => s.id == storeId,
-                      orElse: () => AppData.stores.first,
-                    );
-                    Navigator.pushNamed(context, '/store-detail', arguments: store);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _accent.withOpacity(0.35)),
-                    ),
-                    child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.history_edu_rounded, color: _accent, size: 13),
-                      SizedBox(width: 5),
-                      Text('이력 기반 재견적 요청',
-                        style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // _buildHistoryCard 제거 (maintenanceHistory 통합으로 불필요)
 
   void _showAddMaintenanceDialog() {
     final typeCtrl = TextEditingController();
