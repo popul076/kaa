@@ -285,11 +285,19 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final storeId = ModalRoute.of(context)?.settings.arguments as int? ?? 1;
-    final store = AppData.stores.firstWhere(
-      (s) => s.id == storeId,
-      orElse: () => AppData.stores.first,
-    );
+    // arguments는 Store 객체 또는 int(storeId) 모두 허용
+    final args = ModalRoute.of(context)?.settings.arguments;
+    Store store;
+    if (args is Store) {
+      store = args;
+    } else if (args is int) {
+      store = AppData.stores.firstWhere(
+        (s) => s.id == args,
+        orElse: () => AppData.stores.first,
+      );
+    } else {
+      store = AppData.stores.first;
+    }
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
