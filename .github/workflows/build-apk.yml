@@ -1,4 +1,4 @@
-name: Build APK v40
+name: Build APK v41
 
 on:
   push:
@@ -41,10 +41,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
-          cp build/app/outputs/flutter-apk/app-release.apk pages_repo/moincar-v40.apk
+          cp build/app/outputs/flutter-apk/app-release.apk pages_repo/moincar-v41.apk
           cd pages_repo
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git add moincar-v40.apk
-          git commit -m "v40 APK 배포"
+          git add moincar-v41.apk
+          git commit -m "v41 APK 배포 (지도330x270 세차검사배너삭제 최대10장버튼제거 타이어3단Picker)"
           git push
