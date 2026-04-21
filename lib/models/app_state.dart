@@ -1234,7 +1234,7 @@ class UsedCarListing {
   final String carName;
   final String modelYear;
   final int mileage;
-  final int price;
+  int price;           // mutable for price editing
   final String fuel;
   final String transmission;
   final String color;
@@ -1521,7 +1521,7 @@ class UsedCarState extends ChangeNotifier {
   void markSold(String listingId) {
     try {
       final l = listings.firstWhere((l) => l.listingId == listingId);
-      l.isSold = true;
+      l.isSold = !l.isSold; // toggle: sold ↔ active
     } catch (_) {}
     notifyListeners();
   }

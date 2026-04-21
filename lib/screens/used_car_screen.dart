@@ -437,62 +437,22 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
             ]),
           ),
 
-          const SizedBox(height: 24),
-          const Divider(color: _border),
           const SizedBox(height: 16),
-
-          // 직거래 매물 등록 섹션
+          // 안내 카드: STEP1에서 판매방법 선택
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_purple.withOpacity(0.15), _purple.withOpacity(0.05)],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _purple.withOpacity(0.3)),
+              color: _purple.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _purple.withOpacity(0.25)),
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _purple.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.storefront_rounded, color: _purple, size: 22),
-                ),
-                const SizedBox(width: 10),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('직거래 매물 등록하기',
-                      style: GoogleFonts.notoSansKr(
-                        color: _textPri, fontSize: 15, fontWeight: FontWeight.w800)),
-                    Text('협회 인증 배지 · 매물 바로 노출',
-                      style: GoogleFonts.notoSansKr(
-                        color: _purple, fontSize: 11)),
-                  ],
-                )),
-              ]),
-              const SizedBox(height: 12),
-              _bulletPoint('내 차 정보(시세 기반)를 직거래 매물로 등록'),
-              _bulletPoint('[협회 인증] 배지 즉시 부여'),
-              _bulletPoint('개인간 거래: 1:1 문의 → 전화번호 교환'),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _showRegisterIndividualListing(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _purple,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('직거래 매물 등록',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
-                ),
-              ),
+            child: Row(children: [
+              const Icon(Icons.info_outline_rounded, color: _purple, size: 16),
+              const SizedBox(width: 10),
+              const Expanded(child: Text(
+                '차량번호 조회 후 상세 정보를 입력하면\n딜러 견적 요청 또는 직거래 등록 중 선택하실 수 있습니다',
+                style: TextStyle(color: _purple, fontSize: 11, height: 1.5),
+              )),
             ]),
           ),
         ],
@@ -950,29 +910,79 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
           ),
           const SizedBox(height: 24),
 
-          // 전송 버튼
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: canSubmit ? _submitSale : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: canSubmit ? _green : _border,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: canSubmit ? 4 : 0,
+          // ── 판매 방법 선택 (입력 완료 후 활성화) ──
+          if (!canSubmit) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: _border.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(
-                canSubmit ? '🚀  딜러에게 판매 신청하기' : '주행거리를 새로 입력해 주세요',
-                style: TextStyle(
-                  color: canSubmit ? Colors.white : _textSec,
-                  fontSize: 15, fontWeight: FontWeight.w800),
+              child: const Center(child: Text('주행거리를 새로 입력하면 판매 방법을 선택할 수 있습니다',
+                style: TextStyle(color: _textSec, fontSize: 12),
+                textAlign: TextAlign.center)),
+            ),
+          ] else ...[
+            // 섹션 제목
+            Row(children: [
+              const Icon(Icons.fork_right_rounded, color: _accent, size: 18),
+              const SizedBox(width: 6),
+              Text('판매 방법 선택',
+                style: GoogleFonts.notoSansKr(
+                  color: _textPri, fontSize: 15, fontWeight: FontWeight.w800)),
+            ]),
+            const SizedBox(height: 12),
+            // 딜러 견적 요청 버튼
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submitSale,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 4,
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('🚀  딜러 견적 요청하기',
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 2),
+                    Text('여러 딜러가 경쟁 견적 · 최고가 선택 가능',
+                      style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Center(child: Text('신청 후 가까운 딜러들이 견적을 보내드립니다',
-            style: TextStyle(color: _textSec.withOpacity(0.7), fontSize: 11))),
+            const SizedBox(height: 10),
+            // 직거래 등록 버튼
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _showRegisterIndividualListing(context),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: _purple, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('🏪  직거래 매물로 등록하기',
+                      style: TextStyle(color: _purple, fontSize: 15, fontWeight: FontWeight.w800)),
+                    SizedBox(height: 2),
+                    Text('협회 인증 배지 · 1:1 문의 · 직접 거래',
+                      style: TextStyle(color: _purple, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(child: Text('두 가지 방법을 동시에 활용할 수 있습니다',
+              style: TextStyle(color: _textSec.withOpacity(0.7), fontSize: 11))),
+          ],
           const SizedBox(height: 20),
         ],
           ),
@@ -1079,6 +1089,23 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
 
           if (!isMatched) ...[
             const SizedBox(height: 16),
+            // 직거래 재등록 버튼
+            GestureDetector(
+              onTap: () => _showRegisterIndividualListing(context),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: _purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _purple.withOpacity(0.4)),
+                ),
+                child: const Center(child: Text('🏪  직거래 매물로도 동시 등록하기',
+                  style: TextStyle(color: _purple, fontSize: 13, fontWeight: FontWeight.w700))),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // 새 신청
             GestureDetector(
               onTap: () => setState(() {
                 _step = 0;
@@ -1094,8 +1121,31 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _border),
                 ),
-                child: const Center(child: Text('새 차량 판매 신청하기',
+                child: const Center(child: Text('다른 차량 판매 신청하기',
                   style: TextStyle(color: _textSec, fontSize: 13, fontWeight: FontWeight.w600))),
+              ),
+            ),
+          ],
+          if (isMatched) ...[
+            const SizedBox(height: 16),
+            // 거래 완료 후 재신청
+            GestureDetector(
+              onTap: () => setState(() {
+                _step = 0;
+                _plateCtrl.clear();
+                _mileCtrl.clear();
+                _plateFound = false;
+              }),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _green.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _green.withOpacity(0.3)),
+                ),
+                child: const Center(child: Text('새 차량 딜러 견적 재요청',
+                  style: TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700))),
               ),
             ),
           ],
@@ -1511,6 +1561,13 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   final _filters = ['전체', '국산차', '수입차', '전기차', '직거래', '딜러', '인증'];
   final _sorts = ['최신순', '가격낮은순', '가격높은순', '주행거리순'];
 
+  // ── 상단 검색바 ──────────────────────────────────────────────
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  bool _searchFocused = false;
+  bool _showAllListings = false; // 전체보기 버튼 클릭 시
+  final _searchFocus = FocusNode();
+
   // ── 정밀 검색 필터 상태 ──────────────────────────────────────
   String? _psManufacturer;
   String? _psModel;
@@ -1525,6 +1582,20 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       _psManufacturer != null || _psModel != null || _psFuel != null ||
       _psMinYear != null || _psMaxYear != null || _psMaxPrice != null ||
       _psMaxMileage != null || _psSellerType != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.trim()));
+    _searchFocus.addListener(() => setState(() => _searchFocused = _searchFocus.hasFocus));
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
 
   void _clearPreciseFilter() => setState(() {
     _psManufacturer = _psModel = _psFuel = _psSellerType = null;
@@ -1579,6 +1650,17 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
     if (_psSellerType != null)
       list = list.where((l) => l.sellerType == _psSellerType).toList();
 
+    // ── 검색어 필터 ─────────────────────────────────────────
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((l) =>
+          l.title.toLowerCase().contains(q) ||
+          l.carName.toLowerCase().contains(q) ||
+          l.region.toLowerCase().contains(q) ||
+          l.fuel.toLowerCase().contains(q) ||
+          l.sellerName.toLowerCase().contains(q)).toList();
+    }
+
     switch (_sort) {
       case '가격낮은순': list.sort((a, b) => a.price.compareTo(b.price)); break;
       case '가격높은순': list.sort((a, b) => b.price.compareTo(a.price)); break;
@@ -1599,12 +1681,56 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       animation: UsedCarState(),
       builder: (context, _) {
         final items = _filtered;
+        final hasSearch = _searchQuery.isNotEmpty || _showAllListings;
         return Column(
           children: [
+            // ── 상단 고정 검색바 ──────────────────────────────
+            Container(
+              color: _card,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+              child: Row(children: [
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _searchFocused
+                            ? _accent.withOpacity(0.7)
+                            : _border,
+                        width: _searchFocused ? 1.5 : 1),
+                    ),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      focusNode: _searchFocus,
+                      style: const TextStyle(color: _textPri, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: '제조사, 모델, 지역으로 검색',
+                        hintStyle: TextStyle(color: _textSec.withOpacity(0.5), fontSize: 12),
+                        prefixIcon: const Icon(Icons.search_rounded, color: _textSec, size: 18),
+                        suffixIcon: (hasSearch || _showAllListings)
+                            ? GestureDetector(
+                                onTap: () {
+                                  _searchCtrl.clear();
+                                  _searchFocus.unfocus();
+                                  setState(() => _showAllListings = false);
+                                },
+                                child: const Icon(Icons.close_rounded, color: _textSec, size: 16))
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ),
             // ── 정밀 검색 버튼 바 ─────────────────────────────
             Container(
               color: _card,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
               child: Row(children: [
                 GestureDetector(
                   onTap: _showPreciseSearchSheet,
@@ -1699,47 +1825,164 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
 
             // 매물 목록
             Expanded(
-              child: items.isEmpty
-                  ? Center(child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center, children: [
-                        const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
-                        const SizedBox(height: 10),
-                        const Text('조건에 맞는 매물이 없습니다',
-                            style: TextStyle(color: _textSec, fontSize: 14)),
-                        if (_hasPreciseFilter) ...[
-                          const SizedBox(height: 10),
-                          GestureDetector(
-                            onTap: _clearPreciseFilter,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _green.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: _green.withOpacity(0.4))),
-                              child: const Text('필터 초기화',
-                                  style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+              child: !hasSearch && !_hasPreciseFilter && _filter == '전체'
+                  // 검색어 없고 필터 없을 때: 인기 차량 안내
+                  ? _buildSearchPrompt()
+                  : items.isEmpty
+                      ? Center(child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
+                            const SizedBox(height: 10),
+                            Text(
+                              hasSearch ? '"$_searchQuery" 검색 결과가 없습니다' : '조건에 맞는 매물이 없습니다',
+                              style: const TextStyle(color: _textSec, fontSize: 14),
+                              textAlign: TextAlign.center),
+                            const SizedBox(height: 10),
+                            if (hasSearch)
+                              GestureDetector(
+                                onTap: () { _searchCtrl.clear(); },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _accent.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: _accent.withOpacity(0.4))),
+                                  child: const Text('검색 지우기',
+                                      style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                            if (_hasPreciseFilter) ...[ 
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: _clearPreciseFilter,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _green.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: _green.withOpacity(0.4))),
+                                  child: const Text('필터 초기화',
+                                      style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                                ),
+                              ),
+                            ],
+                          ]))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: items.length,
+                          itemBuilder: (_, i) => _ListingCard(
+                            listing: items[i],
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    UsedCarDetailScreen(listing: items[i]),
+                              ),
                             ),
                           ),
-                        ],
-                      ]))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: items.length,
-                      itemBuilder: (_, i) => _ListingCard(
-                        listing: items[i],
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                UsedCarDetailScreen(listing: items[i]),
-                          ),
                         ),
-                      ),
-                    ),
             ),
           ],
         );
       },
+    );
+  }
+
+  // ── 검색 전 안내 화면 ─────────────────────────────────────
+  Widget _buildSearchPrompt() {
+    final popular = ['현대 아반떼', '기아 K5', '현대 투싼', '기아 쏘렌토', '제네시스 G80'];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          Center(child: Column(children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: _accent.withOpacity(0.3)),
+              ),
+              child: const Icon(Icons.search_rounded, color: _accent, size: 36),
+            ),
+            const SizedBox(height: 14),
+            Text('원하는 차량을 검색해보세요',
+              style: GoogleFonts.notoSansKr(
+                color: _textPri, fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text('제조사·모델명·지역으로 빠르게 찾을 수 있습니다',
+              style: TextStyle(color: _textSec, fontSize: 12),
+              textAlign: TextAlign.center),
+          ])),
+          const SizedBox(height: 28),
+          Text('인기 검색어',
+            style: GoogleFonts.notoSansKr(
+              color: _textSec, fontSize: 12, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: popular.map((kw) => GestureDetector(
+              onTap: () { _searchCtrl.text = kw; _searchFocus.requestFocus(); },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _border),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.trending_up_rounded, color: _accent, size: 13),
+                  const SizedBox(width: 5),
+                  Text(kw, style: const TextStyle(color: _textPri, fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            )).toList(),
+          ),
+          const SizedBox(height: 28),
+          Text('또는 아래 필터를 활용하세요',
+            style: GoogleFonts.notoSansKr(
+              color: _textSec, fontSize: 12, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  // "전체 보기" 클릭 시 전체 목록 표시 (검색 없이)
+                  _showAllListings = true;
+                }),
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _accent.withOpacity(0.4)),
+                  ),
+                  child: const Center(child: Text('전체 매물 보기',
+                    style: TextStyle(color: _accent, fontSize: 13, fontWeight: FontWeight.w700))),
+                ),
+              ),
+            ),
+            Expanded(
+              child: GestureDetector(
+                onTap: _showPreciseSearchSheet,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: _green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _green.withOpacity(0.4)),
+                  ),
+                  child: const Center(child: Text('정밀검색',
+                    style: TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700))),
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
 
@@ -2165,6 +2408,39 @@ class _ListingCard extends StatelessWidget {
                         style: const TextStyle(
                           color: _textPri, fontSize: 16, fontWeight: FontWeight.w900)),
                       const Spacer(),
+                      // 판매자 유형 배지 (텍스트 영역)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: listing.isCertified
+                              ? _green.withOpacity(0.15)
+                              : listing.sellerType == 'dealer'
+                                  ? _accent.withOpacity(0.15)
+                                  : _purple.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                            color: listing.isCertified
+                                ? _green.withOpacity(0.5)
+                                : listing.sellerType == 'dealer'
+                                    ? _accent.withOpacity(0.5)
+                                    : _purple.withOpacity(0.5)),
+                        ),
+                        child: Text(
+                          listing.isCertified
+                              ? 'KAA인증'
+                              : listing.sellerType == 'dealer'
+                                  ? '딜러'
+                                  : '직거래',
+                          style: TextStyle(
+                            color: listing.isCertified
+                                ? _green
+                                : listing.sellerType == 'dealer'
+                                    ? _accent
+                                    : _purple,
+                            fontSize: 9, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       AnimatedBuilder(
                         animation: UsedCarState(),
                         builder: (_, __) => GestureDetector(
