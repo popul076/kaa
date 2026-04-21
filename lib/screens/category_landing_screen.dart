@@ -2008,12 +2008,24 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen>
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
+                    // ── AppState에 TireRequest 등록 → 배너 Stage1 전환 ──
+                    final reqId = 'TIRE-${DateTime.now().millisecondsSinceEpoch}';
+                    AppState().addTireRequest(TireRequest(
+                      requestId: reqId,
+                      tireWidth: width,
+                      tireAspect: aspect,
+                      tireInch: inch,
+                      isUsed: isUsed,
+                      carName: AppState().user?.name ?? '내 차량',
+                      region: '대구',
+                      createdAt: DateTime.now(),
+                    ));
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text(
                         isUsed
-                          ? '중고 타이어($width/$aspect/R$inch) 재고 문의 발송 완료!'
-                          : '타이어($width/$aspect/R$inch) 견적 요청 완료!',
+                          ? '🛞 중고 타이어($width/$aspect/R$inch) 재고 문의 발송! 점포 답변을 기다립니다'
+                          : '🛞 타이어($width/$aspect/R$inch) 견적 요청 완료! 점포 답변을 기다립니다',
                         style: const TextStyle(color: Colors.white),
                       ),
                       backgroundColor: _green,

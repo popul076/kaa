@@ -1848,20 +1848,24 @@ class _ShopInboxScreenState extends State<ShopInboxScreen>
             style: ElevatedButton.styleFrom(backgroundColor: _green),
             onPressed: () {
               setState(() => req['status'] = 'done');
-              // AppState에 확정 완료 상태 반영
+              // AppState에 확정 완료 + 정비이력 저장
               if (req['isFromApp'] == true) {
                 final appState = AppState();
                 appState.updateNotificationCount(appState.notificationCount + 1);
-                // 해당 견적 요청 상태를 completed로 변경
-                final idx = appState.estimateRequests.indexWhere((e) => e.requestId == req['id']);
-                if (idx >= 0) {
-                  appState.estimateRequests[idx].status = RepairStatus.completed;
-                  appState.notifyListeners();
+                final reqId = req['id'] as String? ?? '';
+                final sched = req['schedule'] as String? ?? '';
+                // matchRequest 호출 → 경쟁 견적 거래완료 처리 + 정비이력 저장
+                final matchReq = appState.estimateRequests.where((e) => e.requestId == reqId).toList();
+                if (matchReq.isNotEmpty) {
+                  final bidId = matchReq.first.bids.isNotEmpty
+                      ? matchReq.first.bids.first.bidId
+                      : 'SB-$reqId';
+                  appState.matchRequest(reqId, bidId, selectedSchedule: sched.isNotEmpty ? sched : null);
                 }
               }
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: const Text('🎊 거래가 확정되었습니다! 고객에게 알림이 발송됩니다'),
+                content: const Text('🎊 거래가 확정되었습니다! 정비 이력이 마이페이지에 저장됩니다'),
                 backgroundColor: _green,
                 behavior: SnackBarBehavior.floating,
               ));
