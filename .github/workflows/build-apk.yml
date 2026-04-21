@@ -1,4 +1,4 @@
-name: Build APK v48
+name: Build APK v49
 
 on:
   push:
@@ -40,12 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v48"
+          APK_VERSION="v49"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v47"
+          PREV_VERSION="v48"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (홈3축카드 정밀검색 채팅우선contactStage 전화허용)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (차량옵션UI 2단계(주요옵션카드+전체옵션바텀시트) 상세페이지옵션요약+유료옵션 양방향연동)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}

@@ -164,6 +164,9 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
   List<File> _photos = [];
   final _picker = ImagePicker();
 
+  // ── 차량 옵션 선택 상태 ──
+  final Set<String> _selectedOpts = {};
+
   // 주행거리: 저장값과 달라야 전송 버튼 활성화
   String _kmSaved = '';
   bool get _kmChanged =>
@@ -497,6 +500,133 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
     );
   }
 
+  // ── 전체 옵션 선택 바텀시트 ────────────────────────────────
+  void _showFullOptionSheet(BuildContext ctx) {
+    final tempSel = Set<String>.from(_selectedOpts);
+    final categories = CarOptionCategory.values;
+
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (bCtx, bSet) => SizedBox(
+          height: MediaQuery.of(bCtx).size.height * 0.85,
+          child: Column(children: [
+            // 헤더
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _border))),
+              child: Row(children: [
+                const Icon(Icons.checklist_rounded, color: _accent, size: 20),
+                const SizedBox(width: 8),
+                const Text('전체 옵션 선택',
+                    style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                  child: Text('${tempSel.length}개 선택',
+                      style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 8),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(bCtx)),
+              ]),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: categories.map((cat) {
+                  final opts = kCarOptions.where((o) => o.category == cat).toList();
+                  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // 카테고리 제목
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10, top: 4),
+                      child: Row(children: [
+                        Container(
+                          width: 3, height: 16,
+                          decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(cat.label,
+                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                        const SizedBox(width: 8),
+                        Text('${opts.length}개',
+                            style: TextStyle(color: _textSec, fontSize: 11)),
+                      ]),
+                    ),
+                    // 옵션 체크리스트
+                    ...opts.map((opt) {
+                      final sel = tempSel.contains(opt.id);
+                      return GestureDetector(
+                        onTap: () => bSet(() {
+                          sel ? tempSel.remove(opt.id) : tempSel.add(opt.id);
+                        }),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: sel ? _accent.withOpacity(0.1) : _navy,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: sel ? _accent.withOpacity(0.5) : _border),
+                          ),
+                          child: Row(children: [
+                            Text(opt.emoji, style: const TextStyle(fontSize: 18)),
+                            const SizedBox(width: 10),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(opt.name,
+                                  style: TextStyle(
+                                    color: sel ? Colors.white : _textSec,
+                                    fontSize: 13, fontWeight: sel ? FontWeight.w700 : FontWeight.w400)),
+                              if (opt.isMain)
+                                Text('주요 옵션',
+                                    style: TextStyle(color: _accent.withOpacity(0.7), fontSize: 10)),
+                            ])),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 150),
+                              child: sel
+                                  ? Icon(Icons.check_circle_rounded, color: _accent, size: 22, key: const ValueKey('on'))
+                                  : Icon(Icons.radio_button_unchecked_rounded, color: _border, size: 22, key: const ValueKey('off')),
+                            ),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
+                    const SizedBox(height: 8),
+                  ]);
+                }).toList(),
+              ),
+            ),
+            // 적용 버튼
+            Container(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(bCtx).padding.bottom + 12),
+              decoration: BoxDecoration(border: Border(top: BorderSide(color: _border))),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _selectedOpts.clear();
+                    _selectedOpts.addAll(tempSel);
+                  });
+                  Navigator.pop(bCtx);
+                },
+                child: Text('옵션 ${tempSel.length}개 적용하기',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   void _showRegisterIndividualListing(BuildContext context) {
     final plateData = _plateDB[_plateCtrl.text.trim().replaceAll(' ', '')];
     if (plateData == null && _plateCtrl.text.trim().isEmpty) {
@@ -534,7 +664,8 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
           ? '직거래 매물입니다. 협회 인증 완료.'
           : _memoCtrl.text.trim(),
       createdAt: DateTime.now(),
-      isCertified: true, // 협회 인증 즉시 부여
+      isCertified: true,
+      selectedOptions: _selectedOpts.toList(),
     );
 
     UsedCarState().addListing(newListing);
@@ -718,6 +849,80 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
                   ],
                 )),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── 주요 옵션 선택 ──────────────────────────────────
+          _sectionTitle('주요 옵션'),
+          const SizedBox(height: 4),
+          Text('자주 찾는 옵션을 빠르게 선택하세요',
+              style: TextStyle(color: _textSec, fontSize: 11)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: kMainOptions.map((opt) {
+              final sel = _selectedOpts.contains(opt.id);
+              return GestureDetector(
+                onTap: () => setState(() {
+                  sel ? _selectedOpts.remove(opt.id) : _selectedOpts.add(opt.id);
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: sel ? _accent.withOpacity(0.15) : _navy,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: sel ? _accent : _border,
+                      width: sel ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(opt.emoji, style: const TextStyle(fontSize: 15)),
+                    const SizedBox(width: 5),
+                    Text(opt.name,
+                        style: TextStyle(
+                          color: sel ? _accent : _textSec,
+                          fontSize: 12,
+                          fontWeight: sel ? FontWeight.w800 : FontWeight.w400,
+                        )),
+                    if (sel) ...[ const SizedBox(width: 4),
+                      Icon(Icons.check_circle_rounded, color: _accent, size: 13)],
+                  ]),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+
+          // 전체 옵션 보기 버튼
+          GestureDetector(
+            onTap: () => _showFullOptionSheet(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: _navy,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _accent.withOpacity(0.4)),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(Icons.tune_rounded, color: _accent, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '전체 옵션 보기 (총 ${kCarOptions.length}개)',
+                  style: TextStyle(color: _accent, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(width: 4),
+                if (_selectedOpts.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(10)),
+                    child: Text('${_selectedOpts.length}개 선택됨',
+                        style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
+                  ),
+              ]),
             ),
           ),
           const SizedBox(height: 16),
@@ -2184,6 +2389,18 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                         ),
                         const SizedBox(height: 14),
 
+                        // ── 주요 옵션 요약 ──────────────────────────────
+                        if (l.selectedOptions.isNotEmpty) ...[
+                          _buildDetailOptionsSection(context, l),
+                          const SizedBox(height: 14),
+                        ],
+
+                        // ── 유료 추가옵션 ───────────────────────────────
+                        if (l.additionalOptions.isNotEmpty) ...[
+                          _buildAdditionalOptionsSection(l),
+                          const SizedBox(height: 14),
+                        ],
+
                         // 설명
                         Container(
                           padding: const EdgeInsets.all(14),
@@ -2640,6 +2857,223 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
             child: const Text('구매의향 확인 → 전화번호 받기'),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── 상세페이지 주요옵션 요약 섹션 ────────────────────────
+  Widget _buildDetailOptionsSection(BuildContext ctx, UsedCarListing l) {
+    final mainOpts = kMainOptions.where((o) => l.selectedOptions.contains(o.id)).toList();
+    final allSelOpts = kCarOptions.where((o) => l.selectedOptions.contains(o.id)).toList();
+    final extraCount = allSelOpts.length - mainOpts.length;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.check_circle_rounded, color: _accent, size: 14),
+          const SizedBox(width: 6),
+          const Text('주요 옵션',
+              style: TextStyle(color: _textSec, fontSize: 12, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Text('총 ${allSelOpts.length}개',
+              style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
+        ]),
+        const SizedBox(height: 12),
+        // 주요 옵션 아이콘 그리드
+        Wrap(
+          spacing: 8, runSpacing: 8,
+          children: [
+            ...mainOpts.map((opt) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _accent.withOpacity(0.3)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(opt.emoji, style: const TextStyle(fontSize: 14)),
+                const SizedBox(width: 4),
+                Text(opt.name,
+                    style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
+              ]),
+            )),
+            if (extraCount > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: _navy,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _border),
+                ),
+                child: Text('+$extraCount개 더',
+                    style: TextStyle(color: _textSec, fontSize: 11, fontWeight: FontWeight.w700)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // 전체 옵션 보기 버튼
+        GestureDetector(
+          onTap: () => _showDetailFullOptionSheet(ctx, l),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            decoration: BoxDecoration(
+              color: _navy,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _accent.withOpacity(0.4)),
+            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Icon(Icons.list_alt_rounded, color: _accent, size: 15),
+              const SizedBox(width: 6),
+              Text('전체 옵션 보기 (${allSelOpts.length}개)',
+                  style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ── 상세페이지 유료 추가옵션 섹션 ────────────────────────
+  Widget _buildAdditionalOptionsSection(UsedCarListing l) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.withOpacity(0.4)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('⭐', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          const Text('이 차량만의 옵션',
+              style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.w800)),
+        ]),
+        const SizedBox(height: 10),
+        ...l.additionalOptions.map((ao) => Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.amber.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.amber.withOpacity(0.2)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.star_rounded, color: Colors.amber, size: 15),
+            const SizedBox(width: 8),
+            Expanded(child: Text(ao.name,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text('+${_formatNum(ao.price)}만원',
+                  style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.w800)),
+            ),
+          ]),
+        )).toList(),
+      ]),
+    );
+  }
+
+  // ── 상세페이지 전체 옵션 읽기 전용 시트 ──────────────────
+  void _showDetailFullOptionSheet(BuildContext ctx, UsedCarListing l) {
+    final selectedSet = Set<String>.from(l.selectedOptions);
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.82,
+        child: Column(children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _border))),
+            child: Row(children: [
+              const Icon(Icons.checklist_rounded, color: _accent, size: 20),
+              const SizedBox(width: 8),
+              const Text('전체 옵션',
+                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: _accent.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                child: Text('${selectedSet.length}개 장착',
+                    style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(width: 8),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(_)),
+            ]),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: CarOptionCategory.values.map((cat) {
+                final opts = kCarOptions.where((o) => o.category == cat).toList();
+                final selInCat = opts.where((o) => selectedSet.contains(o.id)).length;
+                return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 10, top: 4),
+                    child: Row(children: [
+                      Container(
+                        width: 3, height: 16,
+                        decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(2)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(cat.label,
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 8),
+                      Text('$selInCat/${opts.length}',
+                          style: TextStyle(color: _textSec, fontSize: 11)),
+                    ]),
+                  ),
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: opts.map((opt) {
+                      final has = selectedSet.contains(opt.id);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: has ? _accent.withOpacity(0.12) : _navy.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: has ? _accent.withOpacity(0.4) : _border.withOpacity(0.4)),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(opt.emoji,
+                              style: TextStyle(fontSize: 14,
+                                  color: has ? null : const Color(0x55FFFFFF))),
+                          const SizedBox(width: 4),
+                          Text(opt.name,
+                              style: TextStyle(
+                                color: has ? _accent : _textSec.withOpacity(0.4),
+                                fontSize: 11,
+                                fontWeight: has ? FontWeight.w700 : FontWeight.w400,
+                                decoration: has ? null : TextDecoration.lineThrough,
+                              )),
+                          if (has) ...[ const SizedBox(width: 4),
+                            Icon(Icons.check_rounded, color: _accent, size: 12)],
+                        ]),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ]),
       ),
     );
   }

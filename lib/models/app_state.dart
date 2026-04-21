@@ -1108,6 +1108,87 @@ class DealerBid {
   });
 }
 
+// ══════════════════════════════════════════════════════════════
+// 차량 옵션 마스터 데이터
+// ══════════════════════════════════════════════════════════════
+
+enum CarOptionCategory { seat, safety, convenience, exterior }
+
+extension CarOptionCategoryExt on CarOptionCategory {
+  String get label {
+    switch (this) {
+      case CarOptionCategory.seat: return '시트';
+      case CarOptionCategory.safety: return '안전';
+      case CarOptionCategory.convenience: return '편의/멀티미디어';
+      case CarOptionCategory.exterior: return '외관/내장';
+    }
+  }
+}
+
+class CarOption {
+  final String id;
+  final String name;
+  final String emoji;
+  final CarOptionCategory category;
+  final bool isMain; // 주요옵션 여부
+
+  const CarOption({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.category,
+    this.isMain = false,
+  });
+}
+
+class AdditionalOption {
+  final String name;
+  final int price; // 만원 단위
+  const AdditionalOption({required this.name, required this.price});
+}
+
+// 전체 옵션 마스터 리스트
+const List<CarOption> kCarOptions = [
+  // ── 시트 ──
+  CarOption(id: 'leather_seat',  name: '가죽시트',    emoji: '🛋',  category: CarOptionCategory.seat, isMain: true),
+  CarOption(id: 'ventilated',    name: '통풍시트',    emoji: '💺',  category: CarOptionCategory.seat, isMain: true),
+  CarOption(id: 'heated_seat',   name: '열선시트',    emoji: '🔥',  category: CarOptionCategory.seat, isMain: true),
+  CarOption(id: 'memory_seat',   name: '메모리시트',  emoji: '💾',  category: CarOptionCategory.seat),
+  CarOption(id: 'massage_seat',  name: '마사지시트',  emoji: '💆',  category: CarOptionCategory.seat),
+  CarOption(id: 'power_seat',    name: '전동시트',    emoji: '🔌',  category: CarOptionCategory.seat),
+  // ── 안전 ──
+  CarOption(id: 'rear_cam',      name: '후방카메라',  emoji: '📷',  category: CarOptionCategory.safety, isMain: true),
+  CarOption(id: 'parking_sensor',name: '주차센서',    emoji: '🚗',  category: CarOptionCategory.safety, isMain: true),
+  CarOption(id: 'around_view',   name: '어라운드뷰',  emoji: '🔭',  category: CarOptionCategory.safety),
+  CarOption(id: 'lane_alert',    name: '차선이탈경보', emoji: '⚠️', category: CarOptionCategory.safety),
+  CarOption(id: 'abs',           name: 'ABS',         emoji: '🛑',  category: CarOptionCategory.safety),
+  CarOption(id: 'esc',           name: 'ESC',         emoji: '🔄',  category: CarOptionCategory.safety),
+  CarOption(id: 'airbag',        name: '에어백',      emoji: '🎈',  category: CarOptionCategory.safety),
+  CarOption(id: 'blind_spot',    name: '사각지대경보', emoji: '👁',  category: CarOptionCategory.safety),
+  CarOption(id: 'auto_brake',    name: '긴급자동제동', emoji: '🚨',  category: CarOptionCategory.safety),
+  CarOption(id: 'adaptive_cc',   name: '어댑티브CC',  emoji: '🏎',  category: CarOptionCategory.safety),
+  // ── 편의/멀티미디어 ──
+  CarOption(id: 'sunroof',       name: '선루프',      emoji: '🌞',  category: CarOptionCategory.convenience, isMain: true),
+  CarOption(id: 'smart_key',     name: '스마트키',    emoji: '🔑',  category: CarOptionCategory.convenience, isMain: true),
+  CarOption(id: 'navi',          name: '내비게이션',  emoji: '🧭',  category: CarOptionCategory.convenience, isMain: true),
+  CarOption(id: 'auto_ac',       name: '자동에어컨',  emoji: '❄️',  category: CarOptionCategory.convenience, isMain: true),
+  CarOption(id: 'led_head',      name: 'LED헤드램프', emoji: '💡',  category: CarOptionCategory.convenience, isMain: true),
+  CarOption(id: 'bluetooth',     name: '블루투스',    emoji: '📶',  category: CarOptionCategory.convenience),
+  CarOption(id: 'usb',           name: 'USB',         emoji: '🔌',  category: CarOptionCategory.convenience),
+  CarOption(id: 'wireless_charge',name: '무선충전',   emoji: '⚡',  category: CarOptionCategory.convenience),
+  CarOption(id: 'hud',           name: 'HUD',         emoji: '📺',  category: CarOptionCategory.convenience),
+  CarOption(id: 'remote_start',  name: '원격시동',    emoji: '📡',  category: CarOptionCategory.convenience),
+  CarOption(id: 'auto_trunk',    name: '전동트렁크',  emoji: '🧳',  category: CarOptionCategory.convenience),
+  CarOption(id: 'panorama',      name: '파노라마선루프',emoji: '🌅', category: CarOptionCategory.convenience),
+  // ── 외관/내장 ──
+  CarOption(id: 'alloy_wheel',   name: '알로이휠',    emoji: '⚙️',  category: CarOptionCategory.exterior),
+  CarOption(id: 'darkfilm',      name: '선팅',        emoji: '🕶',  category: CarOptionCategory.exterior),
+  CarOption(id: 'sport_mode',    name: '스포츠모드',  emoji: '🏁',  category: CarOptionCategory.exterior),
+  CarOption(id: 'ambient_light', name: '앰비언트라이트',emoji: '🌈', category: CarOptionCategory.exterior),
+];
+
+List<CarOption> get kMainOptions => kCarOptions.where((o) => o.isMain).toList();
+
 /// 내 차 팔기 요청 모델
 class UsedCarSaleRequest {
   final String requestId;
@@ -1169,6 +1250,8 @@ class UsedCarListing {
   bool isFavorite;
   bool isSold;           // 판매완료 여부
   bool isCertified;      // 협회 인증 배지
+  List<String> selectedOptions;     // option id 목록
+  List<AdditionalOption> additionalOptions; // 유료 추가옵션
 
   UsedCarListing({
     required this.listingId,
@@ -1192,7 +1275,10 @@ class UsedCarListing {
     this.isFavorite = false,
     this.isSold = false,
     this.isCertified = false,
-  });
+    List<String>? selectedOptions,
+    List<AdditionalOption>? additionalOptions,
+  })  : selectedOptions = selectedOptions ?? [],
+        additionalOptions = additionalOptions ?? [];
 }
 
 // ==========================================
@@ -1281,6 +1367,11 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: '무사고 1인 소유. 풀옵션 (스마트센스·선루프·통풍시트). 보증기간 잔여 2년. 실물 확인 환영합니다.',
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        selectedOptions: ['sunroof','ventilated','heated_seat','smart_key','navi','auto_ac','led_head','rear_cam','parking_sensor','leather_seat','blind_spot','wireless_charge'],
+        additionalOptions: [
+          AdditionalOption(name: '스마트센스 패키지', price: 46),
+          AdditionalOption(name: '프리미엄 화이트 펄 컬러', price: 10),
+        ],
       ),
       UsedCarListing(
         listingId: 'L-002',
@@ -1297,6 +1388,8 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: '하이브리드 연비 18km/L. 시그니처 풀옵션. 무사고 깨끗한 차량입니다.',
         createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+        selectedOptions: ['sunroof','heated_seat','leather_seat','smart_key','navi','auto_ac','rear_cam','parking_sensor','memory_seat','hud','around_view'],
+        additionalOptions: [AdditionalOption(name: '하이 컴포트 패키지', price: 46)],
       ),
       UsedCarListing(
         listingId: 'L-003',
@@ -1313,6 +1406,8 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: 'M스포츠패키지 장착. 순정 상태 유지. 직거래 선호합니다.',
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        selectedOptions: ['leather_seat','heated_seat','sunroof','smart_key','navi','rear_cam','parking_sensor','sport_mode','alloy_wheel','led_head'],
+        additionalOptions: [AdditionalOption(name: 'M스포츠패키지', price: 120)],
       ),
       UsedCarListing(
         listingId: 'L-004',
@@ -1329,6 +1424,11 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: '주행거리 12,000km 극저주행. 자율주행 패키지 포함. 세금계산서 발행 가능.',
         createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        selectedOptions: ['navi','auto_ac','leather_seat','heated_seat','ventilated','smart_key','rear_cam','around_view','wireless_charge','ambient_light','auto_trunk'],
+        additionalOptions: [
+          AdditionalOption(name: '완전자율주행(FSD) 패키지', price: 900),
+          AdditionalOption(name: '퍼포먼스 업그레이드', price: 200),
+        ],
       ),
       UsedCarListing(
         listingId: 'L-005',
@@ -1344,6 +1444,7 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: '무사고 2인 소유. 정기 점검 이력 완비. 가격 협의 가능합니다.',
         createdAt: DateTime.now().subtract(const Duration(days: 3)),
+        selectedOptions: ['sunroof','smart_key','navi','auto_ac','rear_cam','heated_seat','leather_seat'],
       ),
       UsedCarListing(
         listingId: 'L-006',
@@ -1360,6 +1461,12 @@ class UsedCarState extends ChangeNotifier {
         ],
         desc: '아방가르드 풀옵션. 18,000km 극저주행. KAA 인증 보증 포함.',
         createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        selectedOptions: ['leather_seat','ventilated','heated_seat','memory_seat','massage_seat','sunroof','panorama','smart_key','navi','auto_ac','led_head','rear_cam','around_view','blind_spot','hud','wireless_charge','auto_trunk','ambient_light'],
+        additionalOptions: [
+          AdditionalOption(name: '실키 화이트 펄 컬러', price: 10),
+          AdditionalOption(name: '아방가르드 플러스 패키지', price: 85),
+          AdditionalOption(name: '드라이빙 어시스턴트 패키지', price: 46),
+        ],
       ),
     ]);
   }
