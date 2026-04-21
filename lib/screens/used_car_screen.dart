@@ -1687,25 +1687,25 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
                       const SizedBox(height: 8),
 
                       // 5. 최대 가격
-                      _psSection('최대 가격 (${maxPrice >= 10000 ? "제한없음" : "${_fmtNum(maxPrice)}만원 이하"})'),
+                      _psSection('최대 가격 (${maxPrice >= 10000 ? "제한없음" : "${_formatNum(maxPrice)}만원 이하"})'),
                       Slider(
                         value: maxPrice.toDouble(),
                         min: 500, max: 10000, divisions: 95,
                         activeColor: _accent,
                         inactiveColor: _border,
-                        label: maxPrice >= 10000 ? '제한없음' : '${_fmtNum(maxPrice)}만원',
+                        label: maxPrice >= 10000 ? '제한없음' : '${_formatNum(maxPrice)}만원',
                         onChanged: (v) => bSet(() => maxPrice = v.toInt()),
                       ),
                       const SizedBox(height: 8),
 
                       // 6. 최대 주행거리
-                      _psSection('최대 주행거리 (${maxMileage >= 300000 ? "제한없음" : "${_fmtNum(maxMileage)}km 이하"})'),
+                      _psSection('최대 주행거리 (${maxMileage >= 300000 ? "제한없음" : "${_formatNum(maxMileage)}km 이하"})'),
                       Slider(
                         value: maxMileage.toDouble(),
                         min: 10000, max: 300000, divisions: 58,
                         activeColor: _accent,
                         inactiveColor: _border,
-                        label: maxMileage >= 300000 ? '제한없음' : '${_fmtNum(maxMileage)}km',
+                        label: maxMileage >= 300000 ? '제한없음' : '${_formatNum(maxMileage)}km',
                         onChanged: (v) => bSet(() => maxMileage = v.toInt()),
                       ),
                       const SizedBox(height: 8),
@@ -2614,7 +2614,7 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('📋 ${l.title}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
               const SizedBox(height: 4),
-              Text('판매가: ${_fmtNum(l.price)}만원', style: TextStyle(color: _accent, fontSize: 13)),
+              Text('판매가: ${_formatNum(l.price)}만원', style: TextStyle(color: _accent, fontSize: 13)),
             ]),
           ),
           const SizedBox(height: 12),
