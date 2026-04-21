@@ -33,7 +33,8 @@ const Map<String, Map<String, String>> _plateDB = {
 // 중고차 메인 화면 (2탭 + 하단 점포)
 // ============================================================
 class UsedCarMainScreen extends StatefulWidget {
-  const UsedCarMainScreen({super.key});
+  final int initialTab; // 0=내차팔기, 1=중고차사기
+  const UsedCarMainScreen({super.key, this.initialTab = 0});
   @override
   State<UsedCarMainScreen> createState() => _UsedCarMainScreenState();
 }
@@ -45,7 +46,8 @@ class _UsedCarMainScreenState extends State<UsedCarMainScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+        length: 2, vsync: this, initialIndex: widget.initialTab);
   }
 
   @override
@@ -1304,9 +1306,28 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   final _filters = ['전체', '국산차', '수입차', '전기차', '직거래', '딜러', '인증'];
   final _sorts = ['최신순', '가격낮은순', '가격높은순', '주행거리순'];
 
+  // ── 정밀 검색 필터 상태 ──────────────────────────────────────
+  String? _psManufacturer;
+  String? _psModel;
+  String? _psFuel;
+  int?    _psMinYear;
+  int?    _psMaxYear;
+  int?    _psMaxPrice;
+  int?    _psMaxMileage;
+  String? _psSellerType;
+
+  bool get _hasPreciseFilter =>
+      _psManufacturer != null || _psModel != null || _psFuel != null ||
+      _psMinYear != null || _psMaxYear != null || _psMaxPrice != null ||
+      _psMaxMileage != null || _psSellerType != null;
+
+  void _clearPreciseFilter() => setState(() {
+    _psManufacturer = _psModel = _psFuel = _psSellerType = null;
+    _psMinYear = _psMaxYear = _psMaxPrice = _psMaxMileage = null;
+  });
+
   List<UsedCarListing> get _filtered {
     var list = List<UsedCarListing>.from(UsedCarState().listings);
-    // 판매완료 항목은 기본적으로 맨 뒤로
     switch (_filter) {
       case '국산차':
         list = list.where((l) => ['현대', '기아', '쌍용', '르노'].any(
@@ -1329,13 +1350,36 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
         list = list.where((l) => l.isCertified).toList();
         break;
     }
+    // ── 정밀검색 필터 ───────────────────────────────────────
+    if (_psManufacturer != null)
+      list = list.where((l) => l.carName.contains(_psManufacturer!)).toList();
+    if (_psModel != null)
+      list = list.where((l) => l.carName.contains(_psModel!)).toList();
+    if (_psFuel != null)
+      list = list.where((l) => l.fuel == _psFuel).toList();
+    if (_psMinYear != null)
+      list = list.where((l) {
+        final y = int.tryParse(l.modelYear.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+        return y >= _psMinYear!;
+      }).toList();
+    if (_psMaxYear != null)
+      list = list.where((l) {
+        final y = int.tryParse(l.modelYear.replaceAll(RegExp(r'[^0-9]'), '')) ?? 9999;
+        return y <= _psMaxYear!;
+      }).toList();
+    if (_psMaxPrice != null)
+      list = list.where((l) => l.price <= _psMaxPrice!).toList();
+    if (_psMaxMileage != null)
+      list = list.where((l) => l.mileage <= _psMaxMileage!).toList();
+    if (_psSellerType != null)
+      list = list.where((l) => l.sellerType == _psSellerType).toList();
+
     switch (_sort) {
       case '가격낮은순': list.sort((a, b) => a.price.compareTo(b.price)); break;
       case '가격높은순': list.sort((a, b) => b.price.compareTo(a.price)); break;
       case '주행거리순': list.sort((a, b) => a.mileage.compareTo(b.mileage)); break;
       default: list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
-    // 판매완료 맨 뒤로
     list.sort((a, b) {
       if (a.isSold && !b.isSold) return 1;
       if (!a.isSold && b.isSold) return -1;
@@ -1352,10 +1396,53 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
         final items = _filtered;
         return Column(
           children: [
+            // ── 정밀 검색 버튼 바 ─────────────────────────────
+            Container(
+              color: _card,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+              child: Row(children: [
+                GestureDetector(
+                  onTap: _showPreciseSearchSheet,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: _hasPreciseFilter ? _green.withOpacity(0.15) : _bg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _hasPreciseFilter ? _green.withOpacity(0.7) : _accent.withOpacity(0.4),
+                        width: _hasPreciseFilter ? 1.5 : 1),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.tune_rounded,
+                          color: _hasPreciseFilter ? _green : _accent, size: 14),
+                      const SizedBox(width: 5),
+                      Text(_hasPreciseFilter ? '정밀검색 적용중' : '정밀검색',
+                          style: TextStyle(
+                              color: _hasPreciseFilter ? _green : _accent,
+                              fontSize: 11, fontWeight: FontWeight.w800)),
+                      if (_hasPreciseFilter) ...[
+                        const SizedBox(width: 5),
+                        GestureDetector(
+                          onTap: _clearPreciseFilter,
+                          child: const Icon(Icons.close_rounded, color: _green, size: 14)),
+                      ],
+                    ]),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_psManufacturer != null) _psTag(_psManufacturer!),
+                if (_psModel != null) _psTag(_psModel!),
+                if (_psFuel != null) _psTag(_psFuel!),
+                const Spacer(),
+                Text('${items.length}개',
+                    style: const TextStyle(color: _textSec, fontSize: 11, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+
             // 필터 + 정렬 바
             Container(
               color: _card,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
               child: Row(children: [
                 Expanded(
                   child: SingleChildScrollView(
@@ -1408,9 +1495,28 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
             // 매물 목록
             Expanded(
               child: items.isEmpty
-                  ? const Center(
-                      child: Text('등록된 매물이 없습니다',
-                        style: TextStyle(color: _textSec)))
+                  ? Center(child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center, children: [
+                        const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
+                        const SizedBox(height: 10),
+                        const Text('조건에 맞는 매물이 없습니다',
+                            style: TextStyle(color: _textSec, fontSize: 14)),
+                        if (_hasPreciseFilter) ...[
+                          const SizedBox(height: 10),
+                          GestureDetector(
+                            onTap: _clearPreciseFilter,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _green.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _green.withOpacity(0.4))),
+                              child: const Text('필터 초기화',
+                                  style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
+                      ]))
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: items.length,
@@ -1431,6 +1537,266 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       },
     );
   }
+
+  // ── 정밀검색 필터 태그 위젯 ─────────────────────────────────
+  Widget _psTag(String label) => Container(
+    margin: const EdgeInsets.only(right: 4),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: _green.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _green.withOpacity(0.4)),
+    ),
+    child: Text(label, style: const TextStyle(color: _green, fontSize: 10, fontWeight: FontWeight.w700)),
+  );
+
+  // ── 정밀검색 바텀시트 ─────────────────────────────────────
+  void _showPreciseSearchSheet() {
+    // 로컬 임시 상태
+    String? mfr = _psManufacturer;
+    String? mdl = _psModel;
+    String? fuel = _psFuel;
+    int minYear = _psMinYear ?? 2011;
+    int maxYear = _psMaxYear ?? DateTime.now().year;
+    int maxPrice = _psMaxPrice ?? 10000;
+    int maxMileage = _psMaxMileage ?? 300000;
+    String? sellerType = _psSellerType;
+
+    const manufacturers = ['현대', '기아', 'BMW', '벤츠', '아우디', '볼보', '렉서스', '토요타', '혼다', '포르쉐', '테슬라'];
+    const modelsByMfr = <String, List<String>>{
+      '현대': ['소나타', '아반떼', '그랜저', '투싼', '싼타페', '팰리세이드', '아이오닉5', '아이오닉6', '넥쏘'],
+      '기아': ['K5', 'K8', 'K9', '스포티지', '쏘렌토', '카니발', 'EV6', 'EV9', '모하비'],
+      'BMW': ['3시리즈', '5시리즈', '7시리즈', 'X3', 'X5', 'X7', 'iX'],
+      '벤츠': ['C클래스', 'E클래스', 'S클래스', 'GLC', 'GLE', 'GLS', 'EQS'],
+      '아우디': ['A4', 'A6', 'A8', 'Q3', 'Q5', 'Q7', 'e-tron'],
+      '볼보': ['XC40', 'XC60', 'XC90', 'S60', 'S90'],
+      '렉서스': ['IS', 'ES', 'LS', 'RX', 'NX', 'UX'],
+      '토요타': ['캠리', '아발론', 'RAV4', '하이랜더', '프리우스'],
+      '혼다': ['어코드', '시빅', 'CR-V', '파일럿'],
+      '포르쉐': ['카이엔', '마칸', '파나메라', '911'],
+      '테슬라': ['Model 3', 'Model Y', 'Model S', 'Model X'],
+    };
+    const fuels = ['가솔린', '디젤', '하이브리드', '전기', 'LPG'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (bCtx, bSet) {
+          final models = mfr != null ? (modelsByMfr[mfr] ?? <String>[]) : <String>[];
+          return Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(bCtx).viewInsets.bottom),
+            child: SizedBox(
+              height: MediaQuery.of(bCtx).size.height * 0.75,
+              child: Column(children: [
+                // 헤더
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _border))),
+                  child: Row(children: [
+                    const Icon(Icons.tune_rounded, color: _accent, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('정밀 검색',
+                        style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => bSet(() {
+                        mfr = mdl = fuel = sellerType = null;
+                        minYear = 2011; maxYear = DateTime.now().year;
+                        maxPrice = 10000; maxMileage = 300000;
+                      }),
+                      child: Text('초기화', style: TextStyle(color: _textSec, fontSize: 13)),
+                    ),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(bCtx)),
+                  ]),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+                      // 1. 제조사 선택
+                      _psSection('제조사'),
+                      Wrap(spacing: 6, runSpacing: 6,
+                        children: manufacturers.map((m) => GestureDetector(
+                          onTap: () => bSet(() { mfr = mfr == m ? null : m; mdl = null; }),
+                          child: _psChip(m, mfr == m),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 2. 모델 선택 (제조사 선택 후)
+                      if (mfr != null && models.isNotEmpty) ...[
+                        _psSection('모델 ($mfr)'),
+                        Wrap(spacing: 6, runSpacing: 6,
+                          children: models.map((m) => GestureDetector(
+                            onTap: () => bSet(() => mdl = mdl == m ? null : m),
+                            child: _psChip(m, mdl == m),
+                          )).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // 3. 연료
+                      _psSection('연료'),
+                      Wrap(spacing: 6, runSpacing: 6,
+                        children: fuels.map((f) => GestureDetector(
+                          onTap: () => bSet(() => fuel = fuel == f ? null : f),
+                          child: _psChip(f, fuel == f),
+                        )).toList(),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // 4. 연식 범위
+                      _psSection('연식 ($minYear년 ~ $maxYear년)'),
+                      Row(children: [
+                        Expanded(child: Column(children: [
+                          Text('최소', style: TextStyle(color: _textSec, fontSize: 11)),
+                          Slider(
+                            value: minYear.toDouble(),
+                            min: 2005, max: DateTime.now().year.toDouble(),
+                            divisions: DateTime.now().year - 2005,
+                            activeColor: _accent,
+                            inactiveColor: _border,
+                            label: '$minYear년',
+                            onChanged: (v) => bSet(() {
+                              minYear = v.toInt();
+                              if (minYear > maxYear) maxYear = minYear;
+                            }),
+                          ),
+                        ])),
+                        Expanded(child: Column(children: [
+                          Text('최대', style: TextStyle(color: _textSec, fontSize: 11)),
+                          Slider(
+                            value: maxYear.toDouble(),
+                            min: 2005, max: DateTime.now().year.toDouble(),
+                            divisions: DateTime.now().year - 2005,
+                            activeColor: _green,
+                            inactiveColor: _border,
+                            label: '$maxYear년',
+                            onChanged: (v) => bSet(() {
+                              maxYear = v.toInt();
+                              if (maxYear < minYear) minYear = maxYear;
+                            }),
+                          ),
+                        ])),
+                      ]),
+                      const SizedBox(height: 8),
+
+                      // 5. 최대 가격
+                      _psSection('최대 가격 (${maxPrice >= 10000 ? "제한없음" : "${_fmtNum(maxPrice)}만원 이하"})'),
+                      Slider(
+                        value: maxPrice.toDouble(),
+                        min: 500, max: 10000, divisions: 95,
+                        activeColor: _accent,
+                        inactiveColor: _border,
+                        label: maxPrice >= 10000 ? '제한없음' : '${_fmtNum(maxPrice)}만원',
+                        onChanged: (v) => bSet(() => maxPrice = v.toInt()),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 6. 최대 주행거리
+                      _psSection('최대 주행거리 (${maxMileage >= 300000 ? "제한없음" : "${_fmtNum(maxMileage)}km 이하"})'),
+                      Slider(
+                        value: maxMileage.toDouble(),
+                        min: 10000, max: 300000, divisions: 58,
+                        activeColor: _accent,
+                        inactiveColor: _border,
+                        label: maxMileage >= 300000 ? '제한없음' : '${_fmtNum(maxMileage)}km',
+                        onChanged: (v) => bSet(() => maxMileage = v.toInt()),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 7. 판매자 유형
+                      _psSection('판매자 유형'),
+                      Row(children: [
+                        for (final e in [
+                          {'value': null, 'label': '전체'},
+                          {'value': 'individual', 'label': '개인직거래'},
+                          {'value': 'dealer', 'label': '딜러/점포'},
+                        ])
+                          Expanded(child: GestureDetector(
+                            onTap: () => bSet(() => sellerType = e['value'] as String?),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: sellerType == e['value'] ? _accent : _navy,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: sellerType == e['value'] ? _accent : _border),
+                              ),
+                              child: Center(child: Text(e['label'] as String,
+                                style: TextStyle(
+                                  color: sellerType == e['value'] ? Colors.black : _textSec,
+                                  fontSize: 12, fontWeight: FontWeight.w700),
+                              )),
+                            ),
+                          )),
+                      ]),
+                      const SizedBox(height: 24),
+                    ]),
+                  ),
+                ),
+
+                // 검색 적용 버튼
+                Container(
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(bCtx).padding.bottom + 12),
+                  decoration: BoxDecoration(border: Border(top: BorderSide(color: _border))),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accent,
+                      foregroundColor: Colors.black,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _psManufacturer = mfr;
+                        _psModel = mdl;
+                        _psFuel = fuel;
+                        _psMinYear = minYear > 2005 ? minYear : null;
+                        _psMaxYear = maxYear < DateTime.now().year ? maxYear : null;
+                        _psMaxPrice = maxPrice < 10000 ? maxPrice : null;
+                        _psMaxMileage = maxMileage < 300000 ? maxMileage : null;
+                        _psSellerType = sellerType;
+                      });
+                      Navigator.pop(bCtx);
+                    },
+                    child: const Text('검색 적용',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // 정밀검색 섹션 제목
+  Widget _psSection(String title) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+  );
+
+  // 정밀검색 칩
+  Widget _psChip(String label, bool selected) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    decoration: BoxDecoration(
+      color: selected ? _accent : _navy,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: selected ? _accent : _border),
+    ),
+    child: Text(label, style: TextStyle(
+      color: selected ? Colors.black : _textSec,
+      fontSize: 12, fontWeight: selected ? FontWeight.w800 : FontWeight.w400,
+    )),
+  );
 
   void _showSortSheet() {
     showModalBottomSheet(
@@ -1630,9 +1996,13 @@ class UsedCarDetailScreen extends StatefulWidget {
   State<UsedCarDetailScreen> createState() => _UsedCarDetailScreenState();
 }
 
+// 개인거래 연락 단계: chatting → chat_sent → phone_enabled
+enum _ContactStage { chatting, chatSent, phoneEnabled }
+
 class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
   int _photoIndex = 0;
   final _pageCtrl = PageController();
+  _ContactStage _contactStage = _ContactStage.chatting; // 채팅 우선, 전화는 의향 확인 후
 
   @override
   void dispose() {
@@ -1934,90 +2304,342 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                   color: _card,
                   border: Border(top: BorderSide(color: _border)),
                 ),
-                child: Row(children: [
-                  // 개인간 거래: 1:1 문의 (전화번호 교환)
-                  // 딜러 거래: 점포에 견적 신청
-                  if (l.sellerType == 'individual') ...[
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-                        label: const Text('1:1 문의'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _accent,
-                          side: BorderSide(color: _accent.withOpacity(0.5)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () => _showIndividualInquiryDialog(context, l),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.phone_rounded, size: 16),
-                        label: const Text('전화하기'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: l.isSold ? null : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('📞 ${l.sellerPhone}'),
-                              backgroundColor: _green,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ] else ...[
-                    // 딜러 매물: 점포에 신청 버튼
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.storefront_rounded, size: 16),
-                        label: const Text('점포 신청'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _accent,
-                          side: BorderSide(color: _accent.withOpacity(0.5)),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: l.isSold ? null : () => _showDealerApplyDialog(context, l),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.phone_rounded, size: 16),
-                        label: const Text('전화하기'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _green,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: l.isSold ? null : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('📞 ${l.sellerPhone}'),
-                              backgroundColor: _green,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ]),
+                child: _buildContactButtons(context, l),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── 채팅우선→전화허용 contactStage 버튼 빌더 ─────────────
+  Widget _buildContactButtons(BuildContext ctx, UsedCarListing l) {
+    if (l.sellerType == 'individual') {
+      // 개인거래: chatting → chatSent → phoneEnabled 단계
+      switch (_contactStage) {
+        case _ContactStage.chatting:
+          return Row(children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.chat_rounded, size: 16),
+                label: const Text('1:1 채팅 문의'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: l.isSold ? null : () => _showChatDialog(ctx, l),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: Icon(Icons.phone_disabled_rounded, size: 16, color: _textSec),
+                label: Text('전화하기', style: TextStyle(color: _textSec)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textSec,
+                  side: BorderSide(color: _border),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: null, // 채팅 후 전화 허용
+              ),
+            ),
+          ]);
+
+        case _ContactStage.chatSent:
+          return Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.chat_rounded, size: 16),
+                label: const Text('채팅 계속하기'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _accent,
+                  side: BorderSide(color: _accent.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _showChatDialog(ctx, l),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.phone_rounded, size: 16),
+                label: const Text('구매의향 확인'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: l.isSold ? null : () => _showPhoneConfirmDialog(ctx, l),
+              ),
+            ),
+          ]);
+
+        case _ContactStage.phoneEnabled:
+          return Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.chat_rounded, size: 16),
+                label: const Text('채팅 계속'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _accent,
+                  side: BorderSide(color: _accent.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => _showChatDialog(ctx, l),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.phone_rounded, size: 16),
+                label: const Text('전화하기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: l.isSold ? null : () {
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: Text('📞 판매자 번호: ${l.sellerPhone}'),
+                    backgroundColor: _green,
+                    duration: const Duration(seconds: 4),
+                  ));
+                },
+              ),
+            ),
+          ]);
+      }
+    } else {
+      // 딜러 매물: 점포 신청 + 전화하기
+      return Row(children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.storefront_rounded, size: 16),
+            label: const Text('점포 신청'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _accent,
+              side: BorderSide(color: _accent.withOpacity(0.5)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: l.isSold ? null : () => _showDealerApplyDialog(ctx, l),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.phone_rounded, size: 16),
+            label: const Text('전화하기'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: l.isSold ? null : () {
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                content: Text('📞 ${l.sellerPhone}'),
+                backgroundColor: _green,
+              ));
+            },
+          ),
+        ),
+      ]);
+    }
+  }
+
+  // ── 1:1 채팅 다이얼로그 (채팅 우선) ─────────────────────
+  void _showChatDialog(BuildContext ctx, UsedCarListing l) {
+    final msgCtrl = TextEditingController();
+    final msgs = <Map<String, String>>[
+      {'role': 'seller', 'text': '안녕하세요! ${l.title}에 관심 가져주셔서 감사합니다 😊'},
+    ];
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: _card,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (bCtx, bSet) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(bCtx).viewInsets.bottom),
+          child: SizedBox(
+            height: MediaQuery.of(bCtx).size.height * 0.65,
+            child: Column(children: [
+              // 헤더
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _border))),
+                child: Row(children: [
+                  Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(child: Text(l.sellerName[0], style: TextStyle(color: _accent, fontWeight: FontWeight.bold))),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l.sellerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('판매자 · ${l.region}', style: TextStyle(fontSize: 12, color: _textSec)),
+                    ],
+                  )),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(bCtx)),
+                ]),
+              ),
+              // 메시지 목록
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: msgs.length,
+                  itemBuilder: (_, i) {
+                    final m = msgs[i];
+                    final isMe = m['role'] == 'buyer';
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(bCtx).size.width * 0.7),
+                        decoration: BoxDecoration(
+                          color: isMe ? _accent : _navy,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(m['text']!, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              // 빠른 메시지 템플릿
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(children: [
+                  for (final t in ['아직 판매중인가요?', '최저가 얼마까지 가능한가요?', '직접 보러 가도 될까요?', '차량 상태 사진 더 보내주실 수 있나요?'])
+                    GestureDetector(
+                      onTap: () => msgCtrl.text = t,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _navy,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _border),
+                        ),
+                        child: Text(t, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                      ),
+                    ),
+                ]),
+              ),
+              // 입력창
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                decoration: BoxDecoration(border: Border(top: BorderSide(color: _border))),
+                child: Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: msgCtrl,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: '메시지를 입력하세요...',
+                        hintStyle: TextStyle(color: _textSec),
+                        filled: true,
+                        fillColor: _navy,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      final text = msgCtrl.text.trim();
+                      if (text.isEmpty) return;
+                      bSet(() {
+                        msgs.add({'role': 'buyer', 'text': text});
+                        msgs.add({'role': 'seller', 'text': '네, 확인했습니다! 😊 관심 가져주셔서 감사해요. 조금 더 자세한 내용은 직접 통화로 말씀 드릴게요.'});
+                      });
+                      msgCtrl.clear();
+                      // contactStage 진행
+                      setState(() => _contactStage = _ContactStage.chatSent);
+                    },
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(color: _accent, borderRadius: BorderRadius.circular(22)),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── 구매의향 확인 후 전화번호 공개 다이얼로그 ─────────────
+  void _showPhoneConfirmDialog(BuildContext ctx, UsedCarListing l) {
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          Icon(Icons.verified_user_rounded, color: _accent, size: 22),
+          const SizedBox(width: 8),
+          const Text('구매 의향 확인', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('채팅을 통해 충분히 소통하셨나요?', style: TextStyle(color: _textSec, fontSize: 14)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: _navy, borderRadius: BorderRadius.circular(10)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('📋 ${l.title}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text('판매가: ${_fmtNum(l.price)}만원', style: TextStyle(color: _accent, fontSize: 13)),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          Text('확인 버튼을 누르면 판매자 전화번호가 공개됩니다.',
+              style: TextStyle(color: _textSec, fontSize: 12)),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(_),
+            child: Text('취소', style: TextStyle(color: _textSec)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _green, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.pop(_);
+              setState(() => _contactStage = _ContactStage.phoneEnabled);
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                content: Text('✅ 전화번호 공개됨 · 📞 ${l.sellerPhone}'),
+                backgroundColor: _green,
+                duration: const Duration(seconds: 5),
+              ));
+            },
+            child: const Text('구매의향 확인 → 전화번호 받기'),
+          ),
+        ],
       ),
     );
   }

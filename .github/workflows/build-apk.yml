@@ -1,4 +1,4 @@
-name: Build APK v47
+name: Build APK v48
 
 on:
   push:
@@ -41,9 +41,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # ── APK 버전 변수 (매번 여기만 바꿈) ──
-          APK_VERSION="v47"
+          APK_VERSION="v48"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          COMMIT_MSG="${APK_VERSION} APK 배포 (타이어견적요청addTireRequest연동 ShopInbox확정matchRequest연동 배너Stage1~3정상동작)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (홈3축카드헤이딜러형엔카형KAA협회형 정밀검색제조사모델연료연식가격 채팅우선contactStage전화허용 initialTab라우팅)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
@@ -58,7 +58,7 @@ jobs:
           # - 직접 링크 (길게 눌러 저장용)
           # - 안드로이드 설치 안내
           # ════════════════════════════════════════════════════
-          PREV_VERSION="v46"
+          PREV_VERSION="v47"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
 

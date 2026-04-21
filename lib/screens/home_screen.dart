@@ -516,6 +516,7 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildRecommendSection(),
                 const YoutubeShortSlider(),
                 _buildQuickActions(),
+                _buildUsedCarAxisCards(),
                 _buildMapPreview(),
                 _buildNearbySection(),
                 _buildPromoBand(),
@@ -1653,6 +1654,201 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // 중고차 3축 진입 카드 (헤이딜러형 / 엔카형 / KAA협회형)
+  // ══════════════════════════════════════════════════════════════
+  Widget _buildUsedCarAxisCards() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
+          child: Row(children: [
+            Container(
+              width: 4, height: 20,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  colors: [Color(0xFF4FC3F7), Color(0xFF10B981)],
+                ),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 9),
+            Text('중고차 서비스',
+              style: GoogleFonts.notoSansKr(
+                color: Colors.white, fontSize: 17,
+                fontWeight: FontWeight.bold, letterSpacing: -0.3)),
+            const SizedBox(width: 8),
+            Text('3가지 방법으로 시작하세요',
+              style: GoogleFonts.notoSansKr(
+                color: const Color(0xFF556677), fontSize: 12, fontWeight: FontWeight.w400)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Column(children: [
+            // ── 1축: 내차시세조회 / 내차팔기 (헤이딜러형) ──────────
+            _usedCarAxisCard(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0D2040), Color(0xFF0A3060)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderColor: const Color(0xFF4FC3F7),
+              icon: Icons.sell_rounded,
+              iconColor: const Color(0xFF4FC3F7),
+              badge: '헤이딜러형',
+              badgeColor: const Color(0xFF4FC3F7),
+              title: '내 차 시세조회 / 팔기',
+              subtitle: '차량번호 입력 → 딜러 역경매 → 최고가 매입',
+              bullets: ['차량번호만 입력하면 즉시 시세 확인', '가까운 딜러들이 경쟁적으로 견적 제안', '직거래 매물 등록도 바로 가능'],
+              bulletColor: const Color(0xFF4FC3F7),
+              onTap: () => Navigator.pushNamed(context, '/used-car', arguments: 0),
+              actionLabel: '시세 조회 · 판매 시작',
+              actionColor: const Color(0xFF4FC3F7),
+              actionTextColor: Colors.black,
+            ),
+            const SizedBox(height: 10),
+            // ── 2축: 중고차 사기 정밀 검색 (엔카형) ────────────────
+            _usedCarAxisCard(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0D2A1E), Color(0xFF0A2820)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderColor: const Color(0xFF10B981),
+              icon: Icons.search_rounded,
+              iconColor: const Color(0xFF10B981),
+              badge: '엔카형',
+              badgeColor: const Color(0xFF10B981),
+              title: '내 차 사기 정밀검색',
+              subtitle: '제조사→모델→연식→연료 세부 조건 검색',
+              bullets: ['제조사·모델·세대·트림 계층 필터', '연식·주행거리·가격대·연료 상세 조건', '딜러 매물 + 개인 직거래 통합 검색'],
+              bulletColor: const Color(0xFF10B981),
+              onTap: () => Navigator.pushNamed(context, '/used-car', arguments: 1),
+              actionLabel: '정밀 검색 시작',
+              actionColor: const Color(0xFF10B981),
+              actionTextColor: Colors.white,
+            ),
+            const SizedBox(height: 10),
+            // ── 3축: KAA 딜러/점포 견적 연결 ──────────────────────
+            _usedCarAxisCard(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A0D2E), Color(0xFF200A38)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderColor: const Color(0xFF8B5CF6),
+              icon: Icons.handshake_rounded,
+              iconColor: const Color(0xFF8B5CF6),
+              badge: 'KAA협회형',
+              badgeColor: const Color(0xFF8B5CF6),
+              title: 'KAA 딜러/점포 견적연결',
+              subtitle: 'KAA 인증 딜러가 직접 견적·방문 서비스',
+              bullets: ['KAA 인증 딜러와 직접 연결', '정비·세차·타이어 전문 점포 견적', '1:1 채팅 → 협의 후 전화 연결'],
+              bulletColor: const Color(0xFF8B5CF6),
+              onTap: () => Navigator.pushNamed(context, '/used-car', arguments: 0),
+              actionLabel: '딜러 견적 연결',
+              actionColor: const Color(0xFF8B5CF6),
+              actionTextColor: Colors.white,
+            ),
+          ]),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _usedCarAxisCard({
+    required Gradient gradient,
+    required Color borderColor,
+    required IconData icon,
+    required Color iconColor,
+    required String badge,
+    required Color badgeColor,
+    required String title,
+    required String subtitle,
+    required List<String> bullets,
+    required Color bulletColor,
+    required VoidCallback onTap,
+    required String actionLabel,
+    required Color actionColor,
+    required Color actionTextColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor.withOpacity(0.4), width: 1.5),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: iconColor.withOpacity(0.3)),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: badgeColor.withOpacity(0.4)),
+                  ),
+                  child: Text(badge,
+                    style: TextStyle(color: badgeColor, fontSize: 9, fontWeight: FontWeight.w800)),
+                ),
+              ]),
+              const SizedBox(height: 3),
+              Text(title,
+                style: GoogleFonts.notoSansKr(
+                  color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900)),
+              Text(subtitle,
+                style: GoogleFonts.notoSansKr(
+                  color: const Color(0xFF889BAB), fontSize: 11)),
+            ])),
+          ]),
+          const SizedBox(height: 12),
+          ...bullets.map((b) => Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(children: [
+              Icon(Icons.check_circle_rounded, color: bulletColor, size: 13),
+              const SizedBox(width: 6),
+              Expanded(child: Text(b,
+                style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 11))),
+            ]),
+          )),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onTap,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: actionColor,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Text(actionLabel,
+                  style: TextStyle(
+                    color: actionTextColor, fontSize: 13, fontWeight: FontWeight.w800)),
+                const SizedBox(width: 6),
+                Icon(Icons.arrow_forward_ios_rounded, color: actionTextColor, size: 12),
+              ]),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 
