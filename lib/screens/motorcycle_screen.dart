@@ -173,6 +173,22 @@ String _timeAgo(DateTime dt) {
 String _dateStr(DateTime dt) =>
     '${dt.year}.${dt.month.toString().padLeft(2,'0')}.${dt.day.toString().padLeft(2,'0')}';
 
+String _fmtPrice(int price) {
+  if (price >= 10000) {
+    final eok = price ~/ 10000;
+    final rem = price % 10000;
+    return rem == 0 ? '$eok억' : '$eok억 $rem';
+  }
+  return price.toString();
+}
+
+String _fmtMileage(int km) {
+  if (km >= 10000) {
+    return '${(km / 10000).toStringAsFixed(1)}만';
+  }
+  return km.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
+}
+
 // ══════════════════════════════════════════════════════════════
 // MotorcycleScreen — 메인 (탭 5개)
 // ══════════════════════════════════════════════════════════════
@@ -1366,7 +1382,7 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
               const SizedBox(height: 14),
               Text('판매자 설명', style: _ts(14, FontWeight.w700, _mt1)),
               const SizedBox(height: 6),
-              Text(l.desc, style: _ts(13, FontWeight.w400, _mt1), height: 1.6),
+              Text(l.desc, style: _ts(13, FontWeight.w400, _mt1).copyWith(height: 1.6)),
               const SizedBox(height: 4),
               Text('${l.region} · ${_timeAgo(l.createdAt)}',
                   style: _ts(11, FontWeight.w400, _mt3)),
@@ -2364,7 +2380,7 @@ class _ClubPostCard extends StatelessWidget {
         ]),
         const SizedBox(height: 10),
         // 본문
-        Text(p.content, style: _ts(13, FontWeight.w400, _mt2), height: 1.6),
+        Text(p.content, style: _ts(13, FontWeight.w400, _mt2).copyWith(height: 1.6)),
         // 사진
         if (p.photoUrls.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -2499,7 +2515,7 @@ class _ClubNoticesTab extends StatelessWidget {
               Text(_dateStr(n.createdAt), style: _ts(10, FontWeight.w400, _mt3)),
             ]),
             const SizedBox(height: 6),
-            Text(n.content, style: _ts(13, FontWeight.w400, _mt2), height: 1.5),
+            Text(n.content, style: _ts(13, FontWeight.w400, _mt2).copyWith(height: 1.5)),
           ]),
         );
       },
@@ -3269,8 +3285,7 @@ class _InfoTab extends StatelessWidget {
                       width: 4, height: 4, decoration: BoxDecoration(
                           color: color, shape: BoxShape.circle)),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(item, style: _ts(13, FontWeight.w400, _mt2),
-                      height: 1.5)),
+                  Expanded(child: Text(item, style: _ts(13, FontWeight.w400, _mt2).copyWith(height: 1.5))),
                 ]),
               )).toList(),
             ),

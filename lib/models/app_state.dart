@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show Color;
 
 // =====================================================
 // 견적 요청 모델 (PC 점포관리자 연동 대비 구조 설계)
