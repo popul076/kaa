@@ -2040,7 +2040,7 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 200),
                   opacity: _nearbyBarVisible ? 1.0 : 0.0,
-                  child: const _NearbyDealerBar(),
+                  child: _NearbyDealerBar(),
                 ),
               ),
             ),
