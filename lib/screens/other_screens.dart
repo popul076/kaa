@@ -9471,14 +9471,35 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
   static const Color _textPri = Colors.white;
   static const Color _textSec = Color(0xFFB0BEC5);
 
+  void _onStateChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    UsedCarState().addListener(_onStateChanged);
+  }
+
+  @override
+  void dispose() {
+    UsedCarState().removeListener(_onStateChanged);
+    super.dispose();
+  }
+
+  // 내 매물 목록: isMyListing=true 우선, 없으면 individual 전체
+  List<UsedCarListing> get _myListings {
+    final all = UsedCarState().listings;
+    final mine = all.where((l) => l.isMyListing).toList();
+    if (mine.isNotEmpty) return mine;
+    // fallback: individual 타입 전체 (데모용)
+    return all.where((l) => l.sellerType == 'individual').toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
-    // 매물 목록 계산 (setState 기반, AnimatedBuilder 제거)
-    final allListings = UsedCarState().listings;
-    final myListings = allListings.any((l) => l.isMyListing)
-        ? allListings.where((l) => l.isMyListing).toList()
-        : allListings.where((l) => l.sellerType == 'individual').toList();
+    final myListings = _myListings;
     final totalInquiry = myListings.fold(0, (s, l) => s + l.inquiryCount);
     final activeCount = myListings.where((l) => !l.isSold).length;
 
