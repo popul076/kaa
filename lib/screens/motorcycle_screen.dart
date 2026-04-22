@@ -1124,6 +1124,43 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
 }
 
 // ── 매물 카드 ────────────────────────────────────────────────
+// ── 사진 슬라이더 (최대 10장) ────────────────────────────────
+class _PhotoSlider extends StatefulWidget {
+  final List<String> photos;
+  const _PhotoSlider({required this.photos});
+  @override
+  State<_PhotoSlider> createState() => _PhotoSliderState();
+}
+class _PhotoSliderState extends State<_PhotoSlider> {
+  int _idx = 0;
+  @override
+  Widget build(BuildContext context) {
+    final photos = widget.photos.isNotEmpty
+        ? widget.photos
+        : ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'];
+    return SizedBox(
+      height: 240,
+      child: Stack(children: [
+        PageView.builder(
+          itemCount: photos.length,
+          onPageChanged: (i) => setState(() => _idx = i),
+          itemBuilder: (_, i) => Image.network(photos[i],
+              fit: BoxFit.cover, width: double.infinity,
+              errorBuilder: (_, __, ___) => Container(color: _mcard2,
+                  child: const Icon(Icons.two_wheeler_rounded, color: _mt3, size: 60))),
+        ),
+        Positioned(bottom: 12, right: 16, child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: Colors.black54,
+              borderRadius: BorderRadius.circular(12)),
+          child: Text('${_idx + 1} / ${photos.length}',
+              style: _ts(11, FontWeight.w600, Colors.white)),
+        )),
+      ]),
+    );
+  }
+}
+
 class _MotoListingCard extends StatelessWidget {
   final MotoListing listing;
   final VoidCallback onTap;
@@ -1214,329 +1251,311 @@ class _MotoListingDetailScreen extends StatefulWidget {
 }
 
 class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
-  int _photoIdx = 0;
+  bool _liked = false;
   bool _isWishlisted = false;
+  final _commentCtrl = TextEditingController();
+  final List<String> _comments = [];
 
   @override
   Widget build(BuildContext context) {
     final l = widget.listing;
-    final photos = l.photoUrls.isNotEmpty ? l.photoUrls
-        : ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'];
+    // 전화번호: phoneable 상태에서만 노출
     final canCall = l.status == MotoListingStatus.phoneable;
-    // 전화번호: 협의 완료(phoneable) 이후에만 노출
-    final phoneVisible = canCall;
 
     return Scaffold(
       backgroundColor: _mbg,
       appBar: AppBar(
         backgroundColor: _mcard,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20),
           onPressed: () => Navigator.pop(context),
-        ),
-        title: Text('${l.manufacturer} ${l.model}', style: _ts(15, FontWeight.w700, _mt1)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20)),
+        title: Text('${l.manufacturer} ${l.model}', style: _ts(15, FontWeight.w800, _mt1)),
         actions: [
           IconButton(
-            icon: Icon(l.isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _mred, size: 22),
-            onPressed: () {
-              MotoState().toggleListingLike(l.listingId);
-              setState(() {});
-            },
+            icon: Icon(_isWishlisted ? Icons.bookmark : Icons.bookmark_border,
+                color: _morange, size: 22),
+            onPressed: () => setState(() => _isWishlisted = !_isWishlisted),
           ),
         ],
       ),
       body: Column(children: [
         Expanded(child: ListView(children: [
-          // 사진 슬라이더
-          SizedBox(
-            height: 240,
-            child: Stack(children: [
-              PageView.builder(
-                itemCount: photos.length,
-                onPageChanged: (i) => setState(() => _photoIdx = i),
-                itemBuilder: (_, i) => Image.network(photos[i],
-                    fit: BoxFit.cover, width: double.infinity,
-                    errorBuilder: (_, __, ___) => Container(color: _mcard2,
-                        child: const Icon(Icons.motorcycle_rounded, color: _mt3, size: 60))),
-              ),
-              // 사진 카운터
-              Positioned(bottom: 12, right: 16, child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Text('${_photoIdx + 1} / ${photos.length}',
-                    style: _ts(11, FontWeight.w600, Colors.white)),
-              )),
-            ]),
-          ),
+          // ── 사진 슬라이더 (최대 10장) ──
+          _PhotoSlider(photos: l.photoUrls),
 
-          Padding(padding: const EdgeInsets.all(16), child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // 상태 + 가격
-            Row(children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: l.status.color.withOpacity(0.15),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              // 상태 배지 + 가격
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: l.status.color.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: l.status.color.withOpacity(0.5))),
-                child: Text(l.status.label,
-                    style: _ts(11, FontWeight.w700, l.status.color)),
+                  child: Text(l.status.label, style: _ts(11, FontWeight.w700, l.status.color)),
+                ),
+                const Spacer(),
+                Text('${_fmtPrice(l.price)}만원', style: _ts(22, FontWeight.w900, _mred)),
+              ]),
+              const SizedBox(height: 8),
+              Text('${l.manufacturer} ${l.model}', style: _ts(20, FontWeight.w900, _mt1)),
+              const SizedBox(height: 4),
+              Text('${l.displacement}cc · ${l.year} · ${_fmtMileage(l.mileage)}km · ${l.color}',
+                  style: _ts(13, FontWeight.w400, _mt2)),
+
+              // ── 신뢰 정보 ──
+              const SizedBox(height: 16),
+              Text('신뢰 정보', style: _ts(14, FontWeight.w700, _mt1)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _mcard, borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _mborder)),
+                child: Column(children: [
+                  _trustRow('사고 이력', l.accidentFlag
+                      ? '사고 있음 · ${l.accidentDetail}'
+                      : '✅ 무사고', l.accidentFlag ? _mred : _mgreen),
+                  _trustRow('검사 상태', l.inspectionStatus == '정상'
+                      ? '✅ 정상' : '❌ ${l.inspectionStatus}',
+                      l.inspectionStatus == '정상' ? _mgreen : _mred),
+                  _trustRow('튜닝 여부', l.tuningFlag
+                      ? '⚙️ ${l.tuningDetail}' : '✅ 순정',
+                      l.tuningFlag ? _morange : _mgreen),
+                  _trustRow('서류 상태', l.documentStatus,
+                      l.documentStatus == '완비' ? _mgreen : _morange),
+                  if (l.isClubRecommended)
+                    _trustRow('동호회 추천', '✅ 추천', _maccent),
+                  if (l.isShopChecked)
+                    _trustRow('점포 점검', '✅ 완료', _maccent),
+                  if (l.recentMaintenance.isNotEmpty)
+                    _trustRow('최근 정비', l.recentMaintenance, _maccent),
+                ]),
               ),
-              const Spacer(),
-              Text('${_priceStr(l.price)}만원',
-                  style: _ts(22, FontWeight.w800, _mred)),
-            ]),
-            const SizedBox(height: 8),
-            Text('${l.manufacturer} ${l.model}', style: _ts(20, FontWeight.w800, _mt1)),
-            const SizedBox(height: 4),
-            Text('${l.displacement}cc · ${l.year} · ${_fmt(l.mileage)}km · ${l.color}',
-                style: _ts(13, FontWeight.w400, _mt2)),
 
-            // 신뢰 요소
-            const SizedBox(height: 16),
-            Text('신뢰 정보', style: _ts(14, FontWeight.w700, _mt1)),
-            const SizedBox(height: 8),
-            _trustGrid(l),
-
-            // 소모품 상태
-            const SizedBox(height: 16),
-            Text('소모품 상태', style: _ts(14, FontWeight.w700, _mt1)),
-            const SizedBox(height: 8),
-            Row(children: [
-              _condChip('타이어', l.tireCondition),
-              const SizedBox(width: 6),
-              _condChip('브레이크', l.brakeCondition),
-              const SizedBox(width: 6),
-              _condChip('배터리', l.batteryCondition),
-            ]),
-
-            // 최근 교체 부품
-            if (l.recentParts.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              // ── 소모품 상태 ──
+              const SizedBox(height: 14),
+              Text('소모품 상태', style: _ts(14, FontWeight.w700, _mt1)),
+              const SizedBox(height: 8),
               Row(children: [
-                const Icon(Icons.build_circle_outlined, color: _maccent, size: 14),
+                _condChip('타이어', l.tireCondition),
                 const SizedBox(width: 6),
-                Expanded(child: Text('최근 교체: ${l.recentParts}',
-                    style: _ts(12, FontWeight.w400, _mt2))),
+                _condChip('브레이크', l.brakeCondition),
+                const SizedBox(width: 6),
+                _condChip('배터리', l.batteryCondition),
               ]),
-            ],
+              if (l.recentParts.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(children: [
+                  const Icon(Icons.build_circle_outlined, color: _maccent, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text('최근 교체: ${l.recentParts}',
+                      style: _ts(12, FontWeight.w400, _mt2))),
+                ]),
+              ],
 
-            // 설명
-            const SizedBox(height: 16),
-            Text('판매자 설명', style: _ts(14, FontWeight.w700, _mt1)),
-            const SizedBox(height: 6),
-            Text(l.desc, style: _ts(13, FontWeight.w400, _mt2), height: 1.6),
+              // ── 거래 흐름 ──
+              const SizedBox(height: 14),
+              Text('거래 흐름', style: _ts(14, FontWeight.w700, _mt1)),
+              const SizedBox(height: 8),
+              _tradingFlow(l.status),
 
-            // 거래 흐름
-            const SizedBox(height: 16),
-            Text('거래 흐름', style: _ts(14, FontWeight.w700, _mt1)),
-            const SizedBox(height: 8),
-            _tradingFlow(l.status),
+              // ── 판매자 설명 ──
+              const SizedBox(height: 14),
+              Text('판매자 설명', style: _ts(14, FontWeight.w700, _mt1)),
+              const SizedBox(height: 6),
+              Text(l.desc, style: _ts(13, FontWeight.w400, _mt1), height: 1.6),
+              const SizedBox(height: 4),
+              Text('${l.region} · ${_timeAgo(l.createdAt)}',
+                  style: _ts(11, FontWeight.w400, _mt3)),
 
-            // 댓글
-            const SizedBox(height: 16),
-            Row(children: [
-              Text('댓글 ${l.comments.length}', style: _ts(14, FontWeight.w700, _mt1)),
-              const Spacer(),
-              GestureDetector(
-                onTap: () => _showCommentSheet(context,
-                    l.comments.map((c) => MotoComment(
-                        id: c.id, authorName: c.authorName,
-                        content: c.content, createdAt: c.createdAt)).toList(),
-                    (text) {
-                      MotoState().addListingComment(l.listingId,
-                          MotoListingComment(
-                              id: 'lc-${DateTime.now().millisecondsSinceEpoch}',
-                              authorName: '나', content: text,
-                              createdAt: DateTime.now()));
-                      setState(() {});
-                    }),
-                child: _badge('댓글 작성', _maccent),
-              ),
+              // ── 댓글 영역 ──
+              const SizedBox(height: 16),
+              Text('댓글 ${_comments.length + l.inquiryCount}',
+                  style: _ts(14, FontWeight.w700, _mt1)),
+              const SizedBox(height: 8),
+              if (l.inquiryCount > 0)
+                ...List.generate(l.inquiryCount, (i) => Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _mcard, borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _mborder)),
+                  child: Row(children: [
+                    const CircleAvatar(radius: 14, backgroundColor: _mcard2,
+                      child: Icon(Icons.person_rounded, color: _mt3, size: 16)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('구매 문의자 ${i + 1}', style: _ts(11, FontWeight.w700, _mt1)),
+                      Text('차량 상태 문의드립니다. 직거래 가능할까요?',
+                          style: _ts(11, FontWeight.w400, _mt2)),
+                    ])),
+                  ]),
+                )),
+              ..._comments.map((c) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _mcard, borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _mborder)),
+                child: Text(c, style: _ts(12, FontWeight.w400, _mt1)),
+              )),
+              const SizedBox(height: 16),
             ]),
-            const SizedBox(height: 6),
-            ...l.comments.take(3).map((c) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                CircleAvatar(radius: 13, backgroundColor: _mcard2,
-                    child: Text(c.authorName[0], style: _ts(10, FontWeight.w700, _maccent))),
-                const SizedBox(width: 8),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(c.authorName, style: _ts(12, FontWeight.w700, _mt1)),
-                  Text(c.content, style: _ts(12, FontWeight.w400, _mt2)),
-                ])),
-              ]),
-            )),
-
-            const SizedBox(height: 20),
-          ])),
+          ),
         ])),
 
         // ── 하단 고정 버튼 ──
         Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
-          decoration: BoxDecoration(
-            color: _mcard,
-            border: Border(top: const BorderSide(color: _mborder, width: 0.5)),
-          ),
+          color: _mcard,
+          padding: EdgeInsets.only(
+            left: 12, right: 12, top: 10,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 14),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            // 상단 아이콘 열: 찜 · 비교 · 이모지반응
+            // 아이콘 버튼 행: 찜 · 비교 · 좋아요
             Row(children: [
               // 찜 버튼
-              _iconActionBtn(
-                icon: _isWishlisted ? Icons.bookmark : Icons.bookmark_border,
-                label: '찜',
-                color: _morange,
-                active: _isWishlisted,
+              GestureDetector(
                 onTap: () => setState(() => _isWishlisted = !_isWishlisted),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _isWishlisted ? _morange.withOpacity(0.2) : _mcard2,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _isWishlisted ? _morange.withOpacity(0.5) : _mborder)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_isWishlisted ? Icons.bookmark : Icons.bookmark_border,
+                        color: _isWishlisted ? _morange : _mt3, size: 16),
+                    const SizedBox(width: 4),
+                    Text('찜', style: _ts(11, FontWeight.w600,
+                        _isWishlisted ? _morange : _mt2)),
+                  ]),
+                ),
               ),
               const SizedBox(width: 8),
               // 비교 버튼
-              _iconActionBtn(
-                icon: Icons.compare_arrows_rounded,
-                label: '비교',
-                color: _maccent,
-                active: false,
+              GestureDetector(
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: const Text('비교함에 추가되었습니다.'),
-                        backgroundColor: _mcard2, duration: const Duration(seconds: 1))),
+                        backgroundColor: _mcard2,
+                        duration: const Duration(seconds: 1))),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _mcard2,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _mborder)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.compare_arrows_rounded, color: _mt3, size: 16),
+                    const SizedBox(width: 4),
+                    Text('비교', style: _ts(11, FontWeight.w600, _mt2)),
+                  ]),
+                ),
               ),
               const SizedBox(width: 8),
               // 좋아요
-              _iconActionBtn(
-                icon: l.isFavorite ? Icons.favorite : Icons.favorite_border,
-                label: '${l.likeCount}',
-                color: _mred,
-                active: l.isFavorite,
-                onTap: () {
-                  MotoState().toggleListingLike(l.listingId);
-                  setState(() {});
-                },
+              GestureDetector(
+                onTap: () => setState(() {
+                  _liked = !_liked;
+                  if (_liked) l.likeCount++;
+                }),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: _liked ? _mred.withOpacity(0.2) : _mcard2,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _liked ? _mred.withOpacity(0.5) : _mborder)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.favorite_rounded,
+                        color: _liked ? _mred : _mt3, size: 16),
+                    const SizedBox(width: 4),
+                    Text('${l.likeCount}', style: _ts(11, FontWeight.w600,
+                        _liked ? _mred : _mt2)),
+                  ]),
+                ),
               ),
               const Spacer(),
-              // 이모지 반응
-              _iconActionBtn(
-                icon: Icons.emoji_emotions_outlined,
-                label: '반응',
-                color: _maccent,
-                active: false,
-                onTap: () => _showCommentSheet(context,
-                    l.comments.map((c) => MotoComment(
-                        id: c.id, authorName: c.authorName,
-                        content: c.content, createdAt: c.createdAt)).toList(),
-                    (text) {
-                      MotoState().addListingComment(l.listingId,
-                          MotoListingComment(
-                              id: 'lc-${DateTime.now().millisecondsSinceEpoch}',
-                              authorName: '나', content: text,
-                              createdAt: DateTime.now()));
-                      setState(() {});
-                    }),
-              ),
+              Text('${l.region} · ${_timeAgo(l.createdAt)}',
+                  style: _ts(10, FontWeight.w400, _mt3)),
             ]),
-            const SizedBox(height: 10),
-            // 하단 주요 버튼 열
+            const SizedBox(height: 8),
+            // 댓글 입력행
             Row(children: [
-              // 1:1 문의
-              Expanded(child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/chat',
-                    arguments: {'storeName': '${l.manufacturer} ${l.model} 판매자', 'storeId': 0}),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: _maccent.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _maccent.withOpacity(0.5))),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.chat_bubble_rounded, color: _maccent, size: 16),
-                    const SizedBox(width: 6),
-                    Text('1:1 문의', style: _ts(13, FontWeight.w700, _maccent)),
-                  ]),
+              Expanded(child: TextField(
+                controller: _commentCtrl,
+                style: _ts(13, FontWeight.w400, _mt1),
+                decoration: InputDecoration(
+                  hintText: '댓글을 입력하세요...',
+                  hintStyle: _ts(13, FontWeight.w400, _mt3),
+                  filled: true, fillColor: _mcard2,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _mborder)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: _mborder)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
               )),
               const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () {
+                  if (_commentCtrl.text.trim().isNotEmpty) {
+                    setState(() {
+                      _comments.add(_commentCtrl.text.trim());
+                      _commentCtrl.clear();
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(color: _mred, shape: BoxShape.circle),
+                  child: const Icon(Icons.send_rounded, color: Colors.white, size: 18)),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            // 주요 버튼 행: 1:1문의 + 협의 후 전화
+            Row(children: [
+              Expanded(child: ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/chat',
+                    arguments: {'storeName': '${l.manufacturer} ${l.model} 판매자', 'storeId': 0}),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _maccent.withOpacity(0.8),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                icon: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 16),
+                label: Text('1:1 문의', style: _ts(14, FontWeight.w700, Colors.white)),
+              )),
+              const SizedBox(width: 8),
               // 협의 후 전화 (phoneable 상태에서만 번호 노출)
-              Expanded(child: GestureDetector(
-                onTap: phoneVisible ? () async {
+              Expanded(child: ElevatedButton.icon(
+                onPressed: canCall ? () async {
                   final phone = l.contactPreference.contains('010')
                       ? l.contactPreference : '010-0000-0000';
                   final uri = Uri.parse('tel:$phone');
                   if (await canLaunchUrl(uri)) launchUrl(uri);
                 } : () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          canCall
-                            ? '협의가 완료되면 전화 연결이 가능합니다.'
-                            : '1:1 문의 → 협의 완료 후 전화가 가능합니다.',
-                        ),
-                        backgroundColor: _mt3,
-                        duration: const Duration(seconds: 2),
-                      ));
+                    SnackBar(
+                      content: const Text('1:1 문의 → 협의 완료 후 전화가 가능합니다.'),
+                      backgroundColor: _mt3,
+                      duration: const Duration(seconds: 2),
+                    ));
                 },
-                child: Container(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canCall ? _mgreen : _mcard2,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                      color: phoneVisible ? _mgreen.withOpacity(0.2) : _mcard2,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: phoneVisible ? _mgreen.withOpacity(0.6) : _mborder)),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(phoneVisible ? Icons.phone_rounded : Icons.phone_locked_rounded,
-                        color: phoneVisible ? _mgreen : _mt3, size: 16),
-                    const SizedBox(width: 6),
-                    Text(phoneVisible ? '협의 후 전화' : '전화(잠김)',
-                        style: _ts(13, FontWeight.w700,
-                            phoneVisible ? _mgreen : _mt3)),
-                  ]),
-                ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                icon: Icon(canCall ? Icons.phone_rounded : Icons.phone_locked_rounded,
+                    color: canCall ? Colors.white : _mt3, size: 16),
+                label: Text(canCall ? '협의 후 전화' : '전화(잠김)',
+                    style: _ts(14, FontWeight.w700, canCall ? Colors.white : _mt3)),
               )),
             ]),
           ]),
         ),
-      ]),
-    );
-  }
-
-  Widget _trustGrid(MotoListing l) {
-    final items = [
-      {'label': '사고 이력', 'value': l.accidentFlag ? '⚠️ ${l.accidentDetail}' : '✅ 무사고', 'ok': !l.accidentFlag},
-      {'label': '검사 상태', 'value': l.inspectionStatus == '정상' ? '✅ 정상' : '❌ ${l.inspectionStatus}', 'ok': l.inspectionStatus == '정상'},
-      {'label': '튜닝 여부', 'value': l.tuningFlag ? '⚙️ ${l.tuningDetail}' : '✅ 순정', 'ok': !l.tuningFlag},
-      {'label': '서류 상태', 'value': l.documentStatus, 'ok': l.documentStatus == '완비'},
-      {'label': '동호회 추천', 'value': l.isClubRecommended ? '✅ 추천' : '–', 'ok': l.isClubRecommended},
-      {'label': '점포 점검', 'value': l.isShopChecked ? '✅ 완료' : '미완료', 'ok': l.isShopChecked},
-    ];
-    return GridView.count(
-      crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 6, crossAxisSpacing: 6, childAspectRatio: 3.5,
-      children: items.map((item) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(color: _mcard2, borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: (item['ok'] as bool) ? _mgreen.withOpacity(0.3) : _mborder)),
-        child: Row(children: [
-          Expanded(child: Text(item['label'] as String,
-              style: _ts(11, FontWeight.w500, _mt3))),
-          Text(item['value'] as String,
-              style: _ts(11, FontWeight.w600,
-                  (item['ok'] as bool) ? _mgreen : _mt2)),
-        ]),
-      )).toList(),
-    );
-  }
-
-  Widget _condChip(String label, String cond) {
-    final color = cond == '최상' ? _mgreen : cond == '양호' ? _maccent : _morange;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.4))),
-      child: Column(children: [
-        Text(label, style: _ts(10, FontWeight.w500, _mt3)),
-        Text(cond, style: _ts(11, FontWeight.w700, color)),
       ]),
     );
   }
@@ -1552,53 +1571,50 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
         return Expanded(child: Row(children: [
           Expanded(child: Column(children: [
             Container(
-              width: 28, height: 28,
+              width: 26, height: 26,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isActive ? _mred : _mcard2,
-                border: Border.all(color: isActive ? _mred : _mborder),
-              ),
+                border: Border.all(color: isActive ? _mred : _mborder)),
               child: Center(child: Text('${i + 1}',
                   style: _ts(10, FontWeight.w700, isActive ? Colors.white : _mt3))),
             ),
             const SizedBox(height: 3),
-            Text(step, style: _ts(9, FontWeight.w500,
-                isActive ? _mt1 : _mt3), textAlign: TextAlign.center),
+            Text(step, style: _ts(9, FontWeight.w500, isActive ? _mt1 : _mt3),
+                textAlign: TextAlign.center),
           ])),
           if (i < steps.length - 1)
-            Container(width: 16, height: 1,
+            Container(width: 14, height: 1,
                 color: isActive && i < currentIdx ? _mred : _mborder),
         ]));
       }).toList(),
     );
   }
 
-  Widget _iconActionBtn({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required bool active,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? color.withOpacity(0.18) : _mcard2,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: active ? color.withOpacity(0.5) : _mborder),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, color: active ? color : _mt3, size: 16),
-          const SizedBox(width: 4),
-          Text(label, style: _ts(11, FontWeight.w600, active ? color : _mt2)),
-        ]),
-      ),
+  Widget _trustRow(String label, String value, Color color) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(children: [
+      SizedBox(width: 70, child: Text(label, style: _ts(11, FontWeight.w600, _mt3))),
+      Container(width: 1, height: 12, color: _mborder,
+          margin: const EdgeInsets.symmetric(horizontal: 8)),
+      Expanded(child: Text(value, style: _ts(12, FontWeight.w600, color))),
+    ]),
+  );
+
+  Widget _condChip(String label, String cond) {
+    final color = cond == '최상' ? _mgreen : cond == '양호' ? _maccent : _morange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withOpacity(0.4))),
+      child: Column(children: [
+        Text(label, style: _ts(10, FontWeight.w500, _mt3)),
+        Text(cond, style: _ts(11, FontWeight.w700, color)),
+      ]),
     );
   }
 }
-
 // ── 매물 등록 화면 ────────────────────────────────────────────
 class _MotoListingRegisterScreen extends StatefulWidget {
   const _MotoListingRegisterScreen();
@@ -1649,11 +1665,11 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
         ],
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        // 사진 첨부 안내
+        // 사진 첨부
         Container(
           height: 80,
           decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _mborder, style: BorderStyle.solid)),
+              border: Border.all(color: _mborder)),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 28),
             const SizedBox(width: 10),
@@ -1665,18 +1681,17 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
           ]),
         ),
         const SizedBox(height: 16),
-        _inputField('제조사', _mfrCtrl, '혼다, 야마하, 가와사키...'),
-        _inputField('모델', _modelCtrl, 'CB500F, MT-07...'),
-        _inputField('배기량(cc)', _ccCtrl, '125, 250, 400, 650...', type: TextInputType.number),
-        _inputField('연식', _yearCtrl, '2021년식'),
+        _inputField('제조사 *', _mfrCtrl, '혼다, 야마하, 가와사키...'),
+        _inputField('모델 *', _modelCtrl, 'CB500F, MT-07...'),
+        _inputField('배기량(cc)', _ccCtrl, '125, 250, 400...', type: TextInputType.number),
+        _inputField('연식', _yearCtrl, '2021'),
         _inputField('주행거리(km)', _miCtrl, '12000', type: TextInputType.number),
-        _inputField('가격(만원)', _priceCtrl, '650', type: TextInputType.number),
+        _inputField('가격(만원) *', _priceCtrl, '650', type: TextInputType.number),
         _inputField('지역', _regionCtrl, '대구 수성구'),
-        const SizedBox(height: 8),
         _inputField('색상', _colorCtrl, '블랙, 화이트, 레드...'),
-        _inputField('희망 연락처', _phoneCtrl, '010-0000-0000'),
+        _inputField('희망 연락처', _phoneCtrl, '010-0000-0000', type: TextInputType.phone),
         const SizedBox(height: 8),
-        // 토글 항목
+        // 사고·튜닝·순정 토글
         _toggleRow('사고 이력 있음', _accident, (v) => setState(() => _accident = v)),
         if (_accident) _inputField('사고 부위/내용', _acDetailCtrl, '좌측 카울 긁힘...'),
         _toggleRow('튜닝 여부', _tuning, (v) => setState(() => _tuning = v)),
@@ -1704,8 +1719,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
             decoration: BoxDecoration(
               color: _inspect == s ? _maccent.withOpacity(0.2) : _mcard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _inspect == s ? _maccent : _mborder),
-            ),
+              border: Border.all(color: _inspect == s ? _maccent : _mborder)),
             child: Text(s, style: _ts(12, FontWeight.w600,
                 _inspect == s ? _maccent : _mt2)),
           ),
@@ -1722,8 +1736,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
             decoration: BoxDecoration(
               color: _doc == s ? _mgreen.withOpacity(0.2) : _mcard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _doc == s ? _mgreen : _mborder),
-            ),
+              border: Border.all(color: _doc == s ? _mgreen : _mborder)),
             child: Text(s, style: _ts(12, FontWeight.w600,
                 _doc == s ? _mgreen : _mt2)),
           ),
@@ -1740,8 +1753,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
             decoration: BoxDecoration(
               color: _contact == s ? _morange.withOpacity(0.2) : _mcard,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: _contact == s ? _morange : _mborder),
-            ),
+              border: Border.all(color: _contact == s ? _morange : _mborder)),
             child: Text(s, style: _ts(11, FontWeight.w600,
                 _contact == s ? _morange : _mt2)),
           ),
@@ -1758,9 +1770,9 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
             filled: true, fillColor: _mcard,
             contentPadding: const EdgeInsets.all(14),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: _mborder)),
+                borderSide: BorderSide(color: _mborder)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: _mborder)),
+                borderSide: BorderSide(color: _mborder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: _maccent.withOpacity(0.5))),
           ),
@@ -1771,8 +1783,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
           child: Container(
             height: 50,
             decoration: BoxDecoration(color: _mred, borderRadius: BorderRadius.circular(12)),
-            child: Center(child: Text('매물 등록하기',
-                style: _ts(15, FontWeight.w700, Colors.white))),
+            child: Center(child: Text('매물 등록하기', style: _ts(15, FontWeight.w700, Colors.white))),
           ),
         ),
         const SizedBox(height: 20),
@@ -1781,9 +1792,10 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
   }
 
   void _submit() {
-    if (_mfrCtrl.text.isEmpty || _modelCtrl.text.isEmpty) {
+    if (_mfrCtrl.text.isEmpty || _modelCtrl.text.isEmpty || _priceCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('제조사와 모델을 입력해주세요.'), backgroundColor: _mred));
+          SnackBar(content: const Text('제조사·모델·가격은 필수 입력 항목입니다.'),
+              backgroundColor: _mred));
       return;
     }
     final listing = MotoListing(
@@ -1806,7 +1818,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
     MotoState().addListing(listing);
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('매물이 등록되었습니다.'), backgroundColor: _mgreen));
+        SnackBar(content: const Text('매물이 등록되었습니다.'), backgroundColor: _mgreen));
   }
 
   Widget _inputField(String label, TextEditingController ctrl, String hint,
@@ -1819,13 +1831,13 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
           style: _ts(13, FontWeight.w400, _mt1),
           decoration: InputDecoration(
             labelText: label, labelStyle: _ts(12, FontWeight.w500, _mt3),
-            hintText: hint, hintStyle: _ts(12, FontWeight.w400, _mt3.withOpacity(0.6)),
+            hintText: hint, hintStyle: _ts(12, FontWeight.w400, _mt3.withOpacity(0.5)),
             filled: true, fillColor: _mcard,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: _mborder)),
+                borderSide: BorderSide(color: _mborder)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: _mborder)),
+                borderSide: BorderSide(color: _mborder)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(color: _maccent.withOpacity(0.5))),
           ),
@@ -1847,32 +1859,24 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
     const opts = ['최상', '양호', '불량'];
     return Row(children: [
       SizedBox(width: 60, child: Text(label, style: _ts(12, FontWeight.w500, _mt2))),
-      ...opts.map((o) => GestureDetector(
-        onTap: () => onChange(o),
-        child: Container(
-          margin: const EdgeInsets.only(right: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: current == o
-                ? (o == '최상' ? _mgreen : o == '양호' ? _maccent : _mred).withOpacity(0.2)
-                : _mcard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: current == o
-                  ? (o == '최상' ? _mgreen : o == '양호' ? _maccent : _mred).withOpacity(0.6)
-                  : _mborder,
-            ),
+      ...opts.map((o) {
+        final c = o == '최상' ? _mgreen : o == '양호' ? _maccent : _mred;
+        return GestureDetector(
+          onTap: () => onChange(o),
+          child: Container(
+            margin: const EdgeInsets.only(right: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: current == o ? c.withOpacity(0.2) : _mcard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: current == o ? c.withOpacity(0.6) : _mborder)),
+            child: Text(o, style: _ts(11, FontWeight.w600, current == o ? c : _mt3)),
           ),
-          child: Text(o, style: _ts(11, FontWeight.w600,
-              current == o
-                  ? (o == '최상' ? _mgreen : o == '양호' ? _maccent : _mred)
-                  : _mt3)),
-        ),
-      )),
+        );
+      }),
     ]);
   }
 }
-
 // ══════════════════════════════════════════════════════════════
 // 탭 3: 동호회
 // ══════════════════════════════════════════════════════════════
