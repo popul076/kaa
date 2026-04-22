@@ -1233,19 +1233,19 @@ class UsedCarListing {
   final String title;
   final String carName;
   final String modelYear;
-  final int mileage;
+  int mileage;         // mutable
   int price;           // mutable for price editing
   final String fuel;
   final String transmission;
-  final String color;
-  final bool hasAccident;
-  final String region;
+  String color;        // mutable
+  bool hasAccident;    // mutable
+  String region;       // mutable
   final String sellerName;
   final String sellerPhone;
   final String sellerType;    // 'individual' | 'dealer'
   final int? storeId;         // 점포 연동
   final List<String> photoUrls;
-  final String desc;
+  String desc;         // mutable
   final DateTime createdAt;
   bool isFavorite;
   bool isSold;           // 판매완료 여부
@@ -1414,6 +1414,7 @@ class UsedCarState extends ChangeNotifier {
         hasAccident: false, region: '대구 수성구',
         sellerName: '홍길동', sellerPhone: '010-1234-5678',
         sellerType: 'individual',
+        isMyListing: true, ownerId: 'me', viewCount: 12, inquiryCount: 2,
         photoUrls: [
           'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80',
           'https://images.unsplash.com/photo-1617531653332-bd46c16f4d68?w=600&q=80',
@@ -1453,6 +1454,7 @@ class UsedCarState extends ChangeNotifier {
         hasAccident: false, region: '대구 수성구',
         sellerName: '이민준', sellerPhone: '010-9876-5432',
         sellerType: 'individual',
+        isMyListing: true, ownerId: 'me', viewCount: 5, inquiryCount: 1,
         photoUrls: [
           'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&q=80',
         ],
@@ -1483,6 +1485,33 @@ class UsedCarState extends ChangeNotifier {
         ],
       ),
     ]);
+  }
+
+  // ── 매물 수정 ──
+  void updateListing(String listingId, {
+    int? price,
+    String? desc,
+    int? mileage,
+    String? color,
+    String? region,
+    bool? hasAccident,
+    List<String>? photoUrls,
+    List<String>? selectedOptions,
+    String? listingStatus,
+  }) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      if (price != null) l.price = price;
+      if (desc != null) l.desc = desc;
+      if (mileage != null) l.mileage = mileage;
+      if (color != null) l.color = color;
+      if (region != null) l.region = region;
+      if (hasAccident != null) l.hasAccident = hasAccident;
+      if (photoUrls != null) { l.photoUrls.clear(); l.photoUrls.addAll(photoUrls); }
+      if (selectedOptions != null) { l.selectedOptions.clear(); l.selectedOptions.addAll(selectedOptions); }
+      if (listingStatus != null) l.listingStatus = listingStatus;
+    } catch (_) {}
+    notifyListeners();
   }
 
   // ── 판매 요청 등록 ──

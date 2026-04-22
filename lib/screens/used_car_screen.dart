@@ -178,8 +178,23 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
           ? UsedCarState().saleRequests.first
           : null;
 
-  static const _kPlate = 'uc_plate';
-  static const _kKm    = 'uc_km';
+  // 내가 이미 등록한 직거래 매물 (isMyListing=true)
+  UsedCarListing? get _myExistingListing {
+    final all = UsedCarState().listings;
+    try {
+      return all.firstWhere((l) => l.isMyListing && !l.isSold);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static const _kPlate   = 'uc_plate';
+  static const _kKm      = 'uc_km';
+  static const _kModel   = 'uc_model';
+  static const _kYear    = 'uc_year';
+  static const _kRegDate = 'uc_regdate';
+  static const _kMemo    = 'uc_memo';
+  static const _kAccident= 'uc_accident';
 
   @override
   void initState() {
@@ -195,12 +210,27 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
 
   Future<void> _loadSaved() async {
     final prefs = await SharedPreferences.getInstance();
-    final plate = prefs.getString(_kPlate) ?? '';
-    final km    = prefs.getString(_kKm) ?? '';
+    final plate    = prefs.getString(_kPlate) ?? '';
+    final km       = prefs.getString(_kKm) ?? '';
+    final model    = prefs.getString(_kModel) ?? '';
+    final year     = prefs.getString(_kYear) ?? '';
+    final regDate  = prefs.getString(_kRegDate) ?? '';
+    final memo     = prefs.getString(_kMemo) ?? '';
+    final accident = prefs.getBool(_kAccident) ?? false;
     setState(() {
       _plateCtrl.text = plate;
       _mileCtrl.text  = km;
+      _memoCtrl.text  = memo;
       _kmSaved        = km;
+      _hasAccident    = accident;
+      if (model.isNotEmpty) {
+        _foundModel   = model;
+        _foundYear    = year;
+        _foundRegDate = regDate;
+        _plateFound   = true;
+        // 번호+모델 있으면 STEP1으로 바로 진입
+        if (plate.isNotEmpty && km.isNotEmpty) _step = 1;
+      }
     });
   }
 
@@ -208,6 +238,41 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kPlate, _plateCtrl.text);
     await prefs.setString(_kKm, _mileCtrl.text);
+    await prefs.setString(_kMemo, _memoCtrl.text);
+    await prefs.setBool(_kAccident, _hasAccident);
+    if (_foundModel != null) {
+      await prefs.setString(_kModel, _foundModel!);
+      await prefs.setString(_kYear, _foundYear ?? '');
+      await prefs.setString(_kRegDate, _foundRegDate ?? '');
+    }
+  }
+
+  // ── draft 완전 초기화 (다른차 신청하기 눌렀을 때만) ──
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kPlate);
+    await prefs.remove(_kKm);
+    await prefs.remove(_kMemo);
+    await prefs.remove(_kAccident);
+    await prefs.remove(_kModel);
+    await prefs.remove(_kYear);
+    await prefs.remove(_kRegDate);
+    setState(() {
+      _step = 0;
+      _plateCtrl.clear();
+      _mileCtrl.clear();
+      _memoCtrl.clear();
+      _plateFound = false;
+      _foundModel = null;
+      _foundYear = null;
+      _foundRegDate = null;
+      _foundMaketMin = null;
+      _foundMarketMax = null;
+      _hasAccident = false;
+      _photos.clear();
+      _selectedOpts.clear();
+      _kmSaved = '';
+    });
   }
 
   // ── 차량번호 조회 ──
@@ -1067,28 +1132,58 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
               ),
             ),
             const SizedBox(height: 10),
-            // 직거래 등록 버튼
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => _showRegisterIndividualListing(context),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: _purple, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            // 직거래 등록/내 게시물 분기 버튼
+            Builder(builder: (ctx) {
+              final existing = _myExistingListing;
+              if (existing != null) {
+                // 이미 등록된 매물 있음 → 내 게시물로 이동
+                return SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.push(ctx,
+                      MaterialPageRoute(builder: (_) =>
+                        UsedCarDetailScreen(listing: existing))),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _green, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('📋  내 게시물 보기 / 수정하기',
+                          style: TextStyle(color: _green, fontSize: 15, fontWeight: FontWeight.w800)),
+                        SizedBox(height: 2),
+                        Text('이미 등록된 직거래 매물이 있습니다',
+                          style: TextStyle(color: _green, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              // 아직 없음 → 새 등록
+              return SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => _showRegisterIndividualListing(ctx),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: _purple, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('🏪  직거래 매물로 등록하기',
+                        style: TextStyle(color: _purple, fontSize: 15, fontWeight: FontWeight.w800)),
+                      SizedBox(height: 2),
+                      Text('협회 인증 배지 · 1:1 문의 · 직접 거래',
+                        style: TextStyle(color: _purple, fontSize: 11)),
+                    ],
+                  ),
                 ),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('🏪  직거래 매물로 등록하기',
-                      style: TextStyle(color: _purple, fontSize: 15, fontWeight: FontWeight.w800)),
-                    SizedBox(height: 2),
-                    Text('협회 인증 배지 · 1:1 문의 · 직접 거래',
-                      style: TextStyle(color: _purple, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ),
+              );
+            }),
             const SizedBox(height: 8),
             Center(child: Text('두 가지 방법을 동시에 활용할 수 있습니다',
               style: TextStyle(color: _textSec.withOpacity(0.7), fontSize: 11))),
@@ -1199,30 +1294,46 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
 
           if (!isMatched) ...[
             const SizedBox(height: 16),
-            // 직거래 재등록 버튼
-            GestureDetector(
-              onTap: () => _showRegisterIndividualListing(context),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: _purple.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _purple.withOpacity(0.4)),
+            // 직거래 등록/내 게시물 분기
+            Builder(builder: (ctx) {
+              final existing = _myExistingListing;
+              if (existing != null) {
+                return GestureDetector(
+                  onTap: () => Navigator.push(ctx,
+                    MaterialPageRoute(builder: (_) =>
+                      UsedCarDetailScreen(listing: existing))),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: _green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _green.withOpacity(0.4)),
+                    ),
+                    child: const Center(child: Text('📋  내 직거래 게시물 보기/수정',
+                      style: TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700))),
+                  ),
+                );
+              }
+              return GestureDetector(
+                onTap: () => _showRegisterIndividualListing(ctx),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _purple.withOpacity(0.4)),
+                  ),
+                  child: const Center(child: Text('🏪  직거래 매물로도 동시 등록하기',
+                    style: TextStyle(color: _purple, fontSize: 13, fontWeight: FontWeight.w700))),
                 ),
-                child: const Center(child: Text('🏪  직거래 매물로도 동시 등록하기',
-                  style: TextStyle(color: _purple, fontSize: 13, fontWeight: FontWeight.w700))),
-              ),
-            ),
+              );
+            }),
             const SizedBox(height: 8),
-            // 새 신청
+            // 새 신청 (draft 완전 초기화)
             GestureDetector(
-              onTap: () => setState(() {
-                _step = 0;
-                _plateCtrl.clear();
-                _mileCtrl.clear();
-                _plateFound = false;
-              }),
+              onTap: _clearDraft,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1238,14 +1349,9 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
           ],
           if (isMatched) ...[
             const SizedBox(height: 16),
-            // 거래 완료 후 재신청
+            // 거래 완료 후 재신청 (draft 완전 초기화)
             GestureDetector(
-              onTap: () => setState(() {
-                _step = 0;
-                _plateCtrl.clear();
-                _mileCtrl.clear();
-                _plateFound = false;
-              }),
+              onTap: _clearDraft,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1254,7 +1360,7 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: _green.withOpacity(0.3)),
                 ),
-                child: const Center(child: Text('새 차량 딜러 견적 재요청',
+                child: const Center(child: Text('다른 차량 딜러 견적 재요청',
                   style: TextStyle(color: _green, fontSize: 13, fontWeight: FontWeight.w700))),
               ),
             ),
