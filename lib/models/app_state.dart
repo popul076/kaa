@@ -1253,6 +1253,14 @@ class UsedCarListing {
   List<String> selectedOptions;     // option id 목록
   List<AdditionalOption> additionalOptions; // 유료 추가옵션
 
+  // ── 게시물 통계 & 소유 정보 ──
+  int viewCount;          // 조회수
+  int inquiryCount;       // 1:1 문의 수
+  String? ownerId;        // 소유자 ID (로그인 사용자 구분용)
+  bool isMyListing;       // 내가 등록한 매물 여부
+  DateTime? lastInquiryAt; // 마지막 문의 시각
+  String listingStatus;   // 'active' | 'sold' | 'hidden'
+
   UsedCarListing({
     required this.listingId,
     required this.title,
@@ -1277,6 +1285,12 @@ class UsedCarListing {
     this.isCertified = false,
     List<String>? selectedOptions,
     List<AdditionalOption>? additionalOptions,
+    this.viewCount = 0,
+    this.inquiryCount = 0,
+    this.ownerId,
+    this.isMyListing = false,
+    this.lastInquiryAt,
+    this.listingStatus = 'active',
   })  : selectedOptions = selectedOptions ?? [],
         additionalOptions = additionalOptions ?? [];
 }

@@ -627,15 +627,108 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
       createdAt: DateTime.now(),
       isCertified: true,
       selectedOptions: _selectedOpts.toList(),
+      isMyListing: true,
+      ownerId: 'me',
+      viewCount: 0,
+      inquiryCount: 0,
+      listingStatus: 'active',
     );
 
     UsedCarState().addListing(newListing);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ 협회 인증 매물로 등록되었습니다! [중고차 사기] 탭에서 확인하세요.'),
-        backgroundColor: _green,
-        duration: Duration(seconds: 4),
+    // ── 완료 팝업 표시 ──
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dCtx) => Dialog(
+        backgroundColor: const Color(0xFF0D1B2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64, height: 64,
+                decoration: BoxDecoration(
+                  color: _green.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle_rounded, color: _green, size: 36),
+              ),
+              const SizedBox(height: 16),
+              const Text('등록 완료',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 8),
+              const Text(
+                '내 차량이 직거래 게시판에\n정상 등록되었습니다.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13, height: 1.6),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _purple.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _purple.withOpacity(0.4)),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.new_releases_rounded, color: _purple, size: 14),
+                  const SizedBox(width: 6),
+                  Text('방금 등록됨 · ${newListing.title}',
+                    style: const TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              Row(children: [
+                // 닫기 버튼
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(dCtx); // dialog 닫기
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF1E3A5F)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('닫기',
+                      style: TextStyle(color: Color(0xFFB0BEC5), fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // 확인(상세 이동) 버튼
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(dCtx); // dialog 닫기
+                      // 상세 페이지로 이동
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UsedCarDetailScreen(
+                            listing: newListing,
+                            isJustRegistered: true,
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _green,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text('확인 · 게시물 보기',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2497,7 +2590,8 @@ class _ListingCard extends StatelessWidget {
 // ============================================================
 class UsedCarDetailScreen extends StatefulWidget {
   final UsedCarListing listing;
-  const UsedCarDetailScreen({super.key, required this.listing});
+  final bool isJustRegistered; // 방금 등록된 매물 여부 → 배지 표시
+  const UsedCarDetailScreen({super.key, required this.listing, this.isJustRegistered = false});
   @override
   State<UsedCarDetailScreen> createState() => _UsedCarDetailScreenState();
 }
@@ -2653,6 +2747,55 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                             l.sellerType == 'dealer' ? _accent : _purple,
                           ),
                         ]),
+
+                        // ── 내 게시물 배지 (방금 등록됨 강조) ──
+                        if (l.isMyListing || widget.isJustRegistered) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                            decoration: BoxDecoration(
+                              color: _green.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: _green.withOpacity(0.35)),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.verified_user_rounded, color: _green, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _green,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text('내 등록 게시물',
+                                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
+                                    ),
+                                    if (widget.isJustRegistered) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _purple,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text('방금 등록됨',
+                                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900)),
+                                      ),
+                                    ],
+                                  ]),
+                                  const SizedBox(height: 3),
+                                  const Text('직거래 게시판에 정상 등록되었습니다. 마이페이지에서 관리할 수 있습니다.',
+                                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10, height: 1.4)),
+                                ],
+                              )),
+                            ]),
+                          ),
+                        ],
+
                         const SizedBox(height: 12),
 
                         // 가격
@@ -2725,6 +2868,30 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
+
+                        // ── 게시물 통계 바 (조회수/문의수/등록일) ──
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _card,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _border),
+                          ),
+                          child: Row(children: [
+                            _statItem(Icons.remove_red_eye_rounded, '${l.viewCount}회', '조회'),
+                            _statDivider(),
+                            _statItem(Icons.chat_bubble_outline_rounded, '${l.inquiryCount}건', '문의'),
+                            _statDivider(),
+                            _statItem(Icons.calendar_today_rounded,
+                              _relativeTime(l.createdAt), '등록'),
+                            if (l.isMyListing || widget.isJustRegistered) ...[
+                              _statDivider(),
+                              _statItem(Icons.edit_rounded, '관리', '내 매물',
+                                color: _purple),
+                            ],
+                          ]),
+                        ),
+                        const SizedBox(height: 10),
 
                         // 판매자 정보
                         Container(
@@ -3686,6 +3853,19 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
 
   Widget _divider() =>
       Divider(color: _border.withOpacity(0.5), height: 1);
+
+  Widget _statItem(IconData icon, String value, String label, {Color? color}) =>
+      Expanded(child: Column(children: [
+        Icon(icon, color: color ?? _textSec, size: 14),
+        const SizedBox(height: 3),
+        Text(value,
+          style: TextStyle(color: color ?? _textPri, fontSize: 12, fontWeight: FontWeight.w800)),
+        Text(label,
+          style: const TextStyle(color: _textSec, fontSize: 10)),
+      ]));
+
+  Widget _statDivider() => Container(
+    width: 1, height: 32, color: _border.withOpacity(0.6));
 }
 
 // ============================================================
@@ -3957,4 +4137,13 @@ String _timeAgo(DateTime dt) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
   if (diff.inHours < 24) return '${diff.inHours}시간 전';
   return '${diff.inDays}일 전';
+}
+
+String _relativeTime(DateTime dt) {
+  final diff = DateTime.now().difference(dt);
+  if (diff.inMinutes < 1) return '방금';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+  if (diff.inHours < 24) return '${diff.inHours}시간 전';
+  if (diff.inDays < 30) return '${diff.inDays}일 전';
+  return '${(diff.inDays / 30).floor()}달 전';
 }

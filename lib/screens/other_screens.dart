@@ -617,6 +617,15 @@ class _MyScreenState extends State<MyScreen> {
   int get _myListingCount => UsedCarState().listings
       .where((l) => l.sellerType == 'individual' && !l.isSold).length;
 
+  // 내 매물 전체 문의 수
+  int get _myInquiryCount {
+    final all = UsedCarState().listings;
+    final mine = all.any((l) => l.isMyListing)
+        ? all.where((l) => l.isMyListing).toList()
+        : all.where((l) => l.sellerType == 'individual').toList();
+    return mine.fold(0, (sum, l) => sum + l.inquiryCount);
+  }
+
   // 딜러 견적 요청 수
   int get _myBidCount => UsedCarState().saleRequests
       .where((r) => r.status == UsedCarStatus.bidding).length;
@@ -839,7 +848,9 @@ class _MyScreenState extends State<MyScreen> {
                       _DarkMenuItem(icon: Icons.sell_rounded, label: '내 중고차 매물',
                         color: const Color(0xFF8B5CF6),
                         badge: _myListingCount > 0 ? '$_myListingCount개' : null,
-                        badgeColor: const Color(0xFF8B5CF6),
+                        badgeColor: _myInquiryCount > 0
+                            ? const Color(0xFFEF4444)   // 문의 있으면 빨간 배지
+                            : const Color(0xFF8B5CF6),
                         onTap: () => Navigator.push(context,
                           MaterialPageRoute(builder: (_) => const _MyListingsScreen()))),
                       _DarkMenuItem(icon: Icons.request_quote_outlined, label: '딜러 견적 요청 내역',
@@ -9469,14 +9480,73 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
           Container(
             color: _card,
             padding: EdgeInsets.fromLTRB(4, MediaQuery.of(context).padding.top + 4, 16, 0),
-            child: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textPri, size: 20),
-                onPressed: () => Navigator.pop(context),
+            child: Column(children: [
+              Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textPri, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const Expanded(child: Center(child: Text('내 중고차 매물',
+                  style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)))),
+                // 새 매물 등록 버튼
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/used-car');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _purple.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _purple.withOpacity(0.4)),
+                    ),
+                    child: const Text('+ 새 등록',
+                      style: TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ]),
+              // 통계 요약 바
+              AnimatedBuilder(
+                animation: UsedCarState(),
+                builder: (_, __) {
+                  final all = UsedCarState().listings;
+                  final mine = all.any((l) => l.isMyListing)
+                      ? all.where((l) => l.isMyListing).toList()
+                      : all.where((l) => l.sellerType == 'individual').toList();
+                  final totalInquiry = mine.fold(0, (s, l) => s + l.inquiryCount);
+                  final activeCount = mine.where((l) => !l.isSold).length;
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _bg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _border),
+                    ),
+                    child: Row(children: [
+                      _summaryItem('판매중', '$activeCount개', _green),
+                      _summaryDivider(),
+                      _summaryItem('전체', '${mine.length}개', _accent),
+                      _summaryDivider(),
+                      Stack(clipBehavior: Clip.none, children: [
+                        _summaryItem('1:1 문의', '$totalInquiry건',
+                          totalInquiry > 0 ? _red : _textSec),
+                        if (totalInquiry > 0)
+                          Positioned(
+                            top: -6, right: -6,
+                            child: Container(
+                              width: 16, height: 16,
+                              decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+                              child: Center(child: Text('$totalInquiry',
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900))),
+                            ),
+                          ),
+                      ]),
+                    ]),
+                  );
+                },
               ),
-              const Expanded(child: Center(child: Text('내 중고차 매물',
-                style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)))),
-              const SizedBox(width: 48),
             ]),
           ),
           // 목록
@@ -9484,8 +9554,11 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
             child: AnimatedBuilder(
               animation: UsedCarState(),
               builder: (context, _) {
-                final myListings = UsedCarState().listings
-                    .where((l) => l.sellerType == 'individual').toList();
+                // isMyListing=true 우선, 없으면 individual 전체
+                final allListings = UsedCarState().listings;
+                final myListings = allListings.any((l) => l.isMyListing)
+                    ? allListings.where((l) => l.isMyListing).toList()
+                    : allListings.where((l) => l.sellerType == 'individual').toList();
                 if (myListings.isEmpty) {
                   return Center(child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -9525,6 +9598,18 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
       ),
     );
   }
+
+  Widget _summaryItem(String label, String value, Color color) =>
+      Expanded(child: Column(children: [
+        Text(value,
+          style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 2),
+        Text(label,
+          style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+      ]));
+
+  Widget _summaryDivider() => Container(
+    width: 1, height: 32, color: const Color(0xFF1E3A5F).withOpacity(0.6));
 }
 
 // ── 내 매물 편집 카드 ──────────────────────────────────────
@@ -9630,6 +9715,50 @@ class _MyListingEditCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          // ── 통계 바 (조회수/문의수/등록일) ──
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _bg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _border.withOpacity(0.5)),
+            ),
+            child: Row(children: [
+              _miniStat(Icons.remove_red_eye_outlined, '${listing.viewCount}회', '조회'),
+              _vDivider(),
+              // 문의수 + 빨간 배지
+              Stack(clipBehavior: Clip.none, children: [
+                _miniStat(Icons.chat_bubble_outline, '${listing.inquiryCount}건', '문의'),
+                if (listing.inquiryCount > 0)
+                  Positioned(
+                    top: -4, right: -4,
+                    child: Container(
+                      width: 14, height: 14,
+                      decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+                      child: Center(child: Text('${listing.inquiryCount}',
+                        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900))),
+                    ),
+                  ),
+              ]),
+              _vDivider(),
+              _miniStat(Icons.access_time_rounded, _listingAgo(listing.createdAt), '등록'),
+              _vDivider(),
+              // 문의 목록 이동 버튼
+              GestureDetector(
+                onTap: () => _showInquiryList(context),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.message_rounded,
+                    color: listing.inquiryCount > 0 ? _red : _textSec, size: 14),
+                  const SizedBox(height: 2),
+                  Text('문의 확인',
+                    style: TextStyle(
+                      color: listing.inquiryCount > 0 ? _red : _textSec,
+                      fontSize: 9, fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            ]),
           ),
           // 편집 액션 버튼들
           Container(
@@ -9794,5 +9923,80 @@ class _MyListingEditCard extends StatelessWidget {
       buf.write(s[i]);
     }
     return buf.toString();
+  }
+
+  String _listingAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return '방금';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
+    if (diff.inHours < 24) return '${diff.inHours}시간 전';
+    if (diff.inDays < 30) return '${diff.inDays}일 전';
+    return '${(diff.inDays / 30).floor()}달 전';
+  }
+
+  Widget _miniStat(IconData icon, String value, String label) =>
+      Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: _textSec, size: 12),
+        const SizedBox(height: 2),
+        Text(value,
+          style: const TextStyle(color: _textPri, fontSize: 10, fontWeight: FontWeight.w700)),
+        Text(label,
+          style: const TextStyle(color: _textSec, fontSize: 9)),
+      ]));
+
+  Widget _vDivider() => Container(width: 1, height: 28, color: _border.withOpacity(0.6));
+
+  void _showInquiryList(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0D1B2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            const Icon(Icons.chat_bubble_rounded, color: Color(0xFF4FC3F7), size: 20),
+            const SizedBox(width: 8),
+            const Text('1:1 문의 목록',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 16),
+          if (listing.inquiryCount == 0)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text('아직 문의가 없습니다',
+                style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 13)),
+            )
+          else
+            ...List.generate(listing.inquiryCount, (i) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A1628),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF1E3A5F)),
+              ),
+              child: Row(children: [
+                const CircleAvatar(radius: 16,
+                  backgroundColor: Color(0xFF1E3A5F),
+                  child: Icon(Icons.person_rounded, color: Colors.white, size: 16)),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('익명 구매자 ${i + 1}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  const Text('차량 상태 문의드립니다. 직거래 가능할까요?',
+                    style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 11),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                ])),
+                const Text('방금',
+                  style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+              ]),
+            )),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
   }
 }
