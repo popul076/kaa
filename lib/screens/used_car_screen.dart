@@ -1574,7 +1574,7 @@ class _UsedCarListingsTab extends StatefulWidget {
   const _UsedCarListingsTab({this.openSearch = false});
   @override
   State<_UsedCarListingsTab> createState() => _UsedCarListingsTabState();
-
+}
 
 class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   String _filter = '전체';
