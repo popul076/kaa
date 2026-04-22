@@ -2752,27 +2752,52 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                                   style: const TextStyle(
                                     color: _textPri, fontSize: 13,
                                     fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 2),
                                 Text(
                                   l.sellerType == 'dealer'
                                       ? 'KAA 인증 딜러 · 정식 등록 매매상사'
-                                      : '개인 판매자',
+                                      : '개인 직거래 판매자',
                                   style: const TextStyle(
                                     color: _textSec, fontSize: 11)),
                               ],
                             )),
-                            if (l.sellerType == 'dealer')
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _accent.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
+                            // 판매자 유형 배지 (상세 강화)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: l.isCertified
+                                        ? _green.withOpacity(0.15)
+                                        : l.sellerType == 'dealer'
+                                            ? _accent.withOpacity(0.12)
+                                            : _purple.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: l.isCertified
+                                          ? _green.withOpacity(0.5)
+                                          : l.sellerType == 'dealer'
+                                              ? _accent.withOpacity(0.4)
+                                              : _purple.withOpacity(0.4)),
+                                  ),
+                                  child: Text(
+                                    l.isCertified
+                                        ? '✅ KAA인증'
+                                        : l.sellerType == 'dealer'
+                                            ? '🏪 딜러'
+                                            : '🤝 직거래',
+                                    style: TextStyle(
+                                      color: l.isCertified
+                                          ? _green
+                                          : l.sellerType == 'dealer'
+                                              ? _accent
+                                              : _purple,
+                                      fontSize: 10, fontWeight: FontWeight.w800)),
                                 ),
-                                child: const Text('KAA 인증',
-                                  style: TextStyle(
-                                    color: _accent, fontSize: 10,
-                                    fontWeight: FontWeight.w800)),
-                              ),
+                              ],
+                            ),
                           ]),
                         ),
                         // 판매완료 처리 버튼 (개인 직거래 + 미판매 상태에서만)
