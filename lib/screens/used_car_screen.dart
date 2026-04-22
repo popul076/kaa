@@ -1957,77 +1957,81 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
           ]),
         );
 
-        // ── 매물 목록 콘텐츠 ─────────────────────────────────
-        Widget listContent;
-        if (!hasSearch && !_hasPreciseFilter && _filter == '전체') {
-          listContent = _buildSearchPrompt();
-        } else if (items.isEmpty) {
-          listContent = Center(child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
-              const SizedBox(height: 10),
-              Text(
-                hasSearch ? '"$_searchQuery" 검색 결과가 없습니다' : '조건에 맞는 매물이 없습니다',
-                style: const TextStyle(color: _textSec, fontSize: 14),
-                textAlign: TextAlign.center),
-              const SizedBox(height: 10),
-              if (hasSearch)
-                GestureDetector(
-                  onTap: () { _searchCtrl.clear(); },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _accent.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _accent.withOpacity(0.4))),
-                    child: const Text('검색 지우기',
-                        style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              if (_hasPreciseFilter) ...[
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _clearPreciseFilter,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _green.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _green.withOpacity(0.4))),
-                    child: const Text('필터 초기화',
-                        style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-              ],
-            ]));
-        } else {
-          listContent = ListView.builder(
-            controller: _scrollCtrl,
-            padding: const EdgeInsets.all(12),
-            itemCount: items.length,
-            itemBuilder: (_, i) => _ListingCard(
-              listing: items[i],
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => UsedCarDetailScreen(listing: items[i]),
-                ),
-              ),
-            ),
-          );
-        }
 
-        // ── 전체 레이아웃: 상단바 스크롤 + 하단 슬라이딩 ───
+        // ── 전체 레이아웃: 상단바 스크롤과 함께 올라감 ───
         return Stack(
           children: [
-            Column(
-              children: [
-                // 상단 바들 (스크롤과 함께 올라감 - SliverHeader 역할)
-                searchBar,
-                preciseBar,
-                filterBar,
+            CustomScrollView(
+              controller: _scrollCtrl,
+              slivers: [
+                // 상단 바들 → 스크롤하면 같이 올라감
+                SliverToBoxAdapter(child: searchBar),
+                SliverToBoxAdapter(child: preciseBar),
+                SliverToBoxAdapter(child: filterBar),
                 // 매물 목록
-                Expanded(child: listContent),
+                if (!hasSearch && !_hasPreciseFilter && _filter == '전체')
+                  SliverFillRemaining(child: _buildSearchPrompt())
+                else if (items.isEmpty)
+                  SliverFillRemaining(
+                    child: Center(child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
+                        const SizedBox(height: 10),
+                        Text(
+                          hasSearch ? '"$_searchQuery" 검색 결과가 없습니다' : '조건에 맞는 매물이 없습니다',
+                          style: const TextStyle(color: _textSec, fontSize: 14),
+                          textAlign: TextAlign.center),
+                        const SizedBox(height: 10),
+                        if (hasSearch)
+                          GestureDetector(
+                            onTap: () { _searchCtrl.clear(); },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _accent.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _accent.withOpacity(0.4))),
+                              child: const Text('검색 지우기',
+                                  style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        if (_hasPreciseFilter) ...[
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: _clearPreciseFilter,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _green.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _green.withOpacity(0.4))),
+                              child: const Text('필터 초기화',
+                                  style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    )),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => _ListingCard(
+                          listing: items[i],
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UsedCarDetailScreen(listing: items[i]),
+                            ),
+                          ),
+                        ),
+                        childCount: items.length,
+                      ),
+                    ),
+                  ),
               ],
             ),
             // ── 하단 슬라이딩 NearbyDealerBar ──────────────

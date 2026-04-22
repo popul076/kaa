@@ -9473,128 +9473,120 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    // 매물 목록 계산 (setState 기반, AnimatedBuilder 제거)
+    final allListings = UsedCarState().listings;
+    final myListings = allListings.any((l) => l.isMyListing)
+        ? allListings.where((l) => l.isMyListing).toList()
+        : allListings.where((l) => l.sellerType == 'individual').toList();
+    final totalInquiry = myListings.fold(0, (s, l) => s + l.inquiryCount);
+    final activeCount = myListings.where((l) => !l.isSold).length;
+
     return Scaffold(
       backgroundColor: _bg,
-      body: Column(
-        children: [
-          // 헤더
-          Container(
-            color: _card,
-            padding: EdgeInsets.fromLTRB(4, MediaQuery.of(context).padding.top + 4, 16, 0),
-            child: Column(children: [
-              Row(children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textPri, size: 20),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const Expanded(child: Center(child: Text('내 중고차 매물',
-                  style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)))),
-                // 새 매물 등록 버튼
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/used-car');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _purple.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _purple.withOpacity(0.4)),
-                    ),
-                    child: const Text('+ 새 등록',
-                      style: TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w700)),
+      body: CustomScrollView(
+        slivers: [
+          // ── 고정 헤더 (AppBar 역할) ──
+          SliverToBoxAdapter(
+            child: Container(
+              color: _card,
+              padding: EdgeInsets.fromLTRB(4, topPad + 4, 16, 0),
+              child: Column(children: [
+                Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _textPri, size: 20),
+                    onPressed: () => Navigator.pop(context),
                   ),
+                  const Expanded(child: Center(child: Text('내 중고차 매물',
+                    style: TextStyle(color: _textPri, fontSize: 17, fontWeight: FontWeight.w800)))),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/used-car');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _purple.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _purple.withOpacity(0.4)),
+                      ),
+                      child: const Text('+ 새 등록',
+                        style: TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ]),
+                // 통계 요약 바
+                Container(
+                  margin: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Row(children: [
+                    _summaryItem('판매중', '$activeCount개', _green),
+                    _summaryDivider(),
+                    _summaryItem('전체', '${myListings.length}개', _accent),
+                    _summaryDivider(),
+                    Stack(clipBehavior: Clip.none, children: [
+                      _summaryItem('1:1 문의', '$totalInquiry건',
+                        totalInquiry > 0 ? _red : _textSec),
+                      if (totalInquiry > 0)
+                        Positioned(
+                          top: -6, right: -6,
+                          child: Container(
+                            width: 16, height: 16,
+                            decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
+                            child: Center(child: Text('$totalInquiry',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900))),
+                          ),
+                        ),
+                    ]),
+                  ]),
                 ),
               ]),
-              // 통계 요약 바
-              AnimatedBuilder(
-                animation: UsedCarState(),
-                builder: (_, __) {
-                  final all = UsedCarState().listings;
-                  final mine = all.any((l) => l.isMyListing)
-                      ? all.where((l) => l.isMyListing).toList()
-                      : all.where((l) => l.sellerType == 'individual').toList();
-                  final totalInquiry = mine.fold(0, (s, l) => s + l.inquiryCount);
-                  final activeCount = mine.where((l) => !l.isSold).length;
-                  return Container(
-                    margin: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _bg,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _border),
-                    ),
-                    child: Row(children: [
-                      _summaryItem('판매중', '$activeCount개', _green),
-                      _summaryDivider(),
-                      _summaryItem('전체', '${mine.length}개', _accent),
-                      _summaryDivider(),
-                      Stack(clipBehavior: Clip.none, children: [
-                        _summaryItem('1:1 문의', '$totalInquiry건',
-                          totalInquiry > 0 ? _red : _textSec),
-                        if (totalInquiry > 0)
-                          Positioned(
-                            top: -6, right: -6,
-                            child: Container(
-                              width: 16, height: 16,
-                              decoration: const BoxDecoration(color: _red, shape: BoxShape.circle),
-                              child: Center(child: Text('$totalInquiry',
-                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900))),
-                            ),
-                          ),
-                      ]),
-                    ]),
-                  );
-                },
-              ),
-            ]),
-          ),
-          // 목록
-          Expanded(
-            child: AnimatedBuilder(
-              animation: UsedCarState(),
-              builder: (context, _) {
-                // isMyListing=true 우선, 없으면 individual 전체
-                final allListings = UsedCarState().listings;
-                final myListings = allListings.any((l) => l.isMyListing)
-                    ? allListings.where((l) => l.isMyListing).toList()
-                    : allListings.where((l) => l.sellerType == 'individual').toList();
-                if (myListings.isEmpty) {
-                  return Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.sell_rounded, color: _textSec, size: 48),
-                      const SizedBox(height: 12),
-                      const Text('등록된 직거래 매물이 없습니다',
-                        style: TextStyle(color: _textSec, fontSize: 14)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/used-car');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _purple,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('직거래 매물 등록하기',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: myListings.length,
-                  itemBuilder: (_, i) {
-                    final listing = myListings[i];
-                    return _MyListingEditCard(listing: listing, onUpdate: () => setState(() {}));
-                  },
-                );
-              },
             ),
           ),
+          // ── 매물 목록 or 빈 화면 ──
+          if (myListings.isEmpty)
+            SliverFillRemaining(
+              child: Center(child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.sell_rounded, color: _textSec, size: 48),
+                  const SizedBox(height: 12),
+                  const Text('등록된 직거래 매물이 없습니다',
+                    style: TextStyle(color: _textSec, fontSize: 14)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/used-car');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _purple,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('직거래 매물 등록하기',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              )),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => _MyListingEditCard(
+                    listing: myListings[i],
+                    onUpdate: () => setState(() {})),
+                  childCount: myListings.length,
+                ),
+              ),
+            ),
         ],
       ),
     );
