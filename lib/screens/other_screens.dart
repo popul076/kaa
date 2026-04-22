@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
 import 'quote_screens.dart' show QuoteDetailScreen;
+import 'used_car_screen.dart' show UsedCarDetailScreen;
 
 // ── MOINCAR 공통 다크 색상 상수 ──
 const Color _mBg      = Color(0xFF020810);
@@ -9642,22 +9643,29 @@ class _MyListingEditCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 썸네일 + 기본 정보
-          Row(
+          // 썸네일 + 기본 정보 (탭 시 상세 이동)
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => UsedCarDetailScreen(listing: listing))),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(14), bottomLeft: Radius.circular(0)),
                 child: Stack(children: [
-                  Image.network(
-                    listing.photoUrls.first,
-                    width: 100, height: 85,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 100, height: 85,
-                      color: const Color(0xFF0A1628),
-                      child: const Icon(Icons.directions_car, color: _textSec, size: 28)),
+                  _thumbImage(listing.photoUrls.isNotEmpty ? listing.photoUrls.first : ''),
+                  // 내 게시물 배지
+                  Positioned(
+                    top: 4, left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _purple.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(4)),
+                      child: const Text('내 매물',
+                        style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800)),
+                    ),
                   ),
                   if (isSold)
                     Positioned.fill(child: Container(
@@ -9715,7 +9723,8 @@ class _MyListingEditCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+          ), // Row
+          ), // GestureDetector
           // ── 통계 바 (조회수/문의수/등록일) ──
           Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
@@ -9795,7 +9804,7 @@ class _MyListingEditCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ); // Container
   }
 
   Widget _actionBtn({required String label, required Color color, required VoidCallback onTap}) {
@@ -9945,6 +9954,23 @@ class _MyListingEditCard extends StatelessWidget {
       ]));
 
   Widget _vDivider() => Container(width: 1, height: 28, color: _border.withOpacity(0.6));
+
+  Widget _thumbImage(String url) {
+    final errorW = Container(
+      width: 100, height: 85, color: const Color(0xFF0A1628),
+      child: const Icon(Icons.directions_car, color: _textSec, size: 28));
+    if (url.isEmpty) return errorW;
+    final isLocal = url.startsWith('/') || url.startsWith('file://');
+    if (isLocal) {
+      return Image.file(
+        File(url.replaceFirst('file://', '')),
+        width: 100, height: 85, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => errorW);
+    }
+    return Image.network(url,
+      width: 100, height: 85, fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => errorW);
+  }
 
   void _showInquiryList(BuildContext context) {
     showModalBottomSheet(

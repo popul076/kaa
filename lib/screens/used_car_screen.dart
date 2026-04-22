@@ -127,8 +127,6 @@ class _UsedCarMainScreenState extends State<UsedCarMainScreen>
               ),
             ),
 
-            // ── 하단 가까운 중고차 점포 ──────────────────────────
-            _NearbyDealerBar(),
           ],
         ),
       ),
@@ -1682,6 +1680,11 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   bool _showAllListings = false; // 전체보기 버튼 클릭 시
   final _searchFocus = FocusNode();
 
+  // ── 스크롤 컨트롤러 (하단 바 show/hide) ────────────────────
+  final _scrollCtrl = ScrollController();
+  bool _nearbyBarVisible = true;
+  double _lastScrollOffset = 0;
+
   // ── 정밀 검색 필터 상태 ──────────────────────────────────────
   String? _psManufacturer;
   String? _psModel;
@@ -1706,12 +1709,27 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
     if (widget.openSearch) {
       _showAllListings = true;
     }
+    // 스크롤 시 하단 NearbyBar 숨김/표시
+    _scrollCtrl.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final offset = _scrollCtrl.offset;
+    final delta = offset - _lastScrollOffset;
+    if (delta > 6 && _nearbyBarVisible) {
+      setState(() => _nearbyBarVisible = false);
+    } else if (delta < -6 && !_nearbyBarVisible) {
+      setState(() => _nearbyBarVisible = true);
+    }
+    _lastScrollOffset = offset;
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    _scrollCtrl.removeListener(_onScroll);
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -1800,205 +1818,231 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
       builder: (context, _) {
         final items = _filtered;
         final hasSearch = _searchQuery.isNotEmpty || _showAllListings;
-        return Column(
-          children: [
-            // ── 상단 고정 검색바 ──────────────────────────────
-            Container(
-              color: _card,
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-              child: Row(children: [
-                Expanded(
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: _bg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _searchFocused
-                            ? _accent.withOpacity(0.7)
-                            : _border,
-                        width: _searchFocused ? 1.5 : 1),
-                    ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      focusNode: _searchFocus,
-                      style: const TextStyle(color: _textPri, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: '제조사, 모델, 지역으로 검색',
-                        hintStyle: TextStyle(color: _textSec.withOpacity(0.5), fontSize: 12),
-                        prefixIcon: const Icon(Icons.search_rounded, color: _textSec, size: 18),
-                        suffixIcon: (hasSearch || _showAllListings)
-                            ? GestureDetector(
-                                onTap: () {
-                                  _searchCtrl.clear();
-                                  _searchFocus.unfocus();
-                                  setState(() => _showAllListings = false);
-                                },
-                                child: const Icon(Icons.close_rounded, color: _textSec, size: 16))
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-            // ── 정밀 검색 버튼 바 ─────────────────────────────
-            Container(
-              color: _card,
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: _showPreciseSearchSheet,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: _hasPreciseFilter ? _green.withOpacity(0.15) : _bg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: _hasPreciseFilter ? _green.withOpacity(0.7) : _accent.withOpacity(0.4),
-                        width: _hasPreciseFilter ? 1.5 : 1),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.tune_rounded,
-                          color: _hasPreciseFilter ? _green : _accent, size: 14),
-                      const SizedBox(width: 5),
-                      Text(_hasPreciseFilter ? '정밀검색 적용중' : '정밀검색',
-                          style: TextStyle(
-                              color: _hasPreciseFilter ? _green : _accent,
-                              fontSize: 11, fontWeight: FontWeight.w800)),
-                      if (_hasPreciseFilter) ...[
-                        const SizedBox(width: 5),
-                        GestureDetector(
-                          onTap: _clearPreciseFilter,
-                          child: const Icon(Icons.close_rounded, color: _green, size: 14)),
-                      ],
-                    ]),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (_psManufacturer != null) _psTag(_psManufacturer!),
-                if (_psModel != null) _psTag(_psModel!),
-                if (_psFuel != null) _psTag(_psFuel!),
-                const Spacer(),
-                Text('${items.length}개',
-                    style: const TextStyle(color: _textSec, fontSize: 11, fontWeight: FontWeight.w700)),
-              ]),
-            ),
 
-            // 필터 + 정렬 바
-            Container(
-              color: _card,
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-              child: Row(children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _filters.map((f) {
-                        final sel = f == _filter;
-                        return GestureDetector(
-                          onTap: () => setState(() => _filter = f),
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 6),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: sel ? _accent : _bg,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                  color: sel ? _accent : _border),
-                            ),
-                            child: Text(f,
-                              style: TextStyle(
-                                color: sel ? Colors.black : _textSec,
-                                fontSize: 11, fontWeight: FontWeight.w700)),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _showSortSheet(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _bg,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _border),
-                    ),
-                    child: Row(children: [
-                      const Icon(Icons.sort_rounded, color: _textSec, size: 14),
-                      const SizedBox(width: 4),
-                      Text(_sort,
-                        style: const TextStyle(color: _textSec, fontSize: 11)),
-                    ]),
-                  ),
-                ),
-              ]),
-            ),
-
-            // 매물 목록
+        // ── 검색바 위젯 ──────────────────────────────────────
+        Widget searchBar = Container(
+          color: _card,
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+          child: Row(children: [
             Expanded(
-              child: !hasSearch && !_hasPreciseFilter && _filter == '전체'
-                  // 검색어 없고 필터 없을 때: 인기 차량 안내
-                  ? _buildSearchPrompt()
-                  : items.isEmpty
-                      ? Center(child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
-                            const SizedBox(height: 10),
-                            Text(
-                              hasSearch ? '"$_searchQuery" 검색 결과가 없습니다' : '조건에 맞는 매물이 없습니다',
-                              style: const TextStyle(color: _textSec, fontSize: 14),
-                              textAlign: TextAlign.center),
-                            const SizedBox(height: 10),
-                            if (hasSearch)
-                              GestureDetector(
-                                onTap: () { _searchCtrl.clear(); },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: _accent.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: _accent.withOpacity(0.4))),
-                                  child: const Text('검색 지우기',
-                                      style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ),
-                            if (_hasPreciseFilter) ...[ 
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: _clearPreciseFilter,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: _green.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: _green.withOpacity(0.4))),
-                                  child: const Text('필터 초기화',
-                                      style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
-                                ),
-                              ),
-                            ],
-                          ]))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: items.length,
-                          itemBuilder: (_, i) => _ListingCard(
-                            listing: items[i],
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    UsedCarDetailScreen(listing: items[i]),
-                              ),
-                            ),
-                          ),
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: _bg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _searchFocused ? _accent.withOpacity(0.7) : _border,
+                    width: _searchFocused ? 1.5 : 1),
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  focusNode: _searchFocus,
+                  style: const TextStyle(color: _textPri, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: '제조사, 모델, 지역으로 검색',
+                    hintStyle: TextStyle(color: _textSec.withOpacity(0.5), fontSize: 12),
+                    prefixIcon: const Icon(Icons.search_rounded, color: _textSec, size: 18),
+                    suffixIcon: (hasSearch || _showAllListings)
+                        ? GestureDetector(
+                            onTap: () {
+                              _searchCtrl.clear();
+                              _searchFocus.unfocus();
+                              setState(() => _showAllListings = false);
+                            },
+                            child: const Icon(Icons.close_rounded, color: _textSec, size: 16))
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        );
+
+        // ── 정밀검색 버튼 바 ─────────────────────────────────
+        Widget preciseBar = Container(
+          color: _card,
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+          child: Row(children: [
+            GestureDetector(
+              onTap: _showPreciseSearchSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: _hasPreciseFilter ? _green.withOpacity(0.15) : _bg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _hasPreciseFilter ? _green.withOpacity(0.7) : _accent.withOpacity(0.4),
+                    width: _hasPreciseFilter ? 1.5 : 1),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.tune_rounded,
+                      color: _hasPreciseFilter ? _green : _accent, size: 14),
+                  const SizedBox(width: 5),
+                  Text(_hasPreciseFilter ? '정밀검색 적용중' : '정밀검색',
+                      style: TextStyle(
+                          color: _hasPreciseFilter ? _green : _accent,
+                          fontSize: 11, fontWeight: FontWeight.w800)),
+                  if (_hasPreciseFilter) ...[
+                    const SizedBox(width: 5),
+                    GestureDetector(
+                      onTap: _clearPreciseFilter,
+                      child: const Icon(Icons.close_rounded, color: _green, size: 14)),
+                  ],
+                ]),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (_psManufacturer != null) _psTag(_psManufacturer!),
+            if (_psModel != null) _psTag(_psModel!),
+            if (_psFuel != null) _psTag(_psFuel!),
+            const Spacer(),
+            Text('${items.length}개',
+                style: const TextStyle(color: _textSec, fontSize: 11, fontWeight: FontWeight.w700)),
+          ]),
+        );
+
+        // ── 필터 + 정렬 바 ───────────────────────────────────
+        Widget filterBar = Container(
+          color: _card,
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          child: Row(children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _filters.map((f) {
+                    final sel = f == _filter;
+                    return GestureDetector(
+                      onTap: () => setState(() => _filter = f),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: sel ? _accent : _bg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: sel ? _accent : _border),
                         ),
+                        child: Text(f,
+                          style: TextStyle(
+                            color: sel ? Colors.black : _textSec,
+                            fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => _showSortSheet(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _bg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _border),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.sort_rounded, color: _textSec, size: 14),
+                  const SizedBox(width: 4),
+                  Text(_sort,
+                    style: const TextStyle(color: _textSec, fontSize: 11)),
+                ]),
+              ),
+            ),
+          ]),
+        );
+
+        // ── 매물 목록 콘텐츠 ─────────────────────────────────
+        Widget listContent;
+        if (!hasSearch && !_hasPreciseFilter && _filter == '전체') {
+          listContent = _buildSearchPrompt();
+        } else if (items.isEmpty) {
+          listContent = Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.search_off_rounded, color: _textSec, size: 46),
+              const SizedBox(height: 10),
+              Text(
+                hasSearch ? '"$_searchQuery" 검색 결과가 없습니다' : '조건에 맞는 매물이 없습니다',
+                style: const TextStyle(color: _textSec, fontSize: 14),
+                textAlign: TextAlign.center),
+              const SizedBox(height: 10),
+              if (hasSearch)
+                GestureDetector(
+                  onTap: () { _searchCtrl.clear(); },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _accent.withOpacity(0.4))),
+                    child: const Text('검색 지우기',
+                        style: TextStyle(color: _accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              if (_hasPreciseFilter) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _clearPreciseFilter,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: _green.withOpacity(0.4))),
+                    child: const Text('필터 초기화',
+                        style: TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ]));
+        } else {
+          listContent = ListView.builder(
+            controller: _scrollCtrl,
+            padding: const EdgeInsets.all(12),
+            itemCount: items.length,
+            itemBuilder: (_, i) => _ListingCard(
+              listing: items[i],
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => UsedCarDetailScreen(listing: items[i]),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // ── 전체 레이아웃: 상단바 스크롤 + 하단 슬라이딩 ───
+        return Stack(
+          children: [
+            Column(
+              children: [
+                // 상단 바들 (스크롤과 함께 올라감 - SliverHeader 역할)
+                searchBar,
+                preciseBar,
+                filterBar,
+                // 매물 목록
+                Expanded(child: listContent),
+              ],
+            ),
+            // ── 하단 슬라이딩 NearbyDealerBar ──────────────
+            Positioned(
+              bottom: 0, left: 0, right: 0,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                offset: _nearbyBarVisible ? Offset.zero : const Offset(0, 1),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 200),
+                  opacity: _nearbyBarVisible ? 1.0 : 0.0,
+                  child: const _NearbyDealerBar(),
+                ),
+              ),
             ),
           ],
         );
@@ -2430,15 +2474,9 @@ class _ListingCard extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  Image.network(
+                  _buildCarImage(
                     listing.photoUrls.first,
                     width: 120, height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 120, height: 100,
-                      color: _navy,
-                      child: const Icon(Icons.directions_car, color: _textSec, size: 32),
-                    ),
                   ),
                   Positioned(
                     top: 6, left: 6,
@@ -2503,10 +2541,10 @@ class _ListingCard extends StatelessWidget {
                         color: _textPri, fontSize: 12, fontWeight: FontWeight.w700, height: 1.4)),
                     const SizedBox(height: 6),
                     Row(children: [
-                      Text('${_formatNum(listing.mileage)}km',
+                      Text('${listing.modelYear}년',
                         style: const TextStyle(color: _textSec, fontSize: 11)),
                       const Text(' · ', style: TextStyle(color: _border)),
-                      Text(listing.fuel,
+                      Text('${_formatNum(listing.mileage)}km',
                         style: const TextStyle(color: _textSec, fontSize: 11)),
                       const Text(' · ', style: TextStyle(color: _border)),
                       Text(listing.region,
@@ -2636,15 +2674,10 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
                           controller: _pageCtrl,
                           itemCount: l.photoUrls.length,
                           onPageChanged: (i) => setState(() => _photoIndex = i),
-                          itemBuilder: (_, i) => Image.network(
+                          itemBuilder: (_, i) => _buildCarImage(
                             l.photoUrls[i],
+                            height: 260,
                             fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: _navy,
-                              child: const Icon(Icons.directions_car,
-                                  color: _textSec, size: 60),
-                            ),
                           ),
                         ),
                         // 사진 인디케이터
@@ -4146,4 +4179,25 @@ String _relativeTime(DateTime dt) {
   if (diff.inHours < 24) return '${diff.inHours}시간 전';
   if (diff.inDays < 30) return '${diff.inDays}일 전';
   return '${(diff.inDays / 30).floor()}달 전';
+}
+
+/// 로컬 경로(file:// 또는 /로 시작)면 Image.file, http면 Image.network
+Widget _buildCarImage(String url, {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+  final isLocal = url.startsWith('/') || url.startsWith('file://');
+  final errorWidget = Container(
+    width: width, height: height,
+    color: const Color(0xFF0A1628),
+    child: const Icon(Icons.directions_car, color: Color(0xFFB0BEC5), size: 32),
+  );
+  if (isLocal) {
+    return Image.file(
+      File(url.replaceFirst('file://', '')),
+      width: width, height: height, fit: fit,
+      errorBuilder: (_, __, ___) => errorWidget,
+    );
+  }
+  return Image.network(
+    url, width: width, height: height, fit: fit,
+    errorBuilder: (_, __, ___) => errorWidget,
+  );
 }
