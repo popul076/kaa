@@ -1379,7 +1379,7 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
           decoration: BoxDecoration(
             color: _mcard,
-            border: const Border(top: BorderSide(color: _mborder, width: 0.5)),
+            border: Border(top: const BorderSide(color: _mborder, width: 0.5)),
           ),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             // 상단 아이콘 열: 찜 · 비교 · 이모지반응
@@ -1400,8 +1400,8 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
                 color: _maccent,
                 active: false,
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('비교함에 추가되었습니다.'),
-                        backgroundColor: _mcard2, duration: Duration(seconds: 1))),
+                    SnackBar(content: const Text('비교함에 추가되었습니다.'),
+                        backgroundColor: _mcard2, duration: const Duration(seconds: 1))),
               ),
               const SizedBox(width: 8),
               // 좋아요
