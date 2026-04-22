@@ -33,8 +33,9 @@ const Map<String, Map<String, String>> _plateDB = {
 // 중고차 메인 화면 (2탭 + 하단 점포)
 // ============================================================
 class UsedCarMainScreen extends StatefulWidget {
-  final int initialTab; // 0=내차팔기, 1=중고차사기
-  const UsedCarMainScreen({super.key, this.initialTab = 0});
+  final int initialTab;   // 0=내차팔기, 1=중고차사기
+  final bool openSearch;  // 매물탭 열 때 전체검색 자동 활성화
+  const UsedCarMainScreen({super.key, this.initialTab = 0, this.openSearch = false});
   @override
   State<UsedCarMainScreen> createState() => _UsedCarMainScreenState();
 }
@@ -121,7 +122,7 @@ class _UsedCarMainScreenState extends State<UsedCarMainScreen>
                 controller: _tabController,
                 children: [
                   _SellMyCarTab(),
-                  _UsedCarListingsTab(),
+                  _UsedCarListingsTab(openSearch: widget.openSearch),
                 ],
               ),
             ),
@@ -819,9 +820,19 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
           Text('자주 찾는 옵션을 빠르게 선택하세요',
               style: TextStyle(color: _textSec, fontSize: 11)),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: kMainOptions.map((opt) {
+          // 5×2 고정 그리드 (10개 주요 옵션)
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 0.95, // 카드 비율 균일 유지
+            ),
+            itemCount: kMainOptions.length, // 정확히 10개
+            itemBuilder: (_, idx) {
+              final opt = kMainOptions[idx];
               final sel = _selectedOpts.contains(opt.id);
               return GestureDetector(
                 onTap: () => setState(() {
@@ -829,30 +840,38 @@ class _SellMyCarTabState extends State<_SellMyCarTab> {
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: sel ? _accent.withOpacity(0.15) : _navy,
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: sel ? _accent : _border,
                       width: sel ? 1.5 : 1,
                     ),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(opt.emoji, style: const TextStyle(fontSize: 15)),
-                    const SizedBox(width: 5),
-                    Text(opt.name,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(opt.emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(height: 4),
+                      Text(opt.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: sel ? _accent : _textSec,
-                          fontSize: 12,
-                          fontWeight: sel ? FontWeight.w800 : FontWeight.w400,
+                          fontSize: 10,
+                          fontWeight: sel ? FontWeight.w800 : FontWeight.w500,
+                          height: 1.3,
                         )),
-                    if (sel) ...[ const SizedBox(width: 4),
-                      Icon(Icons.check_circle_rounded, color: _accent, size: 13)],
-                  ]),
+                      if (sel)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Icon(Icons.check_circle_rounded, color: _accent, size: 12)),
+                    ],
+                  ),
                 ),
               );
-            }).toList(),
+            },
           ),
           const SizedBox(height: 10),
 
@@ -1551,9 +1570,11 @@ class _DealerBidCard extends StatelessWidget {
 // 탭2: 중고차 매물 (엔카/차차차 방식)
 // ============================================================
 class _UsedCarListingsTab extends StatefulWidget {
+  final bool openSearch;
+  const _UsedCarListingsTab({this.openSearch = false});
   @override
   State<_UsedCarListingsTab> createState() => _UsedCarListingsTabState();
-}
+
 
 class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
   String _filter = '전체';
@@ -1588,6 +1609,10 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _searchQuery = _searchCtrl.text.trim()));
     _searchFocus.addListener(() => setState(() => _searchFocused = _searchFocus.hasFocus));
+    // 홈에서 "정밀 검색 시작" 클릭 시 전체 목록 바로 표시
+    if (widget.openSearch) {
+      _showAllListings = true;
+    }
   }
 
   @override
@@ -1650,8 +1675,8 @@ class _UsedCarListingsTabState extends State<_UsedCarListingsTab> {
     if (_psSellerType != null)
       list = list.where((l) => l.sellerType == _psSellerType).toList();
 
-    // ── 검색어 필터 ─────────────────────────────────────────
-    if (_searchQuery.isNotEmpty) {
+    // ── 검색어 필터 (_showAllListings 모드에서는 무시) ──────
+    if (_searchQuery.isNotEmpty && !_showAllListings) {
       final q = _searchQuery.toLowerCase();
       list = list.where((l) =>
           l.title.toLowerCase().contains(q) ||
@@ -3161,37 +3186,61 @@ class _UsedCarDetailScreenState extends State<UsedCarDetailScreen> {
               style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 12),
-        // 주요 옵션 아이콘 그리드
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          children: [
-            ...mainOpts.map((opt) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        // 주요 옵션 5×2 고정 그리드 (kMainOptions 기준 전체 표시, 선택된 것 하이라이트)
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            mainAxisSpacing: 6,
+            crossAxisSpacing: 6,
+            childAspectRatio: 0.95,
+          ),
+          itemCount: kMainOptions.length,
+          itemBuilder: (_, idx) {
+            final opt = kMainOptions[idx];
+            final has = l.selectedOptions.contains(opt.id);
+            return Container(
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: _accent.withOpacity(0.3)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(opt.emoji, style: const TextStyle(fontSize: 14)),
-                const SizedBox(width: 4),
-                Text(opt.name,
-                    style: TextStyle(color: _accent, fontSize: 11, fontWeight: FontWeight.w700)),
-              ]),
-            )),
-            if (extraCount > 0)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: _navy,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _border),
+                color: has ? _accent.withOpacity(0.12) : _navy,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: has ? _accent.withOpacity(0.5) : _border,
+                  width: has ? 1.5 : 1,
                 ),
-                child: Text('+$extraCount개 더',
-                    style: TextStyle(color: _textSec, fontSize: 11, fontWeight: FontWeight.w700)),
               ),
-          ],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(opt.emoji,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: has ? null : const Color(0x44FFFFFF),
+                    )),
+                  const SizedBox(height: 3),
+                  Text(opt.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: has ? _accent : _textSec.withOpacity(0.4),
+                      fontSize: 9,
+                      fontWeight: has ? FontWeight.w800 : FontWeight.w400,
+                      decoration: has ? null : TextDecoration.lineThrough,
+                      decorationColor: _border,
+                      height: 1.3,
+                    )),
+                ],
+              ),
+            );
+          },
         ),
+        if (extraCount > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('+$extraCount개 추가 옵션 포함',
+              style: TextStyle(color: _textSec, fontSize: 11)),
+          ),
         const SizedBox(height: 12),
         // 전체 옵션 보기 버튼
         GestureDetector(

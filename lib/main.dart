@@ -66,8 +66,17 @@ class KaaApp extends StatelessWidget {
           '/coupon': (_) => const CouponScreen(),
           '/cert': (_) => const CertScreen(),
           '/used-car': (ctx) {
-            final args = ModalRoute.of(ctx)?.settings.arguments as Map<String, dynamic>? ?? {};
-            return UsedCarMainScreen(initialTab: args['initialTab'] as int? ?? 0);
+            final raw = ModalRoute.of(ctx)?.settings.arguments;
+            int tab = 0;
+            bool openSearch = false;
+            if (raw is int) {
+              tab = raw;
+            } else if (raw is Map) {
+              final m = raw as Map<String, dynamic>;
+              tab = m['initialTab'] as int? ?? 0;
+              openSearch = m['openSearch'] as bool? ?? false;
+            }
+            return UsedCarMainScreen(initialTab: tab, openSearch: openSearch);
           },
           '/my': (_) => const MyScreen(),
           '/notification': (_) => const NotificationScreen(),
