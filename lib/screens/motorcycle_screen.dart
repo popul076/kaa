@@ -1429,7 +1429,7 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
                     (text) {
                       MotoState().addListingComment(l.listingId,
                           MotoListingComment(
-                              id: 'lc-\${DateTime.now().millisecondsSinceEpoch}',
+                              id: 'lc-${DateTime.now().millisecondsSinceEpoch}',
                               authorName: '나', content: text,
                               createdAt: DateTime.now()));
                       setState(() {});
@@ -1442,7 +1442,7 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
               // 1:1 문의
               Expanded(child: GestureDetector(
                 onTap: () => Navigator.pushNamed(context, '/chat',
-                    arguments: {'storeName': '\${l.manufacturer} \${l.model} 판매자', 'storeId': 0}),
+                    arguments: {'storeName': '${l.manufacturer} ${l.model} 판매자', 'storeId': 0}),
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(color: _maccent.withOpacity(0.15),
@@ -1461,7 +1461,7 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
                 onTap: phoneVisible ? () async {
                   final phone = l.contactPreference.contains('010')
                       ? l.contactPreference : '010-0000-0000';
-                  final uri = Uri.parse('tel:\$phone');
+                  final uri = Uri.parse('tel:$phone');
                   if (await canLaunchUrl(uri)) launchUrl(uri);
                 } : () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1787,7 +1787,7 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
       return;
     }
     final listing = MotoListing(
-      listingId: 'ML-\${DateTime.now().millisecondsSinceEpoch}',
+      listingId: 'ML-${DateTime.now().millisecondsSinceEpoch}',
       manufacturer: _mfrCtrl.text, model: _modelCtrl.text,
       displacement: int.tryParse(_ccCtrl.text) ?? 0,
       year: _yearCtrl.text, mileage: int.tryParse(_miCtrl.text) ?? 0,
