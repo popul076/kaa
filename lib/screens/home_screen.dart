@@ -153,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen>
     {'name': '세차',     'emoji': '🫧'},
     {'name': '타이어',   'emoji': '🛞'},
     {'name': '중고차',   'emoji': '🚗'},
-    {'name': '검사',     'emoji': '🔍'},
+    {'name': '오토바이', 'emoji': '🏍️'},
     {'name': '주유소',   'emoji': '⛽'},
     {'name': '주차장',   'emoji': '🅿️'},
     {'name': '렌트카',   'emoji': '🚙'},
@@ -388,6 +388,23 @@ class _HomeScreenState extends State<HomeScreen>
         _gasShowCount++;
       });
       _startGasTimer();
+      return;
+    }
+
+    // 오토바이 → MotorcycleScreen
+    if (name == '오토바이') {
+      Navigator.pushNamed(context, '/motorcycle');
+      return;
+    }
+
+    // 정비 카테고리에 검사 통합 표시
+    if (name == '정비') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CategoryLandingScreen(category: '정비/검사', emoji: '🔧'),
+        ),
+      );
       return;
     }
 

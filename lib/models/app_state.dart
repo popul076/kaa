@@ -1578,3 +1578,447 @@ class UsedCarState extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 오토바이 데이터 모델
+// ═══════════════════════════════════════════════════════════════
+
+// 오토바이 점포 유형
+enum MotoShopType { repair, inspection, sale, parts, tuning, accident, transport, electric }
+
+extension MotoShopTypeExt on MotoShopType {
+  String get label {
+    switch (this) {
+      case MotoShopType.repair:     return '정비';
+      case MotoShopType.inspection: return '검사';
+      case MotoShopType.sale:       return '판매';
+      case MotoShopType.parts:      return '용품';
+      case MotoShopType.tuning:     return '튜닝';
+      case MotoShopType.accident:   return '사고수리';
+      case MotoShopType.transport:  return '탁송';
+      case MotoShopType.electric:   return '전기이륜';
+    }
+  }
+}
+
+// 오토바이 점포
+class MotoShop {
+  final String shopId;
+  final String name;
+  final MotoShopType type;
+  final String region;
+  final String phone;
+  final String address;
+  final String imageUrl;
+  final double rating;
+  final int reviewCount;
+  final bool isCertified;       // 협회 인증
+  final bool isClubPartner;     // 동호회 제휴
+  final bool hasInspection;     // 검사 가능
+  final bool hasElectric;       // 전기이륜 취급
+  final List<String> brands;    // 취급 브랜드
+  final List<String> services;  // 서비스 항목
+  final String? youtubeUrl;     // 점포 소개 영상
+  MotoShop({
+    required this.shopId, required this.name, required this.type,
+    required this.region, required this.phone, required this.address,
+    required this.imageUrl, this.rating = 4.5, this.reviewCount = 0,
+    this.isCertified = false, this.isClubPartner = false,
+    this.hasInspection = false, this.hasElectric = false,
+    this.brands = const [], this.services = const [], this.youtubeUrl,
+  });
+}
+
+// 오토바이 매물 상태
+enum MotoListingStatus { listing, posted, inquired, negotiating, phoneable, sold, closed }
+
+extension MotoListingStatusExt on MotoListingStatus {
+  String get label {
+    switch (this) {
+      case MotoListingStatus.listing:     return '등록중';
+      case MotoListingStatus.posted:      return '게시중';
+      case MotoListingStatus.inquired:    return '문의도착';
+      case MotoListingStatus.negotiating: return '협의중';
+      case MotoListingStatus.phoneable:   return '전화가능';
+      case MotoListingStatus.sold:        return '판매완료';
+      case MotoListingStatus.closed:      return '거래종료';
+    }
+  }
+}
+
+// 오토바이 매물
+class MotoListing {
+  final String listingId;
+  final String manufacturer;  // 제조사
+  final String model;
+  final int displacement;     // 배기량(cc)
+  final String year;
+  int mileage;
+  int price;
+  final String region;
+  String desc;
+  final bool accidentFlag;
+  final String accidentDetail;
+  final bool tuningFlag;
+  final String tuningDetail;
+  final String inspectionStatus;  // '정상'|'불합격'|'미검사'
+  final String documentStatus;    // '완비'|'일부누락'
+  final String color;
+  List<String> photoUrls;
+  MotoListingStatus status;
+  bool isMyListing;
+  final String ownerId;
+  int viewCount;
+  int inquiryCount;
+  int likeCount;
+  final DateTime createdAt;
+  // 신뢰성
+  final String recentMaintenance;
+  final bool isClubRecommended;
+  MotoListing({
+    required this.listingId, required this.manufacturer, required this.model,
+    required this.displacement, required this.year, required this.mileage,
+    required this.price, required this.region, required this.desc,
+    this.accidentFlag = false, this.accidentDetail = '',
+    this.tuningFlag = false, this.tuningDetail = '',
+    this.inspectionStatus = '정상', this.documentStatus = '완비',
+    required this.color, this.photoUrls = const [],
+    this.status = MotoListingStatus.posted, this.isMyListing = false,
+    this.ownerId = '', this.viewCount = 0, this.inquiryCount = 0,
+    this.likeCount = 0, required this.createdAt,
+    this.recentMaintenance = '', this.isClubRecommended = false,
+  });
+}
+
+// 커뮤니티 카테고리
+enum MotoCommunityType { brand, region, displacement, beginner, delivery }
+extension MotoCommunityTypeExt on MotoCommunityType {
+  String get label {
+    switch (this) {
+      case MotoCommunityType.brand:        return '브랜드 모임';
+      case MotoCommunityType.region:       return '지역 모임';
+      case MotoCommunityType.displacement: return '배기량 모임';
+      case MotoCommunityType.beginner:     return '입문자';
+      case MotoCommunityType.delivery:     return '배달라이더';
+    }
+  }
+}
+
+// 커뮤니티 게시글 이모지 반응
+class EmojiReaction {
+  final String emoji;
+  final String label;
+  int count;
+  bool myReacted;
+  EmojiReaction({required this.emoji, required this.label, this.count = 0, this.myReacted = false});
+}
+
+// 커뮤니티 게시글
+class MotoCommunityPost {
+  final String postId;
+  final MotoCommunityType type;
+  final String authorName;
+  final String title;
+  final String content;
+  final List<String> photoUrls;
+  final String? videoUrl;     // 유튜브 URL
+  int viewCount;
+  int commentCount;
+  final DateTime createdAt;
+  final List<EmojiReaction> reactions;
+  MotoCommunityPost({
+    required this.postId, required this.type, required this.authorName,
+    required this.title, required this.content,
+    this.photoUrls = const [], this.videoUrl,
+    this.viewCount = 0, this.commentCount = 0, required this.createdAt,
+    required this.reactions,
+  });
+}
+
+// 영상 카테고리
+enum MotoVideoCategory { review, repair, riding, accident, education }
+extension MotoVideoCategoryExt on MotoVideoCategory {
+  String get label {
+    switch (this) {
+      case MotoVideoCategory.review:    return '리뷰';
+      case MotoVideoCategory.repair:    return '정비';
+      case MotoVideoCategory.riding:    return '라이딩';
+      case MotoVideoCategory.accident:  return '사고사례';
+      case MotoVideoCategory.education: return '교육';
+    }
+  }
+}
+
+// 유튜브 영상 카드
+class MotoVideo {
+  final String videoId;
+  final String youtubeUrl;
+  final String thumbnailUrl;
+  final String title;
+  final String channelName;
+  final String viewCountText;
+  final MotoVideoCategory category;
+  MotoVideo({
+    required this.videoId, required this.youtubeUrl, required this.thumbnailUrl,
+    required this.title, required this.channelName, required this.viewCountText,
+    required this.category,
+  });
+}
+
+// ── 오토바이 싱글톤 상태 ──
+class MotoState extends ChangeNotifier {
+  static final MotoState _instance = MotoState._internal();
+  factory MotoState() => _instance;
+  MotoState._internal() { _initDummy(); }
+
+  final List<MotoShop> shops = [];
+  final List<MotoListing> listings = [];
+  final List<MotoCommunityPost> posts = [];
+  final List<MotoVideo> videos = [];
+
+  void _initDummy() {
+    // ── 점포 더미 ──
+    shops.addAll([
+      MotoShop(
+        shopId: 'MS-001', name: '라이더팩토리 수성점',
+        type: MotoShopType.repair, region: '대구 수성구',
+        phone: '053-111-2222', address: '대구 수성구 달구벌대로 100',
+        imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+        rating: 4.8, reviewCount: 142, isCertified: true, isClubPartner: true,
+        brands: ['혼다', '야마하', '가와사키'], services: ['엔진정비', '타이어교환', '소모품점검'],
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      ),
+      MotoShop(
+        shopId: 'MS-002', name: '바이크검사소 동구점',
+        type: MotoShopType.inspection, region: '대구 동구',
+        phone: '053-333-4444', address: '대구 동구 동촌로 50',
+        imageUrl: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80',
+        rating: 4.6, reviewCount: 88, hasInspection: true,
+        services: ['이륜차 정기검사', '배출가스 검사'],
+      ),
+      MotoShop(
+        shopId: 'MS-003', name: '라이더마켓 중고바이크',
+        type: MotoShopType.sale, region: '대구 달서구',
+        phone: '053-555-6666', address: '대구 달서구 달구벌대로 200',
+        imageUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
+        rating: 4.5, reviewCount: 210, isCertified: true,
+        brands: ['혼다', '야마하', '스즈키', 'BMW', '할리데이비슨'],
+        services: ['중고바이크 매매', '성능점검', '탁송'],
+      ),
+      MotoShop(
+        shopId: 'MS-004', name: '라이더용품 천국',
+        type: MotoShopType.parts, region: '대구 수성구',
+        phone: '053-777-8888', address: '대구 수성구 범안로 30',
+        imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+        rating: 4.7, reviewCount: 325, isClubPartner: true,
+        services: ['헬멧', '자켓', '장갑', '부츠', '바이크 용품 전반'],
+      ),
+      MotoShop(
+        shopId: 'MS-005', name: '전기이륜 e-MOTO 센터',
+        type: MotoShopType.electric, region: '대구 북구',
+        phone: '053-999-0000', address: '대구 북구 검단로 80',
+        imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=400&q=80',
+        rating: 4.9, reviewCount: 67, hasElectric: true, isCertified: true,
+        services: ['전기이륜 판매', '배터리교환', '충전시설', '보조금 안내'],
+      ),
+    ]);
+
+    // ── 매물 더미 ──
+    listings.addAll([
+      MotoListing(
+        listingId: 'ML-001', manufacturer: '혼다', model: 'CB500F',
+        displacement: 471, year: '2021년식', mileage: 8500, price: 650,
+        region: '대구 수성구', color: '매트 블랙',
+        desc: '순정 상태 유지. 출퇴근용으로만 사용. 직거래 우선.',
+        inspectionStatus: '정상', documentStatus: '완비',
+        photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'],
+        isMyListing: true, ownerId: 'me', viewCount: 45, inquiryCount: 3,
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        recentMaintenance: '타이어 교환(2024.10)', isClubRecommended: true,
+      ),
+      MotoListing(
+        listingId: 'ML-002', manufacturer: '야마하', model: 'MT-07',
+        displacement: 689, year: '2022년식', mileage: 12000, price: 890,
+        region: '대구 달서구', color: '아이스 플루오로',
+        desc: '익스조스트 교체 외 순정. 투어링용 탑박스 포함.',
+        tuningFlag: true, tuningDetail: '슬립온 머플러',
+        photoUrls: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80'],
+        viewCount: 87, inquiryCount: 7, likeCount: 12,
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        recentMaintenance: '오일 교환(2025.03)',
+      ),
+      MotoListing(
+        listingId: 'ML-003', manufacturer: '가와사키', model: 'Z650',
+        displacement: 649, year: '2020년식', mileage: 22000, price: 580,
+        region: '대구 동구', color: '메탈릭 플랫 스파크 블랙',
+        desc: '주말 라이딩 전용. 무사고. 정기점검 완비.',
+        photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'],
+        viewCount: 34, inquiryCount: 2, likeCount: 5,
+        createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        inspectionStatus: '정상',
+      ),
+      MotoListing(
+        listingId: 'ML-004', manufacturer: 'BMW', model: 'G310R',
+        displacement: 313, year: '2023년식', mileage: 3200, price: 520,
+        region: '대구 수성구', color: '스타일 엑스클루시브',
+        desc: '초보도 타기 좋은 BMW 입문기. 극저주행. 거의 새 것.',
+        photoUrls: ['https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80'],
+        viewCount: 120, inquiryCount: 11, likeCount: 23,
+        createdAt: DateTime.now().subtract(const Duration(hours: 6)),
+        isClubRecommended: true,
+      ),
+    ]);
+
+    // ── 커뮤니티 게시글 더미 ──
+    posts.addAll([
+      MotoCommunityPost(
+        postId: 'MP-001', type: MotoCommunityType.brand,
+        authorName: '라이더김', title: '혼다 CB500F 1년 실사용 후기',
+        content: '출퇴근 8500km 타고 나서 느낀 점 공유합니다. 연비, 유지비, 장단점 솔직 후기.',
+        photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80'],
+        viewCount: 342, commentCount: 28,
+        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+        reactions: [
+          EmojiReaction(emoji: '👍', label: '좋아요', count: 45),
+          EmojiReaction(emoji: '❤️', label: '찜', count: 12),
+          EmojiReaction(emoji: '🔥', label: '인기', count: 8),
+          EmojiReaction(emoji: '😮', label: '놀람', count: 3),
+          EmojiReaction(emoji: '😢', label: '아쉬움', count: 1),
+          EmojiReaction(emoji: '👎', label: '비추', count: 0),
+        ],
+      ),
+      MotoCommunityPost(
+        postId: 'MP-002', type: MotoCommunityType.delivery,
+        authorName: '배달이박',
+        title: '배달용 바이크 소모품 교체 주기 정리',
+        content: '타이어 6000km, 브레이크패드 8000km, 오일 3000km... 배달 라이더라면 꼭 알아야 할 정보.',
+        viewCount: 788, commentCount: 56,
+        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
+        reactions: [
+          EmojiReaction(emoji: '👍', label: '좋아요', count: 122),
+          EmojiReaction(emoji: '❤️', label: '찜', count: 34),
+          EmojiReaction(emoji: '🔥', label: '인기', count: 67),
+          EmojiReaction(emoji: '😮', label: '놀람', count: 5),
+          EmojiReaction(emoji: '😢', label: '아쉬움', count: 2),
+          EmojiReaction(emoji: '👎', label: '비추', count: 0),
+        ],
+      ),
+      MotoCommunityPost(
+        postId: 'MP-003', type: MotoCommunityType.region,
+        authorName: '대구라이더',
+        title: '대구 이번 주말 팔공산 투어 같이 가실 분!',
+        content: '토요일 오전 8시 동대구역 출발 예정. 125cc 이상 가능. 초보 환영.',
+        photoUrls: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80'],
+        viewCount: 156, commentCount: 18,
+        createdAt: DateTime.now().subtract(const Duration(hours: 14)),
+        reactions: [
+          EmojiReaction(emoji: '👍', label: '좋아요', count: 31),
+          EmojiReaction(emoji: '❤️', label: '찜', count: 8),
+          EmojiReaction(emoji: '🔥', label: '인기', count: 15),
+          EmojiReaction(emoji: '😮', label: '놀람', count: 0),
+          EmojiReaction(emoji: '😢', label: '아쉬움', count: 0),
+          EmojiReaction(emoji: '👎', label: '비추', count: 0),
+        ],
+      ),
+      MotoCommunityPost(
+        postId: 'MP-004', type: MotoCommunityType.beginner,
+        authorName: '입문자이',
+        title: '바이크 입문 2주차 - 클러치 잡는 법 드디어 됐어요!',
+        content: '처음에는 반클러치가 뭔지도 몰랐는데 이제 조금씩 느낌이 오네요. 응원해주세요!',
+        viewCount: 234, commentCount: 42,
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        reactions: [
+          EmojiReaction(emoji: '👍', label: '좋아요', count: 89),
+          EmojiReaction(emoji: '❤️', label: '찜', count: 22),
+          EmojiReaction(emoji: '🔥', label: '인기', count: 11),
+          EmojiReaction(emoji: '😮', label: '놀람', count: 4),
+          EmojiReaction(emoji: '😢', label: '아쉬움', count: 1),
+          EmojiReaction(emoji: '👎', label: '비추', count: 0),
+        ],
+      ),
+    ]);
+
+    // ── 영상 더미 ──
+    videos.addAll([
+      MotoVideo(
+        videoId: 'V-001',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
+        title: '2024 혼다 CB500F 실제 시승 리뷰 - 초보라이더 추천?',
+        channelName: '바이크리뷰TV', viewCountText: '12.4만회',
+        category: MotoVideoCategory.review,
+      ),
+      MotoVideo(
+        videoId: 'V-002',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+        title: '오토바이 엔진오일 직접 교환하는 법 (풀영상)',
+        channelName: '라이더정비소', viewCountText: '8.2만회',
+        category: MotoVideoCategory.repair,
+      ),
+      MotoVideo(
+        videoId: 'V-003',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80',
+        title: '[안전교육] 빗길 라이딩 시 절대 하면 안 되는 행동 5가지',
+        channelName: '안전라이딩연구소', viewCountText: '34.7만회',
+        category: MotoVideoCategory.education,
+      ),
+      MotoVideo(
+        videoId: 'V-004',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
+        title: '배달라이더 필수! 타이어 마모 직접 확인하는 법',
+        channelName: '배달라이더TV', viewCountText: '5.6만회',
+        category: MotoVideoCategory.education,
+      ),
+      MotoVideo(
+        videoId: 'V-005',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+        title: '대구-경주 라이딩 코스 추천 BEST 3 (4K 풀영상)',
+        channelName: '대구라이더클럽', viewCountText: '2.1만회',
+        category: MotoVideoCategory.riding,
+      ),
+    ]);
+  }
+
+  // 이모지 반응 토글
+  void toggleReaction(String postId, int reactionIndex) {
+    try {
+      final post = posts.firstWhere((p) => p.postId == postId);
+      final r = post.reactions[reactionIndex];
+      if (r.myReacted) {
+        r.myReacted = false;
+        r.count--;
+      } else {
+        // 다른 반응 해제
+        for (var rx in post.reactions) { if (rx.myReacted) { rx.myReacted = false; rx.count--; } }
+        r.myReacted = true;
+        r.count++;
+      }
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // 매물 좋아요 토글
+  void toggleListingLike(String listingId) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.likeCount++;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // 게시글 추가
+  void addPost(MotoCommunityPost post) {
+    posts.insert(0, post);
+    notifyListeners();
+  }
+
+  // 매물 추가
+  void addListing(MotoListing listing) {
+    listings.insert(0, listing);
+    notifyListeners();
+  }
+}

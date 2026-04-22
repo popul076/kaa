@@ -9,6 +9,7 @@ import 'screens/other_screens.dart';
 import 'screens/quote_screens.dart';
 import 'screens/category_landing_screen.dart';
 import 'screens/used_car_screen.dart';
+import 'screens/motorcycle_screen.dart';
 import 'models/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -90,6 +91,13 @@ class KaaApp extends StatelessWidget {
           '/my-quotes': (_) => const MyQuotesScreen(),
           '/car-applications': (_) => const CarApplicationHistoryScreen(),
           '/reward': (_) => const RewardScreen(),
+          '/motorcycle': (ctx) {
+            final raw = ModalRoute.of(ctx)?.settings.arguments;
+            int tab = 0;
+            if (raw is int) tab = raw;
+            else if (raw is Map) tab = (raw as Map<String, dynamic>)['initialTab'] as int? ?? 0;
+            return MotorcycleScreen(initialTab: tab);
+          },
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/category-landing') {
