@@ -1580,12 +1580,11 @@ class UsedCarState extends ChangeNotifier {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 오토바이 데이터 모델
+// 오토바이 데이터 모델 (v60 고도화)
 // ═══════════════════════════════════════════════════════════════
 
-// 오토바이 점포 유형
+// ── 점포 유형 ──
 enum MotoShopType { repair, inspection, sale, parts, tuning, accident, transport, electric }
-
 extension MotoShopTypeExt on MotoShopType {
   String get label {
     switch (this) {
@@ -1601,7 +1600,16 @@ extension MotoShopTypeExt on MotoShopType {
   }
 }
 
-// 오토바이 점포
+// ── 점포 댓글 ──
+class MotoShopComment {
+  final String id;
+  final String authorName;
+  final String content;
+  final DateTime createdAt;
+  MotoShopComment({required this.id, required this.authorName, required this.content, required this.createdAt});
+}
+
+// ── 점포 ──
 class MotoShop {
   final String shopId;
   final String name;
@@ -1612,13 +1620,17 @@ class MotoShop {
   final String imageUrl;
   final double rating;
   final int reviewCount;
-  final bool isCertified;       // 협회 인증
-  final bool isClubPartner;     // 동호회 제휴
-  final bool hasInspection;     // 검사 가능
-  final bool hasElectric;       // 전기이륜 취급
-  final List<String> brands;    // 취급 브랜드
-  final List<String> services;  // 서비스 항목
-  final String? youtubeUrl;     // 점포 소개 영상
+  final bool isCertified;
+  final bool isClubPartner;
+  final bool hasInspection;
+  final bool hasElectric;
+  final List<String> brands;
+  final List<String> services;
+  final String? youtubeUrl;
+  final double lat;
+  final double lng;
+  int likeCount;
+  final List<MotoShopComment> comments;
   MotoShop({
     required this.shopId, required this.name, required this.type,
     required this.region, required this.phone, required this.address,
@@ -1626,12 +1638,13 @@ class MotoShop {
     this.isCertified = false, this.isClubPartner = false,
     this.hasInspection = false, this.hasElectric = false,
     this.brands = const [], this.services = const [], this.youtubeUrl,
-  });
+    this.lat = 35.8714, this.lng = 128.6014,
+    this.likeCount = 0, List<MotoShopComment>? comments,
+  }) : comments = comments ?? [];
 }
 
-// 오토바이 매물 상태
+// ── 매물 상태 ──
 enum MotoListingStatus { listing, posted, inquired, negotiating, phoneable, sold, closed }
-
 extension MotoListingStatusExt on MotoListingStatus {
   String get label {
     switch (this) {
@@ -1644,14 +1657,35 @@ extension MotoListingStatusExt on MotoListingStatus {
       case MotoListingStatus.closed:      return '거래종료';
     }
   }
+  Color get color {
+    switch (this) {
+      case MotoListingStatus.listing:     return const Color(0xFF90A4AE);
+      case MotoListingStatus.posted:      return const Color(0xFF4FC3F7);
+      case MotoListingStatus.inquired:    return const Color(0xFFFF6B35);
+      case MotoListingStatus.negotiating: return const Color(0xFFFFD54F);
+      case MotoListingStatus.phoneable:   return const Color(0xFF10B981);
+      case MotoListingStatus.sold:        return const Color(0xFFE63946);
+      case MotoListingStatus.closed:      return const Color(0xFF546E7A);
+    }
+  }
 }
 
-// 오토바이 매물
+// ── 매물 댓글 ──
+class MotoListingComment {
+  final String id;
+  final String authorName;
+  final String content;
+  final DateTime createdAt;
+  final String? parentId;
+  MotoListingComment({required this.id, required this.authorName, required this.content, required this.createdAt, this.parentId});
+}
+
+// ── 매물 ──
 class MotoListing {
   final String listingId;
-  final String manufacturer;  // 제조사
+  final String manufacturer;
   final String model;
-  final int displacement;     // 배기량(cc)
+  final int displacement;
   final String year;
   int mileage;
   int price;
@@ -1661,20 +1695,28 @@ class MotoListing {
   final String accidentDetail;
   final bool tuningFlag;
   final String tuningDetail;
-  final String inspectionStatus;  // '정상'|'불합격'|'미검사'
-  final String documentStatus;    // '완비'|'일부누락'
+  final String inspectionStatus;
+  final String documentStatus;
   final String color;
+  final bool isOriginal;
+  final String tireCondition;
+  final String brakeCondition;
+  final String batteryCondition;
+  final String recentParts;
+  final String contactPreference;
   List<String> photoUrls;
   MotoListingStatus status;
   bool isMyListing;
+  bool isFavorite;
   final String ownerId;
   int viewCount;
   int inquiryCount;
   int likeCount;
   final DateTime createdAt;
-  // 신뢰성
   final String recentMaintenance;
   final bool isClubRecommended;
+  final bool isShopChecked;
+  final List<MotoListingComment> comments;
   MotoListing({
     required this.listingId, required this.manufacturer, required this.model,
     required this.displacement, required this.year, required this.mileage,
@@ -1682,15 +1724,49 @@ class MotoListing {
     this.accidentFlag = false, this.accidentDetail = '',
     this.tuningFlag = false, this.tuningDetail = '',
     this.inspectionStatus = '정상', this.documentStatus = '완비',
-    required this.color, this.photoUrls = const [],
+    required this.color, this.isOriginal = true,
+    this.tireCondition = '양호', this.brakeCondition = '양호', this.batteryCondition = '양호',
+    this.recentParts = '', this.contactPreference = '채팅 우선',
+    this.photoUrls = const [],
     this.status = MotoListingStatus.posted, this.isMyListing = false,
-    this.ownerId = '', this.viewCount = 0, this.inquiryCount = 0,
-    this.likeCount = 0, required this.createdAt,
+    this.isFavorite = false, this.ownerId = '', this.viewCount = 0,
+    this.inquiryCount = 0, this.likeCount = 0, required this.createdAt,
     this.recentMaintenance = '', this.isClubRecommended = false,
-  });
+    this.isShopChecked = false, List<MotoListingComment>? comments,
+  }) : comments = comments ?? [];
 }
 
-// 커뮤니티 카테고리
+// ── 이모지 반응 ──
+class EmojiReaction {
+  final String emoji;
+  final String label;
+  int count;
+  bool myReacted;
+  EmojiReaction({required this.emoji, required this.label, this.count = 0, this.myReacted = false});
+  static List<EmojiReaction> defaults() => [
+    EmojiReaction(emoji: '👍', label: '좋아요'),
+    EmojiReaction(emoji: '❤️', label: '찜'),
+    EmojiReaction(emoji: '🔥', label: '인기'),
+    EmojiReaction(emoji: '😮', label: '놀람'),
+    EmojiReaction(emoji: '😢', label: '아쉬움'),
+    EmojiReaction(emoji: '👎', label: '비추'),
+  ];
+}
+
+// ── 댓글 ──
+class MotoComment {
+  final String id;
+  final String authorName;
+  final String authorAvatar;
+  final String content;
+  final DateTime createdAt;
+  final String? parentId;
+  bool isReported;
+  MotoComment({required this.id, required this.authorName, this.authorAvatar = '',
+    required this.content, required this.createdAt, this.parentId, this.isReported = false});
+}
+
+// ── 커뮤니티 카테고리 ──
 enum MotoCommunityType { brand, region, displacement, beginner, delivery }
 extension MotoCommunityTypeExt on MotoCommunityType {
   String get label {
@@ -1704,16 +1780,119 @@ extension MotoCommunityTypeExt on MotoCommunityType {
   }
 }
 
-// 커뮤니티 게시글 이모지 반응
-class EmojiReaction {
-  final String emoji;
-  final String label;
-  int count;
-  bool myReacted;
-  EmojiReaction({required this.emoji, required this.label, this.count = 0, this.myReacted = false});
+// ── 동호회 멤버 권한 ──
+enum MotoClubRole { owner, vice, member }
+extension MotoClubRoleExt on MotoClubRole {
+  String get label {
+    switch (this) {
+      case MotoClubRole.owner:  return '방장';
+      case MotoClubRole.vice:   return '부방장';
+      case MotoClubRole.member: return '멤버';
+    }
+  }
 }
 
-// 커뮤니티 게시글
+// ── 동호회 멤버 ──
+class MotoClubMember {
+  final String userId;
+  final String name;
+  final String avatarUrl;
+  MotoClubRole role;
+  final DateTime joinedAt;
+  MotoClubMember({required this.userId, required this.name, this.avatarUrl = '',
+    this.role = MotoClubRole.member, required this.joinedAt});
+}
+
+// ── 동호회 가입 방식 ──
+enum MotoClubJoinType { open, approval, closed }
+extension MotoClubJoinTypeExt on MotoClubJoinType {
+  String get label {
+    switch (this) {
+      case MotoClubJoinType.open:     return '즉시 가입';
+      case MotoClubJoinType.approval: return '승인 후 가입';
+      case MotoClubJoinType.closed:   return '비공개';
+    }
+  }
+}
+
+// ── 동호회 일정 ──
+class MotoClubEvent {
+  final String eventId;
+  final String title;
+  final String description;
+  final DateTime eventDate;
+  final String location;
+  int participantCount;
+  bool myJoined;
+  MotoClubEvent({required this.eventId, required this.title, required this.description,
+    required this.eventDate, required this.location, this.participantCount = 0, this.myJoined = false});
+}
+
+// ── 동호회 공지 ──
+class MotoClubNotice {
+  final String noticeId;
+  final String title;
+  final String content;
+  final DateTime createdAt;
+  final bool isPinned;
+  MotoClubNotice({required this.noticeId, required this.title, required this.content,
+    required this.createdAt, this.isPinned = false});
+}
+
+// ── 동호회 게시글 ──
+class MotoClubPost {
+  final String postId;
+  final String clubId;
+  final String authorName;
+  final String authorAvatar;
+  final String content;
+  final List<String> photoUrls;
+  final String? videoUrl;
+  final bool isPinned;
+  int viewCount;
+  final List<EmojiReaction> reactions;
+  final List<MotoComment> comments;
+  final DateTime createdAt;
+  MotoClubPost({
+    required this.postId, required this.clubId, required this.authorName,
+    this.authorAvatar = '', required this.content, this.photoUrls = const [],
+    this.videoUrl, this.isPinned = false, this.viewCount = 0,
+    required this.reactions, List<MotoComment>? comments, required this.createdAt,
+  }) : comments = comments ?? [];
+}
+
+// ── 동호회 ──
+class MotoClub {
+  final String clubId;
+  final String name;
+  final String description;
+  final MotoCommunityType category;
+  final String region;
+  final String coverImageUrl;
+  final MotoClubJoinType joinType;
+  bool isPublic;
+  bool myJoined;
+  bool myPendingApproval;
+  final List<MotoClubMember> members;
+  final List<MotoClubPost> posts;
+  final List<MotoClubNotice> notices;
+  final List<MotoClubEvent> events;
+  int likeCount;
+  MotoClub({
+    required this.clubId, required this.name, required this.description,
+    required this.category, required this.region, required this.coverImageUrl,
+    this.joinType = MotoClubJoinType.open, this.isPublic = true,
+    this.myJoined = false, this.myPendingApproval = false,
+    List<MotoClubMember>? members, List<MotoClubPost>? posts,
+    List<MotoClubNotice>? notices, List<MotoClubEvent>? events,
+    this.likeCount = 0,
+  }) : members = members ?? [], posts = posts ?? [], notices = notices ?? [], events = events ?? [];
+
+  int get memberCount => members.length;
+  MotoClubMember? get owner => members.where((m) => m.role == MotoClubRole.owner).firstOrNull;
+}
+
+// ── 커뮤니티 게시글(동호회 외부 피드용) ──
 class MotoCommunityPost {
   final String postId;
   final MotoCommunityType type;
@@ -1721,7 +1900,7 @@ class MotoCommunityPost {
   final String title;
   final String content;
   final List<String> photoUrls;
-  final String? videoUrl;     // 유튜브 URL
+  final String? videoUrl;
   int viewCount;
   int commentCount;
   final DateTime createdAt;
@@ -1735,7 +1914,7 @@ class MotoCommunityPost {
   });
 }
 
-// 영상 카테고리
+// ── 영상 카테고리 ──
 enum MotoVideoCategory { review, repair, riding, accident, education }
 extension MotoVideoCategoryExt on MotoVideoCategory {
   String get label {
@@ -1749,7 +1928,7 @@ extension MotoVideoCategoryExt on MotoVideoCategory {
   }
 }
 
-// 유튜브 영상 카드
+// ── 영상 ──
 class MotoVideo {
   final String videoId;
   final String youtubeUrl;
@@ -1765,19 +1944,27 @@ class MotoVideo {
   });
 }
 
-// ── 오토바이 싱글톤 상태 ──
+// ── MotoState 싱글톤 ──
 class MotoState extends ChangeNotifier {
   static final MotoState _instance = MotoState._internal();
   factory MotoState() => _instance;
   MotoState._internal() { _initDummy(); }
 
-  final List<MotoShop> shops = [];
+  final List<MotoShop>  shops    = [];
   final List<MotoListing> listings = [];
   final List<MotoCommunityPost> posts = [];
-  final List<MotoVideo> videos = [];
+  final List<MotoVideo> videos   = [];
+  final List<MotoClub>  clubs    = [];
 
   void _initDummy() {
-    // ── 점포 더미 ──
+    _initShops();
+    _initListings();
+    _initPosts();
+    _initVideos();
+    _initClubs();
+  }
+
+  void _initShops() {
     shops.addAll([
       MotoShop(
         shopId: 'MS-001', name: '라이더팩토리 수성점',
@@ -1787,6 +1974,11 @@ class MotoState extends ChangeNotifier {
         rating: 4.8, reviewCount: 142, isCertified: true, isClubPartner: true,
         brands: ['혼다', '야마하', '가와사키'], services: ['엔진정비', '타이어교환', '소모품점검'],
         youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        lat: 35.8584, lng: 128.6317, likeCount: 32,
+        comments: [
+          MotoShopComment(id: 'SC-001', authorName: '라이더김', content: '친절하고 빠른 서비스!', createdAt: DateTime.now().subtract(const Duration(days: 2))),
+          MotoShopComment(id: 'SC-002', authorName: '바이커이', content: '타이어 교환 저렴하게 잘 해줬어요', createdAt: DateTime.now().subtract(const Duration(days: 5))),
+        ],
       ),
       MotoShop(
         shopId: 'MS-002', name: '바이크검사소 동구점',
@@ -1795,6 +1987,7 @@ class MotoState extends ChangeNotifier {
         imageUrl: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80',
         rating: 4.6, reviewCount: 88, hasInspection: true,
         services: ['이륜차 정기검사', '배출가스 검사'],
+        lat: 35.8724, lng: 128.6534, likeCount: 18,
       ),
       MotoShop(
         shopId: 'MS-003', name: '라이더마켓 중고바이크',
@@ -1804,6 +1997,7 @@ class MotoState extends ChangeNotifier {
         rating: 4.5, reviewCount: 210, isCertified: true,
         brands: ['혼다', '야마하', '스즈키', 'BMW', '할리데이비슨'],
         services: ['중고바이크 매매', '성능점검', '탁송'],
+        lat: 35.8468, lng: 128.5333, likeCount: 55,
       ),
       MotoShop(
         shopId: 'MS-004', name: '라이더용품 천국',
@@ -1812,6 +2006,7 @@ class MotoState extends ChangeNotifier {
         imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
         rating: 4.7, reviewCount: 325, isClubPartner: true,
         services: ['헬멧', '자켓', '장갑', '부츠', '바이크 용품 전반'],
+        lat: 35.8621, lng: 128.6248, likeCount: 41,
       ),
       MotoShop(
         shopId: 'MS-005', name: '전기이륜 e-MOTO 센터',
@@ -1820,19 +2015,26 @@ class MotoState extends ChangeNotifier {
         imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=400&q=80',
         rating: 4.9, reviewCount: 67, hasElectric: true, isCertified: true,
         services: ['전기이륜 판매', '배터리교환', '충전시설', '보조금 안내'],
+        lat: 35.8842, lng: 128.5892, likeCount: 27,
       ),
     ]);
+  }
 
-    // ── 매물 더미 ──
+  void _initListings() {
     listings.addAll([
       MotoListing(
         listingId: 'ML-001', manufacturer: '혼다', model: 'CB500F',
         displacement: 471, year: '2021년식', mileage: 8500, price: 650,
         region: '대구 수성구', color: '매트 블랙',
-        desc: '순정 상태 유지. 출퇴근용으로만 사용. 직거래 우선.',
+        desc: '순정 상태 유지. 출퇴근용으로만 사용. 직거래 우선.\n타이어 교환한 지 3개월, 오일 교환 최근 완료.\n무사고, 서류 완비.',
         inspectionStatus: '정상', documentStatus: '완비',
-        photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'],
-        isMyListing: true, ownerId: 'me', viewCount: 45, inquiryCount: 3,
+        isOriginal: true, tireCondition: '양호', brakeCondition: '양호', batteryCondition: '양호',
+        recentParts: '타이어(2024.10), 오일(2025.01)',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80',
+          'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+        ],
+        isMyListing: true, ownerId: 'me', viewCount: 45, inquiryCount: 3, likeCount: 8,
         createdAt: DateTime.now().subtract(const Duration(days: 2)),
         recentMaintenance: '타이어 교환(2024.10)', isClubRecommended: true,
       ),
@@ -1840,9 +2042,14 @@ class MotoState extends ChangeNotifier {
         listingId: 'ML-002', manufacturer: '야마하', model: 'MT-07',
         displacement: 689, year: '2022년식', mileage: 12000, price: 890,
         region: '대구 달서구', color: '아이스 플루오로',
-        desc: '익스조스트 교체 외 순정. 투어링용 탑박스 포함.',
+        desc: '익스조스트 교체 외 순정. 투어링용 탑박스 포함.\n대구 달서구 직거래 가능.',
         tuningFlag: true, tuningDetail: '슬립온 머플러',
-        photoUrls: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80'],
+        tireCondition: '양호', brakeCondition: '양호', batteryCondition: '양호',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+          'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80',
+          'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80',
+        ],
         viewCount: 87, inquiryCount: 7, likeCount: 12,
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
         recentMaintenance: '오일 교환(2025.03)',
@@ -1850,9 +2057,11 @@ class MotoState extends ChangeNotifier {
       MotoListing(
         listingId: 'ML-003', manufacturer: '가와사키', model: 'Z650',
         displacement: 649, year: '2020년식', mileage: 22000, price: 580,
-        region: '대구 동구', color: '메탈릭 플랫 스파크 블랙',
-        desc: '주말 라이딩 전용. 무사고. 정기점검 완비.',
-        photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80'],
+        region: '대구 동구', color: '메탈릭 스파크 블랙',
+        desc: '주말 라이딩 전용. 무사고. 정기점검 완비.\n서류 완비, 탁송 가능.',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80',
+        ],
         viewCount: 34, inquiryCount: 2, likeCount: 5,
         createdAt: DateTime.now().subtract(const Duration(days: 4)),
         inspectionStatus: '정상',
@@ -1861,15 +2070,20 @@ class MotoState extends ChangeNotifier {
         listingId: 'ML-004', manufacturer: 'BMW', model: 'G310R',
         displacement: 313, year: '2023년식', mileage: 3200, price: 520,
         region: '대구 수성구', color: '스타일 엑스클루시브',
-        desc: '초보도 타기 좋은 BMW 입문기. 극저주행. 거의 새 것.',
-        photoUrls: ['https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80'],
+        desc: '초보도 타기 좋은 BMW 입문기. 극저주행. 거의 새 것.\n구매 후 1년 미만, 거의 안 탔습니다.',
+        isOriginal: true, tireCondition: '최상', brakeCondition: '최상', batteryCondition: '최상',
+        photoUrls: [
+          'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80',
+          'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=600&q=80',
+        ],
         viewCount: 120, inquiryCount: 11, likeCount: 23,
         createdAt: DateTime.now().subtract(const Duration(hours: 6)),
         isClubRecommended: true,
       ),
     ]);
+  }
 
-    // ── 커뮤니티 게시글 더미 ──
+  void _initPosts() {
     posts.addAll([
       MotoCommunityPost(
         postId: 'MP-001', type: MotoCommunityType.brand,
@@ -1889,8 +2103,7 @@ class MotoState extends ChangeNotifier {
       ),
       MotoCommunityPost(
         postId: 'MP-002', type: MotoCommunityType.delivery,
-        authorName: '배달이박',
-        title: '배달용 바이크 소모품 교체 주기 정리',
+        authorName: '배달이박', title: '배달용 바이크 소모품 교체 주기 정리',
         content: '타이어 6000km, 브레이크패드 8000km, 오일 3000km... 배달 라이더라면 꼭 알아야 할 정보.',
         viewCount: 788, commentCount: 56,
         createdAt: DateTime.now().subtract(const Duration(hours: 8)),
@@ -1905,8 +2118,7 @@ class MotoState extends ChangeNotifier {
       ),
       MotoCommunityPost(
         postId: 'MP-003', type: MotoCommunityType.region,
-        authorName: '대구라이더',
-        title: '대구 이번 주말 팔공산 투어 같이 가실 분!',
+        authorName: '대구라이더', title: '이번 주말 팔공산 투어 같이 가실 분!',
         content: '토요일 오전 8시 동대구역 출발 예정. 125cc 이상 가능. 초보 환영.',
         photoUrls: ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80'],
         viewCount: 156, commentCount: 18,
@@ -1922,8 +2134,7 @@ class MotoState extends ChangeNotifier {
       ),
       MotoCommunityPost(
         postId: 'MP-004', type: MotoCommunityType.beginner,
-        authorName: '입문자이',
-        title: '바이크 입문 2주차 - 클러치 잡는 법 드디어 됐어요!',
+        authorName: '입문자이', title: '바이크 입문 2주차 - 클러치 드디어 됐어요!',
         content: '처음에는 반클러치가 뭔지도 몰랐는데 이제 조금씩 느낌이 오네요. 응원해주세요!',
         viewCount: 234, commentCount: 42,
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
@@ -1937,88 +2148,211 @@ class MotoState extends ChangeNotifier {
         ],
       ),
     ]);
+  }
 
-    // ── 영상 더미 ──
+  void _initVideos() {
     videos.addAll([
-      MotoVideo(
-        videoId: 'V-001',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      MotoVideo(videoId: 'V-001', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         thumbnailUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
         title: '2024 혼다 CB500F 실제 시승 리뷰 - 초보라이더 추천?',
-        channelName: '바이크리뷰TV', viewCountText: '12.4만회',
-        category: MotoVideoCategory.review,
-      ),
-      MotoVideo(
-        videoId: 'V-002',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        channelName: '바이크리뷰TV', viewCountText: '12.4만회', category: MotoVideoCategory.review),
+      MotoVideo(videoId: 'V-002', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
         title: '오토바이 엔진오일 직접 교환하는 법 (풀영상)',
-        channelName: '라이더정비소', viewCountText: '8.2만회',
-        category: MotoVideoCategory.repair,
-      ),
-      MotoVideo(
-        videoId: 'V-003',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        channelName: '라이더정비소', viewCountText: '8.2만회', category: MotoVideoCategory.repair),
+      MotoVideo(videoId: 'V-003', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         thumbnailUrl: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=400&q=80',
         title: '[안전교육] 빗길 라이딩 시 절대 하면 안 되는 행동 5가지',
-        channelName: '안전라이딩연구소', viewCountText: '34.7만회',
-        category: MotoVideoCategory.education,
-      ),
-      MotoVideo(
-        videoId: 'V-004',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        channelName: '안전라이딩연구소', viewCountText: '34.7만회', category: MotoVideoCategory.education),
+      MotoVideo(videoId: 'V-004', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         thumbnailUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
         title: '배달라이더 필수! 타이어 마모 직접 확인하는 법',
-        channelName: '배달라이더TV', viewCountText: '5.6만회',
-        category: MotoVideoCategory.education,
-      ),
-      MotoVideo(
-        videoId: 'V-005',
-        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        channelName: '배달라이더TV', viewCountText: '5.6만회', category: MotoVideoCategory.education),
+      MotoVideo(videoId: 'V-005', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         thumbnailUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
         title: '대구-경주 라이딩 코스 추천 BEST 3 (4K 풀영상)',
-        channelName: '대구라이더클럽', viewCountText: '2.1만회',
-        category: MotoVideoCategory.riding,
+        channelName: '대구라이더클럽', viewCountText: '2.1만회', category: MotoVideoCategory.riding),
+      MotoVideo(videoId: 'V-006', youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        thumbnailUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba53b0998?w=400&q=80',
+        title: '[정비기초] 체인 청소 & 루브 방법 완전정복',
+        channelName: '라이더정비소', viewCountText: '3.1만회', category: MotoVideoCategory.repair),
+    ]);
+  }
+
+  void _initClubs() {
+    clubs.addAll([
+      MotoClub(
+        clubId: 'MC-001', name: '대구 혼다 라이더즈',
+        description: '대구/경북 혼다 바이크 동호회. 매주 주말 투어 진행.',
+        category: MotoCommunityType.brand, region: '대구/경북',
+        coverImageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+        joinType: MotoClubJoinType.open, isPublic: true, myJoined: true,
+        likeCount: 120,
+        members: [
+          MotoClubMember(userId: 'me', name: '나', role: MotoClubRole.member, joinedAt: DateTime.now().subtract(const Duration(days: 30))),
+          MotoClubMember(userId: 'u1', name: '대구라이더', role: MotoClubRole.owner, joinedAt: DateTime.now().subtract(const Duration(days: 365))),
+          MotoClubMember(userId: 'u2', name: '바이커김', role: MotoClubRole.vice, joinedAt: DateTime.now().subtract(const Duration(days: 200))),
+          MotoClubMember(userId: 'u3', name: '라이더박', role: MotoClubRole.member, joinedAt: DateTime.now().subtract(const Duration(days: 60))),
+        ],
+        notices: [
+          MotoClubNotice(noticeId: 'N-001', title: '5월 팔공산 투어 공지', content: '5월 10일(토) 오전 8시 동대구역 집결. 참여 신청은 일정 탭에서!', createdAt: DateTime.now().subtract(const Duration(days: 3)), isPinned: true),
+        ],
+        events: [
+          MotoClubEvent(eventId: 'E-001', title: '5월 팔공산 투어', description: '봄 라이딩 정기 투어', eventDate: DateTime.now().add(const Duration(days: 14)), location: '동대구역 1번 출구', participantCount: 12, myJoined: true),
+          MotoClubEvent(eventId: 'E-002', title: '정기 번개 모임', description: '달서구 맛집 투어', eventDate: DateTime.now().add(const Duration(days: 7)), location: '달서구 진천역', participantCount: 6),
+        ],
+        posts: [
+          MotoClubPost(
+            postId: 'CP-001', clubId: 'MC-001', authorName: '대구라이더',
+            content: '이번 주말 팔공산 투어 사진 공유합니다. 날씨 너무 좋았어요!',
+            photoUrls: ['https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80'],
+            isPinned: false, viewCount: 145,
+            reactions: [EmojiReaction(emoji: '👍', label: '좋아요', count: 32), EmojiReaction(emoji: '❤️', label: '찜', count: 12), EmojiReaction(emoji: '🔥', label: '인기', count: 8), EmojiReaction(emoji: '😮', label: '놀람', count: 2), EmojiReaction(emoji: '😢', label: '아쉬움', count: 0), EmojiReaction(emoji: '👎', label: '비추', count: 0)],
+            comments: [
+              MotoComment(id: 'c1', authorName: '바이커김', content: '오 멋지네요! 다음엔 저도 같이 가겠습니다', createdAt: DateTime.now().subtract(const Duration(hours: 2))),
+              MotoComment(id: 'c2', authorName: '라이더박', content: '다음 투어 일정도 빨리 올려주세요!', createdAt: DateTime.now().subtract(const Duration(hours: 1))),
+            ],
+            createdAt: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+          MotoClubPost(
+            postId: 'CP-002', clubId: 'MC-001', authorName: '바이커김',
+            content: '오늘 엔진오일 교환했어요. 라이더팩토리 수성점 추천합니다!',
+            photoUrls: [],
+            viewCount: 87,
+            reactions: [EmojiReaction(emoji: '👍', label: '좋아요', count: 15), EmojiReaction(emoji: '❤️', label: '찜', count: 3), EmojiReaction(emoji: '🔥', label: '인기', count: 2), EmojiReaction(emoji: '😮', label: '놀람', count: 0), EmojiReaction(emoji: '😢', label: '아쉬움', count: 0), EmojiReaction(emoji: '👎', label: '비추', count: 0)],
+            createdAt: DateTime.now().subtract(const Duration(hours: 6)),
+          ),
+        ],
+      ),
+      MotoClub(
+        clubId: 'MC-002', name: '대구 배달라이더 모임',
+        description: '대구 배달 종사자 모임. 정비 할인, 안전 정보, 긴급 지원.',
+        category: MotoCommunityType.delivery, region: '대구',
+        coverImageUrl: 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?w=600&q=80',
+        joinType: MotoClubJoinType.approval, isPublic: true, myJoined: false,
+        likeCount: 89,
+        members: [
+          MotoClubMember(userId: 'u4', name: '배달왕김', role: MotoClubRole.owner, joinedAt: DateTime.now().subtract(const Duration(days: 400))),
+          MotoClubMember(userId: 'u5', name: '라이더최', role: MotoClubRole.member, joinedAt: DateTime.now().subtract(const Duration(days: 100))),
+          MotoClubMember(userId: 'u6', name: '배달박', role: MotoClubRole.member, joinedAt: DateTime.now().subtract(const Duration(days: 50))),
+        ],
+        posts: [
+          MotoClubPost(
+            postId: 'CP-003', clubId: 'MC-002', authorName: '배달왕김',
+            content: '이번 달 라이더팩토리 제휴 할인 행사 진행중. 회원증 보여주면 20% 할인!',
+            photoUrls: [],
+            viewCount: 234,
+            reactions: [EmojiReaction(emoji: '👍', label: '좋아요', count: 67), EmojiReaction(emoji: '❤️', label: '찜', count: 14), EmojiReaction(emoji: '🔥', label: '인기', count: 22), EmojiReaction(emoji: '😮', label: '놀람', count: 3), EmojiReaction(emoji: '😢', label: '아쉬움', count: 0), EmojiReaction(emoji: '👎', label: '비추', count: 0)],
+            createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+          ),
+        ],
+      ),
+      MotoClub(
+        clubId: 'MC-003', name: '입문자 바이크 스쿨',
+        description: '바이크 처음 타시는 분들을 위한 동호회. 기초 교육, 멘토링 제공.',
+        category: MotoCommunityType.beginner, region: '대구',
+        coverImageUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=600&q=80',
+        joinType: MotoClubJoinType.open, isPublic: true, myJoined: false,
+        likeCount: 74,
+        members: [
+          MotoClubMember(userId: 'u7', name: '멘토최', role: MotoClubRole.owner, joinedAt: DateTime.now().subtract(const Duration(days: 300))),
+          MotoClubMember(userId: 'u8', name: '입문자이', role: MotoClubRole.member, joinedAt: DateTime.now().subtract(const Duration(days: 14))),
+        ],
+        posts: [],
       ),
     ]);
   }
 
-  // 이모지 반응 토글
+  // ── 이모지 반응 토글 ──
   void toggleReaction(String postId, int reactionIndex) {
     try {
       final post = posts.firstWhere((p) => p.postId == postId);
       final r = post.reactions[reactionIndex];
-      if (r.myReacted) {
-        r.myReacted = false;
-        r.count--;
-      } else {
-        // 다른 반응 해제
+      if (r.myReacted) { r.myReacted = false; r.count--; }
+      else {
         for (var rx in post.reactions) { if (rx.myReacted) { rx.myReacted = false; rx.count--; } }
-        r.myReacted = true;
-        r.count++;
+        r.myReacted = true; r.count++;
       }
     } catch (_) {}
     notifyListeners();
   }
 
-  // 매물 좋아요 토글
-  void toggleListingLike(String listingId) {
+  // ── 동호회 게시글 이모지 토글 ──
+  void toggleClubPostReaction(String clubId, String postId, int reactionIndex) {
     try {
-      final l = listings.firstWhere((l) => l.listingId == listingId);
-      l.likeCount++;
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      final post = club.posts.firstWhere((p) => p.postId == postId);
+      final r = post.reactions[reactionIndex];
+      if (r.myReacted) { r.myReacted = false; r.count--; }
+      else {
+        for (var rx in post.reactions) { if (rx.myReacted) { rx.myReacted = false; rx.count--; } }
+        r.myReacted = true; r.count++;
+      }
     } catch (_) {}
     notifyListeners();
   }
 
-  // 게시글 추가
-  void addPost(MotoCommunityPost post) {
-    posts.insert(0, post);
+  // ── 동호회 댓글 추가 ──
+  void addClubComment(String clubId, String postId, MotoComment comment) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      final post = club.posts.firstWhere((p) => p.postId == postId);
+      post.comments.add(comment);
+    } catch (_) {}
     notifyListeners();
   }
 
-  // 매물 추가
-  void addListing(MotoListing listing) {
-    listings.insert(0, listing);
+  // ── 동호회 가입 ──
+  void joinClub(String clubId) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      if (club.joinType == MotoClubJoinType.open) {
+        club.myJoined = true;
+        club.members.add(MotoClubMember(userId: 'me', name: '나', joinedAt: DateTime.now()));
+      } else {
+        club.myPendingApproval = true;
+      }
+    } catch (_) {}
     notifyListeners();
   }
+
+  // ── 동호회 게시글 추가 ──
+  void addClubPost(String clubId, MotoClubPost post) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      club.posts.insert(0, post);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 동호회 개설 ──
+  void createClub(MotoClub club) {
+    clubs.insert(0, club);
+    notifyListeners();
+  }
+
+  // ── 매물 좋아요 ──
+  void toggleListingLike(String listingId) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.isFavorite = !l.isFavorite;
+      l.likeCount += l.isFavorite ? 1 : -1;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 매물 댓글 추가 ──
+  void addListingComment(String listingId, MotoListingComment comment) {
+    try {
+      final l = listings.firstWhere((l) => l.listingId == listingId);
+      l.comments.add(comment);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 게시글 추가 ──
+  void addPost(MotoCommunityPost post) { posts.insert(0, post); notifyListeners(); }
+
+  // ── 매물 추가 ──
+  void addListing(MotoListing listing) { listings.insert(0, listing); notifyListeners(); }
 }
