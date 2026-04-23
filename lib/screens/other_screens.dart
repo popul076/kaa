@@ -9592,17 +9592,35 @@ class _MyListingsScreenState extends State<_MyListingsScreen>
                 color: const Color(0xFF0D1B2A),
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                 child: Row(children: [
-                  _stat('판매중', '$activeCount개', const Color(0xFF10B981)),
-                  _div(),
-                  _stat('전체', '${_items.length}개', const Color(0xFF4FC3F7)),
-                  _div(),
-                  _stat('1:1 문의', '$totalInquiry건',
-                    totalInquiry > 0 ? const Color(0xFFEF4444) : const Color(0xFFB0BEC5)),
+                  Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('$activeCount개', style: const TextStyle(color: Color(0xFF10B981), fontSize: 16, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2), const Text('판매중', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+                  ])),
+                  Container(width: 1, height: 28, color: const Color(0xFF1E3A5F)),
+                  Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('${_items.length}개', style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 16, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2), const Text('전체', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+                  ])),
+                  Container(width: 1, height: 28, color: const Color(0xFF1E3A5F)),
+                  Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text('$totalInquiry건', style: TextStyle(color: totalInquiry > 0 ? const Color(0xFFEF4444) : const Color(0xFFB0BEC5), fontSize: 16, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2), const Text('1:1 문의', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+                  ])),
                 ]),
               ),
               Expanded(
                 child: _items.isEmpty
-                  ? _buildEmpty()
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.sell_rounded, color: Color(0xFF1E3A5F), size: 64),
+                        const SizedBox(height: 16),
+                        const Text('등록된 직거래 매물이 없습니다',
+                          style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 15, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 8),
+                        const Text('내차팔기 탭에서 직거래 매물로 등록하세요',
+                          style: TextStyle(color: Color(0xFF1E3A5F), fontSize: 12)),
+                      ]),
+                    )
                   : ListView.builder(
                       padding: const EdgeInsets.all(14),
                       itemCount: _items.length,
@@ -9621,7 +9639,7 @@ class _MyListingsScreenState extends State<_MyListingsScreen>
       ),
     );
   }
-
+}
 
 // ── 내 오토바이 매물 탭 ──────────────────────────────────────
 class _MyMotoListingsTab extends StatefulWidget {
@@ -9814,48 +9832,6 @@ class _MyMotoListingsTabState extends State<_MyMotoListingsTab> {
       )),  // Expanded close
     ]);  // Column close
   }
-
-}
-
-  Widget _buildEmpty() => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.sell_rounded, color: Color(0xFF1E3A5F), size: 64),
-        const SizedBox(height: 16),
-        const Text('등록된 직거래 매물이 없습니다',
-          style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 15, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        const Text('내차팔기 탭에서 직거래 매물로 등록하세요',
-          style: TextStyle(color: Color(0xFF1E3A5F), fontSize: 12)),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.pushNamed(context, '/used-car');
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF8B5CF6),
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
-          label: const Text('직거래 매물 등록하기',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
-        ),
-      ],
-    ),
-  );
-
-  Widget _stat(String label, String value, Color color) => Expanded(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(value, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
-    ]),
-  );
-
-  Widget _div() => Container(width: 1, height: 28, color: const Color(0xFF1E3A5F));
 }
 
 class _MyListingEditCard extends StatelessWidget {
