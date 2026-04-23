@@ -9690,14 +9690,29 @@ class _MyMotoListingsTabState extends State<_MyMotoListingsTab> {
         color: const Color(0xFF0D1721),
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
         child: Row(children: [
-          _motoStat('판매중', '$activeCount개', const Color(0xFF10B981)),
-          _motoDivider(),
-          _motoStat('전체', '${myListings.length}개', const Color(0xFF4FC3F7)),
-          _motoDivider(),
-          _motoStat('조회수', '$totalViews회', const Color(0xFFFF6B35)),
-          _motoDivider(),
-          _motoStat('문의', '$totalInquiry건',
-              totalInquiry > 0 ? const Color(0xFFE63946) : const Color(0xFFB0BEC5)),
+          Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('$activeCount개', style: const TextStyle(color: Color(0xFF10B981), fontSize: 14, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            const Text('판매중', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+          ])),
+          Container(width: 1, height: 24, color: const Color(0xFF1A2A3A)),
+          Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('${myListings.length}개', style: const TextStyle(color: Color(0xFF4FC3F7), fontSize: 14, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            const Text('전체', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+          ])),
+          Container(width: 1, height: 24, color: const Color(0xFF1A2A3A)),
+          Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('$totalViews회', style: const TextStyle(color: Color(0xFFFF6B35), fontSize: 14, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            const Text('조회수', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+          ])),
+          Container(width: 1, height: 24, color: const Color(0xFF1A2A3A)),
+          Expanded(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('$totalInquiry건', style: TextStyle(color: totalInquiry > 0 ? const Color(0xFFE63946) : const Color(0xFFB0BEC5), fontSize: 14, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 2),
+            const Text('문의', style: TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+          ])),
         ]),
       ),
       Expanded(child: ListView.builder(
@@ -9734,7 +9749,7 @@ class _MyMotoListingsTabState extends State<_MyMotoListingsTab> {
                                     child: const Icon(Icons.two_wheeler_rounded,
                                         color: Color(0xFF546E7A), size: 32)))
                         : Image.file(
-                            import_dart_io.File(l.photoUrls.first),
+                            File(l.photoUrls.first),
                             width: 100, height: 90, fit: BoxFit.cover))
                     : Container(width: 100, height: 90,
                         color: const Color(0xFF111E2C),
@@ -9800,15 +9815,6 @@ class _MyMotoListingsTabState extends State<_MyMotoListingsTab> {
     ]);  // Column close
   }
 
-  Widget _motoStat(String label, String value, Color color) => Expanded(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      Text(value, style: TextStyle(color: color, fontSize: 14,
-          fontWeight: FontWeight.w900)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
-    ]),
-  );
-  Widget _motoDivider() => Container(width: 1, height: 24, color: const Color(0xFF1A2A3A));
 }
 
   Widget _buildEmpty() => Center(

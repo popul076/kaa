@@ -1849,7 +1849,7 @@ class MotoClubPost {
   final String content;
   final List<String> photoUrls;
   final String? videoUrl;
-  final bool isPinned;
+  bool isPinned;
   int viewCount;
   final List<EmojiReaction> reactions;
   final List<MotoComment> comments;

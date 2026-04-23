@@ -3842,9 +3842,11 @@ void _showPushDialog(BuildContext ctx, MotoClub club, {void Function()? onChange
             // 공지 게시글로 등록
             final post = MotoClubPost(
               postId: 'notice-${DateTime.now().millisecondsSinceEpoch}',
-              authorId: 'me', authorName: '방장',
+              clubId: club.clubId,
+              authorName: '방장',
               content: '[공지] $txt',
               isPinned: true,
+              reactions: const [],
               createdAt: DateTime.now(),
             );
             MotoState().addClubPost(club.clubId, post);
