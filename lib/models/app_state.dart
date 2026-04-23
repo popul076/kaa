@@ -2356,4 +2356,61 @@ class MotoState extends ChangeNotifier {
 
   // ── 매물 추가 ──
   void addListing(MotoListing listing) { listings.insert(0, listing); notifyListeners(); }
+
+  // ── 매물 조회수 증가 ──
+  void incrementListingView(String listingId) {
+    try {
+      listings.firstWhere((l) => l.listingId == listingId).viewCount++;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 매물 문의수 증가 ──
+  void incrementListingInquiry(String listingId) {
+    try {
+      listings.firstWhere((l) => l.listingId == listingId).inquiryCount++;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 멤버 내보내기 ──
+  void kickMember(String clubId, String userId) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      club.members.removeWhere((m) => m.userId == userId);
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 부방장 지정/해제 ──
+  void toggleVice(String clubId, String userId) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      final member = club.members.firstWhere((m) => m.userId == userId);
+      member.role = member.role == MotoClubRole.vice
+          ? MotoClubRole.member
+          : MotoClubRole.vice;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 공지 게시글 핀 ──
+  void pinPost(String clubId, String postId, bool pinned) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      final post = club.posts.firstWhere((p) => p.postId == postId);
+      post.isPinned = pinned;
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  // ── 동호회 탈퇴 ──
+  void leaveClub(String clubId) {
+    try {
+      final club = clubs.firstWhere((c) => c.clubId == clubId);
+      club.myJoined = false;
+      club.members.removeWhere((m) => m.userId == 'me');
+    } catch (_) {}
+    notifyListeners();
+  }
 }

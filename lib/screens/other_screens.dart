@@ -11,6 +11,7 @@ import '../models/app_state.dart';
 import '../widgets/common_widgets.dart';
 import 'quote_screens.dart' show QuoteDetailScreen;
 import 'used_car_screen.dart' show UsedCarDetailScreen;
+import 'motorcycle_screen.dart' show MotorcycleScreen;
 
 // ── MOINCAR 공통 다크 색상 상수 ──
 const Color _mBg      = Color(0xFF020810);
@@ -9460,18 +9461,22 @@ class _MyListingsScreen extends StatefulWidget {
   State<_MyListingsScreen> createState() => _MyListingsScreenState();
 }
 
-class _MyListingsScreenState extends State<_MyListingsScreen> {
+class _MyListingsScreenState extends State<_MyListingsScreen>
+    with SingleTickerProviderStateMixin {
   late List<UsedCarListing> _items;
+  late TabController _tab;
 
   @override
   void initState() {
     super.initState();
+    _tab = TabController(length: 2, vsync: this);
     _loadItems();
     UsedCarState().addListener(_onStateChanged);
   }
 
   @override
   void dispose() {
+    _tab.dispose();
     UsedCarState().removeListener(_onStateChanged);
     super.dispose();
   }
@@ -9547,9 +9552,16 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('내 중고차 매물',
+        title: const Text('내 매물',
           style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
         centerTitle: true,
+        bottom: TabBar(
+          controller: _tab,
+          indicatorColor: const Color(0xFF8B5CF6),
+          labelColor: Colors.white,
+          unselectedLabelColor: const Color(0xFF546E7A),
+          tabs: const [Tab(text: '중고차'), Tab(text: '오토바이')],
+        ),
         actions: [
           GestureDetector(
             onTap: () {
@@ -9570,39 +9582,234 @@ class _MyListingsScreenState extends State<_MyListingsScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tab,
         children: [
-          // ── 통계 바 ──
-          Container(
-            color: const Color(0xFF0D1B2A),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            child: Row(children: [
-              _stat('판매중', '$activeCount개', const Color(0xFF10B981)),
-              _div(),
-              _stat('전체', '${_items.length}개', const Color(0xFF4FC3F7)),
-              _div(),
-              _stat('1:1 문의', '$totalInquiry건',
-                totalInquiry > 0 ? const Color(0xFFEF4444) : const Color(0xFFB0BEC5)),
-            ]),
+          // ── 탭 0: 중고차 ──
+          Column(
+            children: [
+              Container(
+                color: const Color(0xFF0D1B2A),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                child: Row(children: [
+                  _stat('판매중', '$activeCount개', const Color(0xFF10B981)),
+                  _div(),
+                  _stat('전체', '${_items.length}개', const Color(0xFF4FC3F7)),
+                  _div(),
+                  _stat('1:1 문의', '$totalInquiry건',
+                    totalInquiry > 0 ? const Color(0xFFEF4444) : const Color(0xFFB0BEC5)),
+                ]),
+              ),
+              Expanded(
+                child: _items.isEmpty
+                  ? _buildEmpty()
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(14),
+                      itemCount: _items.length,
+                      itemBuilder: (ctx, i) => _MyListingEditCard(
+                        key: ValueKey(_items[i].listingId),
+                        listing: _items[i],
+                        onUpdate: _loadItems,
+                      ),
+                    ),
+              ),
+            ],
           ),
-          // ── 목록 ──
-          Expanded(
-            child: _items.isEmpty
-              ? _buildEmpty()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(14),
-                  itemCount: _items.length,
-                  itemBuilder: (ctx, i) => _MyListingEditCard(
-                    key: ValueKey(_items[i].listingId),
-                    listing: _items[i],
-                    onUpdate: _loadItems,
-                  ),
-                ),
-          ),
+          // ── 탭 1: 오토바이 매물 ──
+          _MyMotoListingsTab(onChanged: () => setState(() {})),
         ],
       ),
     );
   }
+
+
+// ── 내 오토바이 매물 탭 ──────────────────────────────────────
+class _MyMotoListingsTab extends StatefulWidget {
+  final VoidCallback onChanged;
+  const _MyMotoListingsTab({required this.onChanged});
+  @override
+  State<_MyMotoListingsTab> createState() => _MyMotoListingsTabState();
+}
+class _MyMotoListingsTabState extends State<_MyMotoListingsTab> {
+  @override
+  void initState() {
+    super.initState();
+    MotoState().addListener(_refresh);
+  }
+  @override
+  void dispose() {
+    MotoState().removeListener(_refresh);
+    super.dispose();
+  }
+  void _refresh() { if (mounted) setState(() {}); }
+
+  @override
+  Widget build(BuildContext context) {
+    final myListings = MotoState().listings
+        .where((l) => l.isMyListing)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    final activeCount = myListings.where((l) =>
+        l.status == MotoListingStatus.listing || l.status == MotoListingStatus.posted).length;
+    final totalViews = myListings.fold<int>(0, (s, l) => s + l.viewCount);
+    final totalInquiry = myListings.fold<int>(0, (s, l) => s + l.inquiryCount);
+
+    if (myListings.isEmpty) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.two_wheeler_rounded,
+              color: Color(0xFF1A2A3A), size: 64),
+          const SizedBox(height: 16),
+          const Text('등록된 오토바이 매물이 없습니다',
+              style: TextStyle(color: Color(0xFFB0BEC5),
+                  fontSize: 15, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          const Text('오토바이 > 사고팔기에서 매물을 등록하세요',
+              style: TextStyle(color: Color(0xFF546E7A), fontSize: 12)),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE63946),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+            label: const Text('오토바이 매물 등록하기',
+                style: TextStyle(color: Colors.white,
+                    fontWeight: FontWeight.w700, fontSize: 14)),
+          ),
+        ]),
+      );
+    }
+
+    return Column(children: [
+      // 통계 헤더
+      Container(
+        color: const Color(0xFF0D1721),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        child: Row(children: [
+          _motoStat('판매중', '$activeCount개', const Color(0xFF10B981)),
+          _motoDivider(),
+          _motoStat('전체', '${myListings.length}개', const Color(0xFF4FC3F7)),
+          _motoDivider(),
+          _motoStat('조회수', '$totalViews회', const Color(0xFFFF6B35)),
+          _motoDivider(),
+          _motoStat('문의', '$totalInquiry건',
+              totalInquiry > 0 ? const Color(0xFFE63946) : const Color(0xFFB0BEC5)),
+        ]),
+      ),
+      Expanded(child: ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: myListings.length,
+      itemBuilder: (_, i) {
+        final l = myListings[i];
+        return GestureDetector(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(
+                  builder: (_) => MotorcycleScreen(
+                      initialTab: 2,
+                      highlightListingId: l.listingId)))
+              .then((_) => setState(() {})),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1721),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF1A2A3A)),
+            ),
+            child: Row(children: [
+              // 대표 이미지
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(12)),
+                child: l.photoUrls.isNotEmpty
+                    ? (l.photoUrls.first.startsWith('http')
+                        ? Image.network(l.photoUrls.first,
+                            width: 100, height: 90, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                Container(width: 100, height: 90,
+                                    color: const Color(0xFF111E2C),
+                                    child: const Icon(Icons.two_wheeler_rounded,
+                                        color: Color(0xFF546E7A), size: 32)))
+                        : Image.file(
+                            import_dart_io.File(l.photoUrls.first),
+                            width: 100, height: 90, fit: BoxFit.cover))
+                    : Container(width: 100, height: 90,
+                        color: const Color(0xFF111E2C),
+                        child: const Icon(Icons.two_wheeler_rounded,
+                            color: Color(0xFF546E7A), size: 32)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text('${l.manufacturer} ${l.model}',
+                      style: const TextStyle(color: Colors.white,
+                          fontSize: 14, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text('${l.displacement}cc · ${l.year} · ${l.mileage}km',
+                      style: const TextStyle(color: Color(0xFFB0BEC5),
+                          fontSize: 11)),
+                  const SizedBox(height: 4),
+                  Text('${l.price}만원',
+                      style: const TextStyle(color: Color(0xFFE63946),
+                          fontSize: 16, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: l.status.color.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(
+                            color: l.status.color.withOpacity(0.5)),
+                      ),
+                      child: Text(l.status.label,
+                          style: TextStyle(color: l.status.color,
+                              fontSize: 10, fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.visibility_outlined,
+                        color: Color(0xFF546E7A), size: 12),
+                    Text(' ${l.viewCount}',
+                        style: const TextStyle(color: Color(0xFF546E7A),
+                            fontSize: 10)),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.chat_bubble_outline_rounded,
+                        color: Color(0xFF546E7A), size: 12),
+                    Text(' ${l.inquiryCount}',
+                        style: const TextStyle(color: Color(0xFF546E7A),
+                            fontSize: 10)),
+                  ]),
+                ]),
+              )),
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Icon(Icons.arrow_forward_ios_rounded,
+                    color: Color(0xFF546E7A), size: 14),
+              ),
+            ]),
+          ),
+        );
+      },
+      )),  // Expanded close
+    ]);  // Column close
+  }
+
+  Widget _motoStat(String label, String value, Color color) => Expanded(
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(value, style: TextStyle(color: color, fontSize: 14,
+          fontWeight: FontWeight.w900)),
+      const SizedBox(height: 2),
+      Text(label, style: const TextStyle(color: Color(0xFFB0BEC5), fontSize: 10)),
+    ]),
+  );
+  Widget _motoDivider() => Container(width: 1, height: 24, color: const Color(0xFF1A2A3A));
+}
 
   Widget _buildEmpty() => Center(
     child: Column(

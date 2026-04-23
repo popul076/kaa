@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/app_state.dart';
 
@@ -189,12 +191,90 @@ String _fmtMileage(int km) {
   return km.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+$)'), (m) => '${m[1]},');
 }
 
+// ── 사진 선택 공통 (image_picker 사용) ──────────────────────
+// 실제 기기에서 작동; 시뮬레이터에서는 빈 리스트 반환
+Future<List<String>> _pickImages(BuildContext ctx, {int max = 10}) async {
+  // 선택 방식 다이얼로그
+  final src = await showModalBottomSheet<String>(
+    context: ctx,
+    backgroundColor: const Color(0xFF0D1721),
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (_) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 3,
+              decoration: BoxDecoration(color: const Color(0xFF546E7A),
+                  borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF4FC3F7)),
+            title: Text('카메라 촬영',
+                style: GoogleFonts.notoSansKr(fontSize: 14,
+                    fontWeight: FontWeight.w600, color: Colors.white)),
+            onTap: () => Navigator.pop(_, 'camera'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF4FC3F7)),
+            title: Text('앨범에서 선택',
+                style: GoogleFonts.notoSansKr(fontSize: 14,
+                    fontWeight: FontWeight.w600, color: Colors.white)),
+            onTap: () => Navigator.pop(_, 'gallery'),
+          ),
+        ]),
+      ),
+    ),
+  );
+  if (src == null) return [];
+  try {
+    final picker = ImagePicker();
+    if (src == 'camera') {
+      final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+      return img != null ? [img.path] : [];
+    } else {
+      final imgs = await picker.pickMultiImage(imageQuality: 85, limit: max);
+      return imgs.map((x) => x.path).toList();
+    }
+  } catch (_) {
+    return [];
+  }
+}
+
+// ── 완료 팝업 (확인 후 콜백 실행) ────────────────────────────
+Future<void> _showDone(BuildContext ctx, String msg, {VoidCallback? then}) async {
+  await showDialog(
+    context: ctx,
+    barrierDismissible: false,
+    builder: (_) => AlertDialog(
+      backgroundColor: const Color(0xFF0D1721),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Row(children: [
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 22),
+        const SizedBox(width: 8),
+        Text('완료', style: GoogleFonts.notoSansKr(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+      ]),
+      content: Text(msg, style: GoogleFonts.notoSansKr(
+          fontSize: 14, fontWeight: FontWeight.w400, color: const Color(0xFFB0BEC5))),
+      actions: [
+        TextButton(
+          onPressed: () { Navigator.pop(_); if (then != null) then(); },
+          child: Text('확인', style: GoogleFonts.notoSansKr(
+              fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF4FC3F7))),
+        ),
+      ],
+    ),
+  );
+}
+
 // ══════════════════════════════════════════════════════════════
 // MotorcycleScreen — 메인 (탭 5개)
 // ══════════════════════════════════════════════════════════════
 class MotorcycleScreen extends StatefulWidget {
   final int initialTab;
-  const MotorcycleScreen({super.key, this.initialTab = 0});
+  final String? highlightListingId;
+  const MotorcycleScreen({super.key, this.initialTab = 0, this.highlightListingId});
   @override
   State<MotorcycleScreen> createState() => _MotorcycleScreenState();
 }
@@ -208,6 +288,17 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
     super.initState();
     _tab = TabController(
         length: 5, vsync: this, initialIndex: widget.initialTab);
+    // 특정 매물 하이라이트 요청 처리
+    if (widget.highlightListingId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final listing = MotoState().listings.firstWhere(
+            (l) => l.listingId == widget.highlightListingId,
+            orElse: () => MotoState().listings.first);
+        Navigator.push(context,
+            MaterialPageRoute(
+                builder: (_) => _MotoListingDetailScreen(listing: listing)));
+      });
+    }
   }
 
   @override
@@ -1273,6 +1364,13 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
   final List<String> _comments = [];
 
   @override
+  void initState() {
+    super.initState();
+    // 조회수 증가
+    MotoState().incrementListingView(widget.listing.listingId);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l = widget.listing;
     // 전화번호: phoneable 상태에서만 노출
@@ -1639,10 +1737,13 @@ class _MotoListingRegisterScreen extends StatefulWidget {
 }
 
 class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> {
-  final _mfrCtrl      = TextEditingController();
-  final _modelCtrl    = TextEditingController();
-  final _ccCtrl       = TextEditingController();
-  final _yearCtrl     = TextEditingController();
+  // 다이얼로그 선택형 필드
+  String _mfr   = '';
+  String _model = '';
+  String _cc    = '';
+  String _year  = '';
+
+  // 직접 입력 필드
   final _miCtrl       = TextEditingController();
   final _priceCtrl    = TextEditingController();
   final _regionCtrl   = TextEditingController();
@@ -1652,6 +1753,10 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
   final _acDetailCtrl = TextEditingController();
   final _tuDetailCtrl = TextEditingController();
   final _partsCtrl    = TextEditingController();
+
+  // 사진
+  List<String> _photos = [];   // 로컬 파일 경로
+
   bool _accident = false;
   bool _tuning   = false;
   bool _original = true;
@@ -1661,6 +1766,68 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
   String _tire    = '양호';
   String _brake   = '양호';
   String _battery = '양호';
+
+  // 제조사 → 모델 매핑
+  static const _brands = <String, List<String>>{
+    '혼다':    ['CB500F', 'CB500X', 'CBR650R', 'PCX125', 'Forza350', '베나'],
+    '야마하':  ['MT-07', 'MT-09', 'YZF-R3', 'XMAX300', 'NMAX125', 'Tenere700'],
+    '가와사키':['Z650', 'Z900', 'Ninja400', 'Ninja650', 'Versys650', 'Z50'],
+    '스즈키':  ['GSX-S750', 'V-Strom650', 'Hayabusa', 'Burgman400'],
+    'BMW':    ['F850GS', 'R1250GS', 'S1000RR', 'G310R', 'C400X'],
+    '할리데이비슨':['Sportster S', 'Street Glide', 'Fat Bob', 'Low Rider ST'],
+    '두카티':  ['Monster', 'Panigale V4', 'Scrambler', 'Multistrada V4'],
+    'KTM':   ['Duke390', 'Duke790', 'Adventure390', 'RC390'],
+    '국내/기타':['대림 시티100', 'SYM 클래식', '스캇 전기', '기타'],
+  };
+
+  static const _ccList  = ['49cc 이하', '50cc', '100cc', '125cc', '150cc',
+                            '250cc', '300cc', '400cc', '500cc', '650cc',
+                            '750cc', '900cc', '1000cc 이상'];
+  static const _yearList = ['2024', '2023', '2022', '2021', '2020',
+                             '2019', '2018', '2017', '2016', '2015', '2015 이전'];
+
+  Future<void> _selectBrand() async {
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => _PickerDialog(title: '제조사 선택',
+          items: _brands.keys.toList()),
+    );
+    if (v != null) { setState(() { _mfr = v; _model = ''; }); }
+  }
+
+  Future<void> _selectModel() async {
+    if (_mfr.isEmpty) { _selectBrand(); return; }
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => _PickerDialog(title: '모델 선택 ($_mfr)',
+          items: _brands[_mfr]!),
+    );
+    if (v != null) setState(() => _model = v);
+  }
+
+  Future<void> _selectCc() async {
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => _PickerDialog(title: '배기량 선택', items: _ccList),
+    );
+    if (v != null) setState(() => _cc = v);
+  }
+
+  Future<void> _selectYear() async {
+    final v = await showDialog<String>(
+      context: context,
+      builder: (_) => _PickerDialog(title: '연식 선택', items: _yearList),
+    );
+    if (v != null) setState(() => _year = v);
+  }
+
+  Future<void> _addPhotos() async {
+    if (_photos.length >= 10) return;
+    final picked = await _pickImages(context, max: 10 - _photos.length);
+    if (picked.isNotEmpty) {
+      setState(() => _photos.addAll(picked));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1681,26 +1848,108 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
         ],
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        // 사진 첨부
-        Container(
-          height: 80,
-          decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _mborder)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 28),
-            const SizedBox(width: 10),
-            Column(mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('사진 첨부 (최대 10장)', style: _ts(13, FontWeight.w600, _mt1)),
-              Text('첫 사진이 대표 이미지', style: _ts(11, FontWeight.w400, _mt3)),
-            ]),
-          ]),
+        // ── 사진 첨부 영역 ──
+        GestureDetector(
+          onTap: _addPhotos,
+          child: Container(
+            height: _photos.isEmpty ? 80 : null,
+            decoration: BoxDecoration(color: _mcard,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _photos.isEmpty ? _mborder : _maccent.withOpacity(0.5))),
+            child: _photos.isEmpty
+                ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 28),
+                    const SizedBox(width: 10),
+                    Column(mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('사진 추가 (최대 10장)', style: _ts(13, FontWeight.w600, _mt1)),
+                      Text('첫 사진이 대표 이미지  |  카메라 / 앨범', style: _ts(11, FontWeight.w400, _mt3)),
+                    ]),
+                  ])
+                : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    SizedBox(
+                      height: 110,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _photos.length + 1,
+                        itemBuilder: (_, i) {
+                          if (i == _photos.length) {
+                            return _photos.length < 10
+                                ? GestureDetector(
+                                    onTap: _addPhotos,
+                                    child: Container(
+                                      width: 90, height: 90,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: BoxDecoration(color: _mcard2,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: _mborder)),
+                                      child: const Column(mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                        Icon(Icons.add_rounded, color: _maccent, size: 24),
+                                        Text('추가', style: TextStyle(fontSize: 11, color: _maccent)),
+                                      ]),
+                                    ),
+                                  )
+                                : const SizedBox.shrink();
+                          }
+                          return Stack(children: [
+                            Container(
+                              width: 90, height: 90,
+                              margin: const EdgeInsets.only(right: 6),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(File(_photos[i]), fit: BoxFit.cover),
+                              ),
+                            ),
+                            if (i == 0)
+                              Positioned(bottom: 0, left: 0, right: 6,
+                                  child: Container(
+                                    height: 18,
+                                    decoration: BoxDecoration(
+                                        color: _mred.withOpacity(0.85),
+                                        borderRadius: const BorderRadius.vertical(
+                                            bottom: Radius.circular(8))),
+                                    child: const Center(child: Text('대표',
+                                        style: TextStyle(fontSize: 10,
+                                            color: Colors.white, fontWeight: FontWeight.w700))),
+                                  )),
+                            Positioned(top: 2, right: 8,
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _photos.removeAt(i)),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.7),
+                                        shape: BoxShape.circle),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                  ),
+                                )),
+                          ]);
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                      child: Text('${_photos.length}/10장',
+                          style: _ts(11, FontWeight.w400, _mt3)),
+                    ),
+                  ]),
+          ),
         ),
         const SizedBox(height: 16),
-        _inputField('제조사 *', _mfrCtrl, '혼다, 야마하, 가와사키...'),
-        _inputField('모델 *', _modelCtrl, 'CB500F, MT-07...'),
-        _inputField('배기량(cc)', _ccCtrl, '125, 250, 400...', type: TextInputType.number),
-        _inputField('연식', _yearCtrl, '2021'),
+        // ── 제조사 (다이얼로그 선택) ──
+        _selectTile('제조사 *', _mfr.isEmpty ? '선택하세요' : _mfr,
+            _mfr.isEmpty, _selectBrand),
+        // ── 모델 (다이얼로그 선택) ──
+        _selectTile('모델 *', _model.isEmpty ? '제조사 먼저 선택하세요' : _model,
+            _model.isEmpty, _selectModel),
+        // ── 배기량 (다이얼로그 선택) ──
+        _selectTile('배기량', _cc.isEmpty ? '선택하세요' : _cc,
+            _cc.isEmpty, _selectCc),
+        // ── 연식 (다이얼로그 선택) ──
+        _selectTile('연식', _year.isEmpty ? '선택하세요' : _year,
+            _year.isEmpty, _selectYear),
         _inputField('주행거리(km)', _miCtrl, '12000', type: TextInputType.number),
         _inputField('가격(만원) *', _priceCtrl, '650', type: TextInputType.number),
         _inputField('지역', _regionCtrl, '대구 수성구'),
@@ -1808,17 +2057,17 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
   }
 
   void _submit() {
-    if (_mfrCtrl.text.isEmpty || _modelCtrl.text.isEmpty || _priceCtrl.text.isEmpty) {
+    if (_mfr.isEmpty || _model.isEmpty || _priceCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('제조사·모델·가격은 필수 입력 항목입니다.'),
+          const SnackBar(content: Text('제조사·모델·가격은 필수 항목입니다.'),
               backgroundColor: _mred));
       return;
     }
     final listing = MotoListing(
-      listingId: 'ML-${DateTime.now().millisecondsSinceEpoch}',
-      manufacturer: _mfrCtrl.text, model: _modelCtrl.text,
-      displacement: int.tryParse(_ccCtrl.text) ?? 0,
-      year: _yearCtrl.text, mileage: int.tryParse(_miCtrl.text) ?? 0,
+      listingId: 'ML-\${DateTime.now().millisecondsSinceEpoch}',
+      manufacturer: _mfr, model: _model,
+      displacement: int.tryParse(_cc.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0,
+      year: _year, mileage: int.tryParse(_miCtrl.text) ?? 0,
       price: int.tryParse(_priceCtrl.text) ?? 0,
       region: _regionCtrl.text, desc: _descCtrl.text,
       accidentFlag: _accident, accidentDetail: _acDetailCtrl.text,
@@ -1828,14 +2077,41 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
       contactPreference: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : _contact,
       color: _colorCtrl.text.isNotEmpty ? _colorCtrl.text : '미지정',
       tireCondition: _tire, brakeCondition: _brake, batteryCondition: _battery,
+      photoUrls: _photos,
       isMyListing: true, ownerId: 'me',
       createdAt: DateTime.now(),
     );
     MotoState().addListing(listing);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('매물이 등록되었습니다.'), backgroundColor: _mgreen));
+    _showDone(context, '매물이 등록되었습니다!\n내 매물 목록에서 확인할 수 있습니다.', then: () {
+      Navigator.pop(context);
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => _MotoListingDetailScreen(listing: listing)));
+    });
   }
+
+  // ── 다이얼로그 선택 타일 ──
+  Widget _selectTile(String label, String value, bool isEmpty, VoidCallback onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            color: _mcard, borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isEmpty ? _mborder : _maccent.withOpacity(0.5)),
+          ),
+          child: Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: _ts(11, FontWeight.w500, _mt3)),
+              const SizedBox(height: 2),
+              Text(value, style: _ts(13, FontWeight.w600,
+                  isEmpty ? _mt3 : _mt1)),
+            ])),
+            Icon(Icons.arrow_drop_down_rounded,
+                color: isEmpty ? _mt3 : _maccent, size: 22),
+          ]),
+        ),
+      );
 
   Widget _inputField(String label, TextEditingController ctrl, String hint,
       {TextInputType type = TextInputType.text}) =>
@@ -2050,8 +2326,17 @@ class _MotoClubTabState extends State<_MotoClubTab> {
                     builder: (_) => _MotoClubDetailScreen(club: _clubs[i])))
                 .then((_) => setState(() {})),
             onJoin: () {
-              MotoState().joinClub(_clubs[i].clubId);
+              final club = _clubs[i];
+              MotoState().joinClub(club.clubId);
               setState(() {});
+              _showDone(context,
+                '${club.name} 동호회에 가입했습니다!\n멤버들에게 인사를 건네보세요.',
+                then: () {
+                  Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => _MotoClubDetailScreen(club: club)))
+                      .then((_) => setState(() {}));
+                });
             },
           ),
         ),
@@ -2215,7 +2500,8 @@ class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen>
                   if (c.myJoined)
                     IconButton(
                       icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-                      onPressed: () {},
+                      onPressed: () => _showClubMenu(context, c,
+                        onChanged: () => setState(() {})),
                     ),
                 ]),
               ),
@@ -2238,6 +2524,10 @@ class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen>
               onTap: c.myJoined ? null : () {
                 MotoState().joinClub(c.clubId);
                 setState(() {});
+                _showDone(context,
+                  '${c.name}에 가입했습니다!\n멤버들에게 인사를 건네보세요.', then: () {
+                  setState(() {});
+                });
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -2486,36 +2776,59 @@ class _ClubPhotosTab extends StatelessWidget {
 }
 
 // ── 동호회 공지 탭 ────────────────────────────────────────────
-class _ClubNoticesTab extends StatelessWidget {
+class _ClubNoticesTab extends StatefulWidget {
   final MotoClub club;
   const _ClubNoticesTab({required this.club});
   @override
+  State<_ClubNoticesTab> createState() => _ClubNoticesTabState();
+}
+class _ClubNoticesTabState extends State<_ClubNoticesTab> {
+  @override
   Widget build(BuildContext context) {
-    final notices = club.notices;
+    final notices = widget.club.posts.where((p) => p.isPinned).toList();
+    final isOwner = widget.club.members.any(
+        (m) => m.userId == 'me' && m.role == MotoClubRole.owner);
     if (notices.isEmpty) {
-      return Center(child: Text('등록된 공지가 없습니다', style: _ts(14, FontWeight.w500, _mt3)));
+      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.campaign_outlined, color: _mt3, size: 48),
+        const SizedBox(height: 12),
+        Text('등록된 공지가 없습니다', style: _ts(14, FontWeight.w500, _mt3)),
+        if (isOwner) ...[
+          const SizedBox(height: 8),
+          Text('오른쪽 상단 ⋮ 메뉴에서 공지를 발송할 수 있습니다.',
+              style: _ts(12, FontWeight.w400, _mt3)),
+        ],
+      ]));
     }
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: notices.length,
       itemBuilder: (_, i) {
-        final n = notices[i];
+        final p = notices[i];
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: _mcard,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: n.isPinned ? _mred.withOpacity(0.4) : _mborder),
-          ),
+              color: _mcard,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _mred.withOpacity(0.35))),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              if (n.isPinned) ...[_badge('📌 고정', _mred), const SizedBox(width: 6)],
-              Expanded(child: Text(n.title, style: _ts(14, FontWeight.w700, _mt1))),
-              Text(_dateStr(n.createdAt), style: _ts(10, FontWeight.w400, _mt3)),
+              _badge('공지', _mred),
+              const SizedBox(width: 8),
+              Expanded(child: Text(_timeAgo(p.createdAt),
+                  style: _ts(10, FontWeight.w400, _mt3))),
+              if (isOwner)
+                GestureDetector(
+                  onTap: () {
+                    MotoState().pinPost(widget.club.clubId, p.postId, false);
+                    setState(() {});
+                  },
+                  child: Icon(Icons.push_pin_rounded, color: _mred, size: 18),
+                ),
             ]),
-            const SizedBox(height: 6),
-            Text(n.content, style: _ts(13, FontWeight.w400, _mt2).copyWith(height: 1.5)),
+            const SizedBox(height: 8),
+            Text(p.content, style: _ts(13, FontWeight.w400, _mt2)),
           ]),
         );
       },
@@ -2523,7 +2836,6 @@ class _ClubNoticesTab extends StatelessWidget {
   }
 }
 
-// ── 동호회 일정 탭 ────────────────────────────────────────────
 class _ClubEventsTab extends StatefulWidget {
   final MotoClub club;
   final VoidCallback onChanged;
@@ -2597,33 +2909,86 @@ class _ClubEventsTabState extends State<_ClubEventsTab> {
 }
 
 // ── 동호회 멤버 탭 ────────────────────────────────────────────
-class _ClubMembersTab extends StatelessWidget {
+class _ClubMembersTab extends StatefulWidget {
   final MotoClub club;
   const _ClubMembersTab({required this.club});
   @override
+  State<_ClubMembersTab> createState() => _ClubMembersTabState();
+}
+class _ClubMembersTabState extends State<_ClubMembersTab> {
+  @override
   Widget build(BuildContext context) {
-    final members = club.members;
+    final members = widget.club.members;
+    final isOwner = members.any(
+        (m) => m.userId == 'me' && m.role == MotoClubRole.owner);
     return ListView.builder(
       padding: const EdgeInsets.all(12),
       itemCount: members.length,
       itemBuilder: (_, i) {
         final m = members[i];
+        final isMe = m.userId == 'me';
+        final isOwnerMember = m.role == MotoClubRole.owner;
         return Container(
           margin: const EdgeInsets.only(bottom: 6),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10),
               border: Border.all(color: _mborder)),
           child: Row(children: [
-            CircleAvatar(radius: 18, backgroundColor: _mcard2,
-                child: Text(m.name[0], style: _ts(14, FontWeight.w700, _maccent))),
+            CircleAvatar(radius: 18,
+                backgroundColor: isOwnerMember
+                    ? _mred.withOpacity(0.2)
+                    : m.role == MotoClubRole.vice
+                        ? _morange.withOpacity(0.2)
+                        : _mcard2,
+                child: Text(m.name[0], style: _ts(14, FontWeight.w700,
+                    isOwnerMember ? _mred
+                        : m.role == MotoClubRole.vice ? _morange : _maccent))),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(m.name, style: _ts(13, FontWeight.w700, _mt1)),
+              Row(children: [
+                Text(m.name, style: _ts(13, FontWeight.w700, _mt1)),
+                if (isMe) ...[
+                  const SizedBox(width: 6),
+                  _badge('나', _maccent),
+                ],
+              ]),
               Text('가입 ${_dateStr(m.joinedAt)}', style: _ts(10, FontWeight.w400, _mt3)),
             ])),
             _badge(m.role.label,
                 m.role == MotoClubRole.owner ? _mred
                     : m.role == MotoClubRole.vice ? _morange : _mt3),
+            if (isOwner && !isMe && !isOwnerMember) ...[
+              const SizedBox(width: 6),
+              PopupMenuButton<String>(
+                color: _mcard2,
+                icon: Icon(Icons.more_vert, color: _mt3, size: 18),
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'vice',
+                      child: Text(
+                          m.role == MotoClubRole.vice ? '부방장 해제' : '부방장 지정',
+                          style: _ts(13, FontWeight.w500, _morange))),
+                  PopupMenuItem(value: 'kick',
+                      child: Text('내보내기',
+                          style: _ts(13, FontWeight.w500, _mred))),
+                ],
+                onSelected: (v) {
+                  if (v == 'kick') {
+                    MotoState().kickMember(widget.club.clubId, m.userId);
+                    setState(() {});
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('\${m.name}님을 내보냈습니다.'),
+                        backgroundColor: _mred));
+                  } else {
+                    MotoState().toggleVice(widget.club.clubId, m.userId);
+                    setState(() {});
+                    final lbl = m.role == MotoClubRole.vice ? '멤버' : '부방장';
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('\${m.name}님을 \$lbl로 변경했습니다.'),
+                        backgroundColor: _maccent));
+                  }
+                },
+              ),
+            ],
           ]),
         );
       },
@@ -2641,8 +3006,15 @@ class _MotoPostWriteScreen extends StatefulWidget {
 class _MotoPostWriteScreenState extends State<_MotoPostWriteScreen> {
   final _contentCtrl = TextEditingController();
   final _videoCtrl   = TextEditingController();
+  List<String> _photos = [];
+
   @override
   void dispose() { _contentCtrl.dispose(); _videoCtrl.dispose(); super.dispose(); }
+
+  Future<void> _addPhotos() async {
+    final picked = await _pickImages(context, max: 10 - _photos.length);
+    if (picked.isNotEmpty) setState(() => _photos.addAll(picked));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2663,16 +3035,59 @@ class _MotoPostWriteScreenState extends State<_MotoPostWriteScreen> {
         ],
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        // 사진 첨부
-        Container(
-          height: 70, decoration: BoxDecoration(
-            color: _mcard, borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _mborder)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 24),
-            const SizedBox(width: 8),
-            Text('사진 첨부', style: _ts(13, FontWeight.w600, _mt2)),
-          ]),
+        // ── 사진 첨부 ──
+        GestureDetector(
+          onTap: _photos.length < 10 ? _addPhotos : null,
+          child: Container(
+            height: _photos.isEmpty ? 70 : null,
+            decoration: BoxDecoration(
+              color: _mcard, borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _photos.isEmpty ? _mborder : _maccent.withOpacity(0.4))),
+            child: _photos.isEmpty
+                ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 24),
+                    const SizedBox(width: 8),
+                    Text('사진 첨부 (카메라/앨범)', style: _ts(13, FontWeight.w600, _mt2)),
+                  ])
+                : Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Wrap(spacing: 6, runSpacing: 6, children: [
+                      ..._photos.asMap().entries.map((e) => Stack(children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.file(File(e.value),
+                              width: 80, height: 80, fit: BoxFit.cover),
+                        ),
+                        Positioned(top: 2, right: 2,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _photos.removeAt(e.key)),
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.7),
+                                    shape: BoxShape.circle),
+                                child: const Icon(Icons.close, color: Colors.white, size: 12),
+                              ),
+                            )),
+                      ])),
+                      if (_photos.length < 10)
+                        GestureDetector(
+                          onTap: _addPhotos,
+                          child: Container(
+                            width: 80, height: 80,
+                            decoration: BoxDecoration(color: _mcard2,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _mborder)),
+                            child: const Column(mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                              Icon(Icons.add_rounded, color: _maccent, size: 22),
+                              Text('추가', style: TextStyle(fontSize: 10, color: _maccent)),
+                            ]),
+                          ),
+                        ),
+                    ]),
+                  ),
+          ),
         ),
         const SizedBox(height: 10),
         // 유튜브 링크
@@ -2733,15 +3148,18 @@ class _MotoPostWriteScreenState extends State<_MotoPostWriteScreen> {
       return;
     }
     MotoState().addClubPost(widget.clubId, MotoClubPost(
-      postId: 'cp-${DateTime.now().millisecondsSinceEpoch}',
+      postId: 'cp-\${DateTime.now().millisecondsSinceEpoch}',
       clubId: widget.clubId,
       authorName: '나',
       content: _contentCtrl.text.trim(),
+      photoUrls: _photos,
       videoUrl: _videoCtrl.text.trim().isEmpty ? null : _videoCtrl.text.trim(),
       reactions: EmojiReaction.defaults(),
       createdAt: DateTime.now(),
     ));
-    Navigator.pop(context);
+    _showDone(context, '게시글이 등록되었습니다!\n동호회 게시판에서 확인하세요.', then: () {
+      Navigator.pop(context);
+    });
   }
 }
 
@@ -2758,6 +3176,12 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
   MotoCommunityType _category = MotoCommunityType.brand;
   MotoClubJoinType  _joinType = MotoClubJoinType.open;
   bool _isPublic = true;
+  String _coverPath = '';   // 로컬 파일 경로
+
+  Future<void> _pickCover() async {
+    final picked = await _pickImages(context, max: 1);
+    if (picked.isNotEmpty) setState(() => _coverPath = picked.first);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2779,14 +3203,41 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         // 커버 이미지
-        Container(height: 80, decoration: BoxDecoration(
-            color: _mcard, borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: _mborder)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 28),
-            const SizedBox(width: 8),
-            Text('커버 이미지 선택', style: _ts(13, FontWeight.w600, _mt2)),
-          ]),
+        GestureDetector(
+          onTap: _pickCover,
+          child: Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: _mcard, borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _coverPath.isEmpty ? _mborder : _mgreen.withOpacity(0.5)),
+            ),
+            child: _coverPath.isEmpty
+                ? Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.add_photo_alternate_outlined, color: _maccent, size: 28),
+                    const SizedBox(width: 8),
+                    Column(mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('커버 이미지 선택', style: _ts(13, FontWeight.w600, _mt1)),
+                      Text('카메라 / 앨범', style: _ts(11, FontWeight.w400, _mt3)),
+                    ]),
+                  ])
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(fit: StackFit.expand, children: [
+                      Image.file(File(_coverPath), fit: BoxFit.cover),
+                      Positioned(bottom: 0, left: 0, right: 0,
+                          child: Container(
+                            color: Colors.black.withOpacity(0.5),
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              const Icon(Icons.edit_rounded, color: Colors.white, size: 14),
+                              const SizedBox(width: 4),
+                              Text('변경', style: _ts(12, FontWeight.w600, Colors.white)),
+                            ]),
+                          )),
+                    ]),
+                  ),
+          ),
         ),
         const SizedBox(height: 14),
         _field('동호회명', _nameCtrl, '예: 대구 혼다 라이더즈'),
@@ -2858,13 +3309,15 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
           const SnackBar(content: Text('동호회명을 입력해주세요.'), backgroundColor: _mred));
       return;
     }
-    MotoState().createClub(MotoClub(
-      clubId: 'MC-${DateTime.now().millisecondsSinceEpoch}',
+    final club = MotoClub(
+      clubId: 'MC-\${DateTime.now().millisecondsSinceEpoch}',
       name: _nameCtrl.text.trim(),
       description: _descCtrl.text.trim(),
       category: _category,
       region: _regionCtrl.text.trim().isEmpty ? '전국' : _regionCtrl.text.trim(),
-      coverImageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+      coverImageUrl: _coverPath.isNotEmpty
+          ? _coverPath
+          : 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
       joinType: _joinType,
       isPublic: _isPublic,
       myJoined: true,
@@ -2872,11 +3325,13 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
         MotoClubMember(userId: 'me', name: '나',
             role: MotoClubRole.owner, joinedAt: DateTime.now()),
       ],
-    ));
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_nameCtrl.text} 동호회가 개설되었습니다!'),
-            backgroundColor: _mgreen));
+    );
+    MotoState().createClub(club);
+    _showDone(context, '\${club.name} 동호회가 개설되었습니다!', then: () {
+      Navigator.pop(context);
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => _MotoClubDetailScreen(club: club)));
+    });
   }
 
   Widget _field(String label, TextEditingController ctrl, String hint, {int maxLines = 1}) =>
@@ -3194,6 +3649,360 @@ class _VideoRegisterScreenState extends State<_VideoRegisterScreen> {
           ),
         ),
       );
+}
+
+// ── 동호회 메뉴 (방장 권한 + 초대공유) ─────────────────────
+void _showClubMenu(BuildContext ctx, MotoClub club, {void Function()? onChanged}) {
+  final isOwner = club.members.any(
+      (m) => m.userId == 'me' && m.role == MotoClubRole.owner);
+  final isViceOrOwner = club.members.any(
+      (m) => m.userId == 'me' &&
+          (m.role == MotoClubRole.owner || m.role == MotoClubRole.vice));
+
+  showModalBottomSheet(
+    context: ctx,
+    backgroundColor: const Color(0xFF0D1721),
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (bsCtx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(width: 36, height: 3, margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(color: const Color(0xFF546E7A),
+                  borderRadius: BorderRadius.circular(2))),
+          // ── 초대 링크 (모든 멤버)
+          ListTile(
+            leading: const Icon(Icons.share_rounded, color: Color(0xFF4FC3F7)),
+            title: Text('초대 링크 공유',
+                style: GoogleFonts.notoSansKr(fontSize: 14,
+                    fontWeight: FontWeight.w600, color: Colors.white)),
+            subtitle: Text('링크를 복사하여 카카오톡 등으로 공유',
+                style: GoogleFonts.notoSansKr(fontSize: 11, color: const Color(0xFF546E7A))),
+            onTap: () {
+              Navigator.pop(bsCtx);
+              final inviteText =
+                  '[MOINCAR 동호회 초대]\n'
+                  '동호회: \${club.name}\n'
+                  '지역: \${club.region}\n'
+                  '소개: \${club.description}\n\n'
+                  '가입 링크: https://moincar.app/club/\${club.clubId}';
+              Clipboard.setData(ClipboardData(text: inviteText));
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(
+                  content: Text('초대 링크가 복사되었습니다!'),
+                  backgroundColor: Color(0xFF10B981),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            },
+          ),
+          const Divider(color: Color(0xFF1A2A3A), height: 1),
+          // ── 커버 이미지 공유 (모든 멤버)
+          ListTile(
+            leading: const Icon(Icons.image_rounded, color: Color(0xFF10B981)),
+            title: Text('커버 이미지 공유',
+                style: GoogleFonts.notoSansKr(fontSize: 14,
+                    fontWeight: FontWeight.w600, color: Colors.white)),
+            onTap: () {
+              Navigator.pop(bsCtx);
+              Clipboard.setData(ClipboardData(text: club.coverImageUrl));
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text('커버 이미지 URL이 복사되었습니다.'),
+                    backgroundColor: Color(0xFF10B981)),
+              );
+            },
+          ),
+          if (isViceOrOwner) ...[
+            const Divider(color: Color(0xFF1A2A3A), height: 1),
+            // ── 공지 발송 (부방장 이상)
+            ListTile(
+              leading: const Icon(Icons.campaign_rounded, color: Color(0xFFFF6B35)),
+              title: Text('공지 발송',
+                  style: GoogleFonts.notoSansKr(fontSize: 14,
+                      fontWeight: FontWeight.w600, color: Colors.white)),
+              subtitle: Text('전체 멤버에게 푸시 알림 발송',
+                  style: GoogleFonts.notoSansKr(fontSize: 11, color: const Color(0xFF546E7A))),
+              onTap: () {
+                Navigator.pop(bsCtx);
+                _showPushDialog(ctx, club, onChanged: onChanged);
+              },
+            ),
+          ],
+          if (isOwner) ...[
+            const Divider(color: Color(0xFF1A2A3A), height: 1),
+            // ── 멤버 관리 (방장 전용)
+            ListTile(
+              leading: const Icon(Icons.manage_accounts_rounded, color: Color(0xFFFFD54F)),
+              title: Text('멤버 관리',
+                  style: GoogleFonts.notoSansKr(fontSize: 14,
+                      fontWeight: FontWeight.w600, color: Colors.white)),
+              subtitle: Text('내보내기 / 부방장 지정',
+                  style: GoogleFonts.notoSansKr(fontSize: 11, color: const Color(0xFF546E7A))),
+              onTap: () {
+                Navigator.pop(bsCtx);
+                _showMemberManageSheet(ctx, club, onChanged: onChanged);
+              },
+            ),
+            const Divider(color: Color(0xFF1A2A3A), height: 1),
+            // ── 동호회 탈퇴 (방장 제외)
+          ],
+          if (!isOwner) ...[
+            const Divider(color: Color(0xFF1A2A3A), height: 1),
+            ListTile(
+              leading: const Icon(Icons.exit_to_app_rounded, color: Color(0xFFE63946)),
+              title: Text('동호회 탈퇴',
+                  style: GoogleFonts.notoSansKr(fontSize: 14,
+                      fontWeight: FontWeight.w600, color: const Color(0xFFE63946))),
+              onTap: () {
+                Navigator.pop(bsCtx);
+                showDialog(
+                  context: ctx,
+                  builder: (_) => AlertDialog(
+                    backgroundColor: const Color(0xFF0D1721),
+                    title: Text('동호회 탈퇴', style: GoogleFonts.notoSansKr(
+                        fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                    content: Text('\${club.name}에서 탈퇴하시겠습니까?',
+                        style: GoogleFonts.notoSansKr(fontSize: 13, color: const Color(0xFFB0BEC5))),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(_),
+                          child: Text('취소', style: GoogleFonts.notoSansKr(color: const Color(0xFF546E7A)))),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(_);
+                          MotoState().leaveClub(club.clubId);
+                          if (onChanged != null) onChanged();
+                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                            content: Text('동호회에서 탈퇴했습니다.'),
+                            backgroundColor: Color(0xFFE63946),
+                          ));
+                          Navigator.pop(ctx);
+                        },
+                        child: Text('탈퇴', style: GoogleFonts.notoSansKr(
+                            fontWeight: FontWeight.w700, color: const Color(0xFFE63946))),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ]),
+      ),
+    ),
+  );
+}
+
+// ── 공지 푸시 다이얼로그 ───────────────────────────────────────
+void _showPushDialog(BuildContext ctx, MotoClub club, {void Function()? onChanged}) {
+  final ctrl = TextEditingController();
+  showDialog(
+    context: ctx,
+    builder: (dlgCtx) => AlertDialog(
+      backgroundColor: const Color(0xFF0D1721),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Text('공지 발송',
+          style: GoogleFonts.notoSansKr(fontSize: 16,
+              fontWeight: FontWeight.w700, color: Colors.white)),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text('${club.name} 전체 멤버(${club.memberCount}명)에게 푸시를 보냅니다.',
+            style: GoogleFonts.notoSansKr(fontSize: 12,
+                color: const Color(0xFF546E7A))),
+        const SizedBox(height: 12),
+        TextField(
+          controller: ctrl,
+          maxLines: 4,
+          autofocus: true,
+          style: GoogleFonts.notoSansKr(fontSize: 13, color: Colors.white),
+          decoration: InputDecoration(
+            hintText: '공지 내용을 입력하세요...',
+            hintStyle: GoogleFonts.notoSansKr(fontSize: 13,
+                color: const Color(0xFF546E7A)),
+            filled: true, fillColor: const Color(0xFF111E2C),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF1A2A3A))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFF1A2A3A))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: const Color(0xFF4FC3F7).withOpacity(0.5))),
+          ),
+        ),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dlgCtx),
+            child: Text('취소',
+                style: GoogleFonts.notoSansKr(color: const Color(0xFF546E7A)))),
+        TextButton(
+          onPressed: () {
+            final txt = ctrl.text.trim();
+            if (txt.isEmpty) return;
+            // 공지 게시글로 등록
+            final post = MotoClubPost(
+              postId: 'notice-${DateTime.now().millisecondsSinceEpoch}',
+              authorId: 'me', authorName: '방장',
+              content: '[공지] $txt',
+              isPinned: true,
+              createdAt: DateTime.now(),
+            );
+            MotoState().addClubPost(club.clubId, post);
+            if (onChanged != null) onChanged();
+            Navigator.pop(dlgCtx);
+            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+              content: Text('${club.memberCount}명에게 공지가 발송되었습니다.'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 3),
+            ));
+          },
+          child: Text('발송', style: GoogleFonts.notoSansKr(
+              fontSize: 14, fontWeight: FontWeight.w700,
+              color: const Color(0xFFFF6B35))),
+        ),
+      ],
+    ),
+  );
+}
+
+// ── 멤버 관리 시트 ────────────────────────────────────────────
+void _showMemberManageSheet(BuildContext ctx, MotoClub club,
+    {void Function()? onChanged}) {
+  showModalBottomSheet(
+    context: ctx,
+    backgroundColor: const Color(0xFF0D1721),
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (bsCtx) => StatefulBuilder(
+      builder: (bsCtx, setBS) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        builder: (__, sc) => Column(children: [
+          const SizedBox(height: 12),
+          Container(width: 36, height: 3,
+              decoration: BoxDecoration(color: const Color(0xFF546E7A),
+                  borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Text('멤버 관리 (${club.members.length}명)',
+                  style: GoogleFonts.notoSansKr(fontSize: 16,
+                      fontWeight: FontWeight.w700, color: Colors.white)),
+            ]),
+          ),
+          Expanded(child: ListView.builder(
+            controller: sc,
+            itemCount: club.members.length,
+            itemBuilder: (__, i) {
+              final m = club.members[i];
+              final isMe = m.userId == 'me';
+              final isOwnerMember = m.role == MotoClubRole.owner;
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: const Color(0xFF111E2C),
+                  child: Text(m.name[0],
+                      style: GoogleFonts.notoSansKr(fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: isOwnerMember
+                              ? const Color(0xFFE63946)
+                              : m.role == MotoClubRole.vice
+                                  ? const Color(0xFFFF6B35)
+                                  : const Color(0xFF4FC3F7))),
+                ),
+                title: Text(m.name,
+                    style: GoogleFonts.notoSansKr(fontSize: 13,
+                        fontWeight: FontWeight.w600, color: Colors.white)),
+                subtitle: Text(m.role.label,
+                    style: GoogleFonts.notoSansKr(fontSize: 11,
+                        color: isOwnerMember
+                            ? const Color(0xFFE63946)
+                            : m.role == MotoClubRole.vice
+                                ? const Color(0xFFFF6B35)
+                                : const Color(0xFF546E7A))),
+                trailing: isMe || isOwnerMember ? null : PopupMenuButton<String>(
+                  color: const Color(0xFF111E2C),
+                  icon: const Icon(Icons.more_vert, color: Color(0xFF546E7A)),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'vice',
+                        child: Text(
+                            m.role == MotoClubRole.vice ? '부방장 해제' : '부방장 지정',
+                            style: GoogleFonts.notoSansKr(
+                                color: const Color(0xFFFF6B35)))),
+                    PopupMenuItem(value: 'kick',
+                        child: Text('내보내기',
+                            style: GoogleFonts.notoSansKr(
+                                color: const Color(0xFFE63946)))),
+                  ],
+                  onSelected: (v) {
+                    if (v == 'kick') {
+                      MotoState().kickMember(club.clubId, m.userId);
+                      setBS(() {});
+                      if (onChanged != null) onChanged();
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('${m.name}님을 내보냈습니다.'),
+                        backgroundColor: const Color(0xFFE63946),
+                      ));
+                    } else if (v == 'vice') {
+                      MotoState().toggleVice(club.clubId, m.userId);
+                      setBS(() {});
+                      if (onChanged != null) onChanged();
+                      final newRole = m.role == MotoClubRole.vice ? '멤버' : '부방장';
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text('${m.name}님을 $newRole로 변경했습니다.'),
+                        backgroundColor: const Color(0xFF4FC3F7),
+                      ));
+                    }
+                  },
+                ),
+              );
+            },
+          )),
+        ]),
+      ),
+    ),
+  );
+}
+
+// ── 선택 다이얼로그 (공통) ────────────────────────────────────
+class _PickerDialog extends StatelessWidget {
+  final String title;
+  final List<String> items;
+  const _PickerDialog({required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF0D1721),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Text(title, style: GoogleFonts.notoSansKr(
+              fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+        ),
+        const Divider(color: Color(0xFF1A2A3A), height: 1),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 360),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: items.length,
+            itemBuilder: (_, i) => ListTile(
+              title: Text(items[i], style: GoogleFonts.notoSansKr(
+                  fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
+              onTap: () => Navigator.pop(context, items[i]),
+            ),
+          ),
+        ),
+        const Divider(color: Color(0xFF1A2A3A), height: 1),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('취소', style: GoogleFonts.notoSansKr(
+              fontSize: 14, color: const Color(0xFF546E7A))),
+        ),
+      ]),
+    );
+  }
 }
 
 // ── 정보/안전 탭 ──────────────────────────────────────────────
