@@ -362,7 +362,7 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
             controller: _tab,
             children: [
               _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i)),
-              const _MotoShopTab(),
+              const _MotoShopNavTab(),
               const _MotoListingsTab(),
               const _MotoClubTab(),
               const _MotoVideoInfoTab(),
@@ -643,6 +643,19 @@ class _ShopMiniCard extends StatelessWidget {
 
 // ══════════════════════════════════════════════════════════════
 // 탭 1: 점포
+// ── 점포 탭 독립 Navigator 래퍼 ────────────────────────────────
+class _MotoShopNavTab extends StatelessWidget {
+  const _MotoShopNavTab();
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => const _MotoShopTab(),
+      ),
+    );
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 class _MotoShopTab extends StatefulWidget {
   const _MotoShopTab();
