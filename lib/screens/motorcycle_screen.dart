@@ -318,7 +318,7 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
         final listing = MotoState().listings.firstWhere(
             (l) => l.listingId == widget.highlightListingId,
             orElse: () => MotoState().listings.first);
-        Navigator.push(context,
+        _navKeys[2].currentState?.push(
             MaterialPageRoute(
                 builder: (_) => _MotoListingDetailScreen(listing: listing)));
       });
@@ -396,7 +396,7 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
           body: TabBarView(
             controller: _tab,
             children: [
-              _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i)),
+              _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i), shopNavKey: _navKeys[1]),
               _MotoShopNavTab(navigatorKey: _navKeys[1]),
               _MotoListingsNavTab(navigatorKey: _navKeys[2]),
               _MotoClubNavTab(navigatorKey: _navKeys[3]),
@@ -414,7 +414,8 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
 // ══════════════════════════════════════════════════════════════
 class _MotoHomeTab extends StatefulWidget {
   final void Function(int) onTabSwitch;
-  const _MotoHomeTab({required this.onTabSwitch});
+  final GlobalKey<NavigatorState> shopNavKey;
+  const _MotoHomeTab({required this.onTabSwitch, required this.shopNavKey});
   @override
   State<_MotoHomeTab> createState() => _MotoHomeTabState();
 }
@@ -605,7 +606,7 @@ class _MotoHomeTabState extends State<_MotoHomeTab> {
         ]),
       ),
       ...state.shops.take(3).map((s) => _ShopMiniCard(shop: s,
-          onTap: () => Navigator.push(context,
+          onTap: () => widget.shopNavKey.currentState!.push(
               MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: s))))),
 
       const SizedBox(height: 20),
@@ -687,7 +688,7 @@ class _MotoShopNavTab extends StatelessWidget {
     return Navigator(
       key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => const _MotoShopTab(),
+        builder: (_) => _MotoShopTab(navigatorKey: navigatorKey),
       ),
     );
   }
@@ -702,7 +703,7 @@ class _MotoListingsNavTab extends StatelessWidget {
     return Navigator(
       key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => const _MotoListingsTab(),
+        builder: (_) => _MotoListingsTab(navigatorKey: navigatorKey),
       ),
     );
   }
@@ -717,7 +718,7 @@ class _MotoClubNavTab extends StatelessWidget {
     return Navigator(
       key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => const _MotoClubTab(),
+        builder: (_) => _MotoClubTab(navigatorKey: navigatorKey),
       ),
     );
   }
@@ -732,7 +733,7 @@ class _MotoVideoNavTab extends StatelessWidget {
     return Navigator(
       key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => const _MotoVideoInfoTab(),
+        builder: (_) => _MotoVideoInfoTab(navigatorKey: navigatorKey),
       ),
     );
   }
@@ -740,7 +741,8 @@ class _MotoVideoNavTab extends StatelessWidget {
 
 // ══════════════════════════════════════════════════════════════
 class _MotoShopTab extends StatefulWidget {
-  const _MotoShopTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoShopTab({required this.navigatorKey});
   @override
   State<_MotoShopTab> createState() => _MotoShopTabState();
 }
@@ -784,7 +786,7 @@ class _MotoShopTabState extends State<_MotoShopTab> {
             final x = 40.0 + (i * 70.0) % 280;
             final y = 30.0 + (i * 43.0) % 110;
             return Positioned(left: x, top: y, child: GestureDetector(
-              onTap: () => Navigator.push(context,
+              onTap: () => widget.navigatorKey.currentState!.push(
                   MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: s))),
               child: Column(children: [
                 Container(
@@ -903,7 +905,7 @@ class _MotoShopTabState extends State<_MotoShopTab> {
           itemCount: _shops.length,
           itemBuilder: (_, i) => _MotoShopCard(
             shop: _shops[i],
-            onTap: () => Navigator.push(context,
+            onTap: () => widget.navigatorKey.currentState!.push(
                 MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: _shops[i]))),
           ),
         ),
@@ -1240,7 +1242,8 @@ class _MotoShopDetailScreenState extends State<_MotoShopDetailScreen> {
 // 탭 2: 사고팔기
 // ══════════════════════════════════════════════════════════════
 class _MotoListingsTab extends StatefulWidget {
-  const _MotoListingsTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoListingsTab({required this.navigatorKey});
   @override
   State<_MotoListingsTab> createState() => _MotoListingsTabState();
 }
@@ -1288,7 +1291,7 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () => Navigator.push(context,
+            onTap: () => widget.navigatorKey.currentState!.push(
                 MaterialPageRoute(builder: (_) => const _MotoListingRegisterScreen()))
                 .then((_) => setState(() {})),
             child: Container(
@@ -1314,7 +1317,7 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
                 itemCount: items.length,
                 itemBuilder: (_, i) => _MotoListingCard(
                   listing: items[i],
-                  onTap: () => Navigator.push(context,
+                  onTap: () => widget.navigatorKey.currentState!.push(
                       MaterialPageRoute(
                           builder: (_) => _MotoListingDetailScreen(listing: items[i])))
                       .then((_) => setState(() {})),
@@ -2268,7 +2271,8 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
 // 탭 3: 동호회
 // ══════════════════════════════════════════════════════════════
 class _MotoClubTab extends StatefulWidget {
-  const _MotoClubTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoClubTab({required this.navigatorKey});
   @override
   State<_MotoClubTab> createState() => _MotoClubTabState();
 }
@@ -2324,7 +2328,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () => Navigator.push(context,
+            onTap: () => widget.navigatorKey.currentState!.push(
                 MaterialPageRoute(builder: (_) => const _MotoClubCreateScreen()))
                 .then((_) => setState(() {})),
             child: Container(
@@ -2373,7 +2377,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
               final p = item.post;
               final c = item.club;
               return GestureDetector(
-                onTap: () => Navigator.push(context,
+                onTap: () => widget.navigatorKey.currentState!.push(
                     MaterialPageRoute(builder: (_) => _MotoClubDetailScreen(club: c)))
                     .then((_) => setState(() {})),
                 child: Container(
@@ -2416,7 +2420,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
           itemCount: _clubs.length,
           itemBuilder: (_, i) => _MotoClubCard(
             club: _clubs[i],
-            onTap: () => Navigator.push(context,
+            onTap: () => widget.navigatorKey.currentState!.push(
                 MaterialPageRoute(
                     builder: (_) => _MotoClubDetailScreen(club: _clubs[i])))
                 .then((_) => setState(() {})),
@@ -2427,7 +2431,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
               _showDone(context,
                 '${club.name} 동호회에 가입했습니다!\n멤버들에게 인사를 건네보세요.',
                 then: () {
-                  Navigator.push(context,
+                  widget.navigatorKey.currentState!.push(
                       MaterialPageRoute(
                           builder: (_) => _MotoClubDetailScreen(club: club)))
                       .then((_) => setState(() {}));
@@ -3456,7 +3460,8 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
 // 탭 4: 영상/정보
 // ══════════════════════════════════════════════════════════════
 class _MotoVideoInfoTab extends StatefulWidget {
-  const _MotoVideoInfoTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoVideoInfoTab({required this.navigatorKey});
   @override
   State<_MotoVideoInfoTab> createState() => _MotoVideoInfoTabState();
 }
@@ -3535,7 +3540,7 @@ class _VideoTabState extends State<_VideoTab> {
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () => Navigator.push(context,
+            onTap: () => widget.navigatorKey.currentState!.push(
                 MaterialPageRoute(builder: (_) => const _VideoRegisterScreen()))
                 .then((_) => setState(() {})),
             child: Container(
