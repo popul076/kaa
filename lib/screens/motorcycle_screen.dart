@@ -3495,7 +3495,7 @@ class _MotoVideoInfoTabState extends State<_MotoVideoInfoTab>
         child: TabBarView(
           controller: _sub,
           children: [
-            _VideoTab(onChanged: () => setState(() {})),
+            _VideoTab(onChanged: () => setState(() {}), navigatorKey: widget.navigatorKey),
             const _InfoTab(),
           ],
         ),
@@ -3507,7 +3507,8 @@ class _MotoVideoInfoTabState extends State<_MotoVideoInfoTab>
 // ── 영상 탭 ──────────────────────────────────────────────────
 class _VideoTab extends StatefulWidget {
   final VoidCallback onChanged;
-  const _VideoTab({required this.onChanged});
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _VideoTab({required this.onChanged, required this.navigatorKey});
   @override
   State<_VideoTab> createState() => _VideoTabState();
 }
