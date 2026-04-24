@@ -363,9 +363,9 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
             children: [
               _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i)),
               const _MotoShopNavTab(),
-              const _MotoListingsTab(),
-              const _MotoClubTab(),
-              const _MotoVideoInfoTab(),
+              const _MotoListingsNavTab(),
+              const _MotoClubNavTab(),
+              const _MotoVideoNavTab(),
             ],
           ),
         ),
@@ -651,6 +651,45 @@ class _MotoShopNavTab extends StatelessWidget {
     return Navigator(
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => const _MotoShopTab(),
+      ),
+    );
+  }
+}
+
+// ── 사고팔기 탭 독립 Navigator 래퍼 ─────────────────────────
+class _MotoListingsNavTab extends StatelessWidget {
+  const _MotoListingsNavTab();
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => const _MotoListingsTab(),
+      ),
+    );
+  }
+}
+
+// ── 동호회 탭 독립 Navigator 래퍼 ───────────────────────────
+class _MotoClubNavTab extends StatelessWidget {
+  const _MotoClubNavTab();
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => const _MotoClubTab(),
+      ),
+    );
+  }
+}
+
+// ── 영상/정보 탭 독립 Navigator 래퍼 ────────────────────────
+class _MotoVideoNavTab extends StatelessWidget {
+  const _MotoVideoNavTab();
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      onGenerateRoute: (_) => MaterialPageRoute(
+        builder: (_) => const _MotoVideoInfoTab(),
       ),
     );
   }
