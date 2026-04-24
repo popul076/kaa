@@ -283,6 +283,19 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
 
+  // 탭별 독립 Navigator 키
+  final _navKeys = List.generate(5, (_) => GlobalKey<NavigatorState>());
+
+  // 뒤로가기: 현재 탭 Navigator에 스택이 있으면 탭 내에서 pop, 없으면 앱 루트 pop
+  Future<bool> _handleBack() async {
+    final key = _navKeys[_tab.index];
+    if (key.currentState != null && key.currentState!.canPop()) {
+      key.currentState!.pop();
+      return false; // 앱 루트 pop 막음
+    }
+    return true; // 앱 루트 pop 허용 (오토바이 메인 → 홈)
+  }
+
   @override
   void initState() {
     super.initState();
@@ -306,7 +319,14 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldPop = await _handleBack();
+        if (shouldPop && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       backgroundColor: _mbg,
       body: Column(children: [
         // ── 상단 헤더 ──
@@ -319,7 +339,10 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
                 padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
                 child: Row(children: [
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () async {
+                      final shouldPop = await _handleBack();
+                      if (shouldPop && context.mounted) Navigator.of(context).pop();
+                    },
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: _mt1, size: 20),
                     padding: EdgeInsets.zero,
@@ -362,15 +385,16 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
             controller: _tab,
             children: [
               _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i)),
-              const _MotoShopNavTab(),
-              const _MotoListingsNavTab(),
-              const _MotoClubNavTab(),
-              const _MotoVideoNavTab(),
+              _MotoShopNavTab(navigatorKey: _navKeys[1]),
+              _MotoListingsNavTab(navigatorKey: _navKeys[2]),
+              _MotoClubNavTab(navigatorKey: _navKeys[3]),
+              _MotoVideoNavTab(navigatorKey: _navKeys[4]),
             ],
           ),
         ),
       ]),
-    );
+    ), // Scaffold
+    ); // PopScope
   }
 }
 
@@ -645,10 +669,12 @@ class _ShopMiniCard extends StatelessWidget {
 // 탭 1: 점포
 // ── 점포 탭 독립 Navigator 래퍼 ────────────────────────────────
 class _MotoShopNavTab extends StatelessWidget {
-  const _MotoShopNavTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoShopNavTab({required this.navigatorKey});
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => const _MotoShopTab(),
       ),
@@ -658,10 +684,12 @@ class _MotoShopNavTab extends StatelessWidget {
 
 // ── 사고팔기 탭 독립 Navigator 래퍼 ─────────────────────────
 class _MotoListingsNavTab extends StatelessWidget {
-  const _MotoListingsNavTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoListingsNavTab({required this.navigatorKey});
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => const _MotoListingsTab(),
       ),
@@ -671,10 +699,12 @@ class _MotoListingsNavTab extends StatelessWidget {
 
 // ── 동호회 탭 독립 Navigator 래퍼 ───────────────────────────
 class _MotoClubNavTab extends StatelessWidget {
-  const _MotoClubNavTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoClubNavTab({required this.navigatorKey});
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => const _MotoClubTab(),
       ),
@@ -684,10 +714,12 @@ class _MotoClubNavTab extends StatelessWidget {
 
 // ── 영상/정보 탭 독립 Navigator 래퍼 ────────────────────────
 class _MotoVideoNavTab extends StatelessWidget {
-  const _MotoVideoNavTab();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoVideoNavTab({required this.navigatorKey});
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      key: navigatorKey,
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (_) => const _MotoVideoInfoTab(),
       ),
