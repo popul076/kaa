@@ -286,14 +286,25 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
   // 탭별 독립 Navigator 키
   final _navKeys = List.generate(5, (_) => GlobalKey<NavigatorState>());
 
-  // 뒤로가기: 현재 탭 Navigator에 스택이 있으면 탭 내에서 pop, 없으면 앱 루트 pop
+  // 뒤로가기 처리
+  // 1) 탭 내부 스택(상세페이지 등) 있으면 → 탭내 pop
+  // 2) 탭 내부 스택 없고 홈탭(0) 아니면 → 홈탭(0)으로 이동
+  // 3) 홈탭(0)이면 → 앱루트 pop (오토바이메인 → 모인카홈)
   Future<bool> _handleBack() async {
-    final key = _navKeys[_tab.index];
+    final idx = _tab.index;
+    final key = _navKeys[idx];
+    // 탭 내부에 상세페이지가 쌓여 있으면 탭내에서만 pop
     if (key.currentState != null && key.currentState!.canPop()) {
       key.currentState!.pop();
-      return false; // 앱 루트 pop 막음
+      return false;
     }
-    return true; // 앱 루트 pop 허용 (오토바이 메인 → 홈)
+    // 홈탭 아닌 탭에서 뒤로가기 → 홈탭(0)으로 이동
+    if (idx != 0) {
+      _tab.animateTo(0);
+      return false;
+    }
+    // 홈탭에서 뒤로가기 → 앱루트 pop (모인카 홈으로)
+    return true;
   }
 
   @override
@@ -327,61 +338,62 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
         if (shouldPop && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-      backgroundColor: _mbg,
-      body: Column(children: [
-        // ── 상단 헤더 ──
-        Container(
-          color: _mcard,
-          child: SafeArea(
-            bottom: false,
-            child: Column(children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
-                child: Row(children: [
-                  IconButton(
-                    onPressed: () async {
-                      final shouldPop = await _handleBack();
-                      if (shouldPop && context.mounted) Navigator.of(context).pop();
-                    },
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: _mt1, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 4),
-                  Text('오토바이',
-                      style: _ts(18, FontWeight.w800, _mt1, ls: -0.5)),
-                  const Spacer(),
-                  _badge('협회인증', _mred),
-                  const SizedBox(width: 8),
-                  _badge('전기이륜 ⚡', _maccent),
-                ]),
+        backgroundColor: _mbg,
+        body: NestedScrollView(
+          headerSliverBuilder: (ctx, _) => [
+            SliverToBoxAdapter(
+              child: Container(
+                color: _mcard,
+                child: SafeArea(
+                  bottom: false,
+                  child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
+                      child: Row(children: [
+                        IconButton(
+                          onPressed: () async {
+                            final shouldPop = await _handleBack();
+                            if (shouldPop && context.mounted) Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                              color: _mt1, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('오토바이',
+                            style: _ts(18, FontWeight.w800, _mt1, ls: -0.5)),
+                        const Spacer(),
+                        _badge('협회인증', _mred),
+                        const SizedBox(width: 8),
+                        _badge('전기이륜 ⚡', _maccent),
+                      ]),
+                    ),
+                    const SizedBox(height: 4),
+                    TabBar(
+                      controller: _tab,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      indicatorColor: _mred,
+                      indicatorWeight: 2.5,
+                      labelColor: _mt1,
+                      unselectedLabelColor: _mt3,
+                      labelStyle: _ts(13, FontWeight.w700, _mt1),
+                      unselectedLabelStyle: _ts(13, FontWeight.w500, _mt3),
+                      tabs: const [
+                        Tab(text: '홈'),
+                        Tab(text: '점포'),
+                        Tab(text: '사고팔기'),
+                        Tab(text: '동호회'),
+                        Tab(text: '영상/정보'),
+                      ],
+                    ),
+                  ]),
+                ),
               ),
-              const SizedBox(height: 4),
-              TabBar(
-                controller: _tab,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicatorColor: _mred,
-                indicatorWeight: 2.5,
-                labelColor: _mt1,
-                unselectedLabelColor: _mt3,
-                labelStyle: _ts(13, FontWeight.w700, _mt1),
-                unselectedLabelStyle: _ts(13, FontWeight.w500, _mt3),
-                tabs: const [
-                  Tab(text: '홈'),
-                  Tab(text: '점포'),
-                  Tab(text: '사고팔기'),
-                  Tab(text: '동호회'),
-                  Tab(text: '영상/정보'),
-                ],
-              ),
-            ]),
-          ),
-        ),
-        // ── 탭 콘텐츠 ──
-        Expanded(
-          child: TabBarView(
+            ),
+          ],
+          body: TabBarView(
             controller: _tab,
             children: [
               _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i)),
@@ -392,9 +404,8 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
             ],
           ),
         ),
-      ]),
-    ), // Scaffold
-    ); // PopScope
+      ),
+    );
   }
 }
 
