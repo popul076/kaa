@@ -1,4 +1,4 @@
-name: Build APK v62
+name: Build APK v63
 
 on:
   push:
@@ -40,12 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v62"
+          APK_VERSION="v63"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v61"
+          PREV_VERSION="v62"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 탭 독립 Navigator - 뒤로가기 오토바이 메인 복귀)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 뒤로가기 완전 수정 - GlobalKey Navigator + PopScope)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
