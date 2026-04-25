@@ -412,46 +412,23 @@ class MotorcycleScreen extends StatefulWidget {
   State<MotorcycleScreen> createState() => _MotorcycleScreenState();
 }
 
-class _MotorcycleScreenState extends State<MotorcycleScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tab;
+class _MotorcycleScreenState extends State<MotorcycleScreen> {
 
-  // 탭별 독립 Navigator 키
-  final _navKeys = List.generate(5, (_) => GlobalKey<NavigatorState>());
-
-  // 뒤로가기 처리
-  // 1) 탭 내부 스택(상세페이지 등) 있으면 → 탭내 pop
-  // 2) 탭 내부 스택 없고 홈탭(0) 아니면 → 홈탭(0)으로 이동
-  // 3) 홈탭(0)이면 → 앱루트 pop (오토바이메인 → 모인카홈)
-  Future<bool> _handleBack() async {
-    final idx = _tab.index;
-    final key = _navKeys[idx];
-    // 탭 내부에 상세페이지가 쌓여 있으면 탭내에서만 pop
-    if (key.currentState != null && key.currentState!.canPop()) {
-      key.currentState!.pop();
-      return false;
-    }
-    // 홈탭 아닌 탭에서 뒤로가기 → 홈탭(0)으로 이동
-    if (idx != 0) {
-      _tab.animateTo(0);
-      return false;
-    }
-    // 홈탭에서 뒤로가기 → 앱루트 pop (모인카 홈으로)
-    return true;
+  // 뒤로가기: 항상 앱루트 pop (오토바이메인 → 모인카홈)
+  void _handleBack(BuildContext context) {
+    Navigator.of(context).pop();
   }
 
   @override
   void initState() {
     super.initState();
-    _tab = TabController(
-        length: 5, vsync: this, initialIndex: widget.initialTab);
     // 특정 매물 하이라이트 요청 처리
     if (widget.highlightListingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final listing = MotoState().listings.firstWhere(
             (l) => l.listingId == widget.highlightListingId,
             orElse: () => MotoState().listings.first);
-        _navKeys[2].currentState?.push(
+        Navigator.of(context).push(
             MaterialPageRoute(
                 builder: (_) => _MotoListingDetailScreen(listing: listing)));
       });
@@ -459,34 +436,22 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
   }
 
   @override
-  void dispose() { _tab.dispose(); super.dispose(); }
-
-  @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (didPop) return;
-        final shouldPop = await _handleBack();
-        if (shouldPop && context.mounted) Navigator.of(context).pop();
-      },
+      canPop: true,
       child: Scaffold(
         backgroundColor: _mbg,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            // ── 헤더 ──
-            Container(
-              color: _mcard,
-              child: Column(children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 6, 16, 0),
+        body: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  color: _mcard,
+                  padding: const EdgeInsets.fromLTRB(4, 6, 16, 10),
                   child: Row(children: [
                     IconButton(
-                      onPressed: () async {
-                        final shouldPop = await _handleBack();
-                        if (shouldPop && context.mounted) Navigator.of(context).pop();
-                      },
+                      onPressed: () => _handleBack(context),
                       icon: const Icon(Icons.arrow_back_ios_new_rounded,
                           color: _mt1, size: 20),
                       padding: EdgeInsets.zero,
@@ -501,41 +466,15 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
                     _badge('전기이륜 ⚡', _maccent),
                   ]),
                 ),
-                const SizedBox(height: 4),
-                TabBar(
-                  controller: _tab,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorColor: _mred,
-                  indicatorWeight: 2.5,
-                  labelColor: _mt1,
-                  unselectedLabelColor: _mt3,
-                  labelStyle: _ts(13, FontWeight.w700, _mt1),
-                  unselectedLabelStyle: _ts(13, FontWeight.w500, _mt3),
-                  tabs: const [
-                    Tab(text: '홈'),
-                    Tab(text: '점포'),
-                    Tab(text: '사고팔기'),
-                    Tab(text: '동호회'),
-                    Tab(text: '영상/정보'),
-                  ],
-                ),
-              ]),
-            ),
-            // ── 탭 콘텐츠 ──
-            Expanded(
-              child: TabBarView(
-                controller: _tab,
-                children: [
-                  _MotoHomeTab(onTabSwitch: (i) => _tab.animateTo(i), shopNavKey: _navKeys[1]),
-                  _MotoShopNavTab(navigatorKey: _navKeys[1]),
-                  _MotoListingsNavTab(navigatorKey: _navKeys[2]),
-                  _MotoClubNavTab(navigatorKey: _navKeys[3]),
-                  _MotoVideoNavTab(navigatorKey: _navKeys[4]),
-                ],
               ),
             ),
-          ]),
+            SliverToBoxAdapter(
+              child: _MotoHomeTab(
+                onNavigate: (screen) => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => screen)),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -546,9 +485,8 @@ class _MotorcycleScreenState extends State<MotorcycleScreen>
 // 탭 0: 홈
 // ══════════════════════════════════════════════════════════════
 class _MotoHomeTab extends StatefulWidget {
-  final void Function(int) onTabSwitch;
-  final GlobalKey<NavigatorState> shopNavKey;
-  const _MotoHomeTab({required this.onTabSwitch, required this.shopNavKey});
+  final void Function(Widget) onNavigate;
+  const _MotoHomeTab({required this.onNavigate});
   @override
   State<_MotoHomeTab> createState() => _MotoHomeTabState();
 }
@@ -648,10 +586,10 @@ class _MotoHomeTabState extends State<_MotoHomeTab> {
           crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.7,
           children: [
-            _pillCard('🔧', '점포', '정비·검사·판매·용품', _morange, () => widget.onTabSwitch(1)),
-            _pillCard('🤝', '사고팔기', '직거래·신뢰거래', _maccent, () => widget.onTabSwitch(2)),
-            _pillCard('🏆', '동호회', '가입·모임·게시판', _mgreen, () => widget.onTabSwitch(3)),
-            _pillCard('▶', '영상/정보', '교육·검사·전기이륜', _mred, () => widget.onTabSwitch(4)),
+            _pillCard('🔧', '점포', '정비·검사·판매·용품', _morange, () => widget.onNavigate(const _MotoShopScreen())),
+            _pillCard('🤝', '사고팔기', '직거래·신뢰거래', _maccent, () => widget.onNavigate(const _MotoListingsScreen())),
+            _pillCard('🏆', '동호회', '가입·모임·게시판', _mgreen, () => widget.onNavigate(const _MotoClubScreen())),
+            _pillCard('▶', '영상/정보', '교육·검사·전기이륜', _mred, () => widget.onNavigate(const _MotoVideoScreen())),
           ],
         ),
       ),
@@ -663,7 +601,7 @@ class _MotoHomeTabState extends State<_MotoHomeTab> {
           Text('최신 동호회 소식', style: _ts(14, FontWeight.w700, _mt1)),
           const Spacer(),
           GestureDetector(
-            onTap: () => widget.onTabSwitch(3),
+            onTap: () => widget.onNavigate(const _MotoClubScreen()),
             child: Text('더보기', style: _ts(12, FontWeight.w500, _mt3)),
           ),
         ]),
@@ -683,7 +621,7 @@ class _MotoHomeTabState extends State<_MotoHomeTab> {
             final reactions = isClub ? (item as MotoClubPost).reactions : (item as MotoCommunityPost).reactions;
             final totalReactions = reactions.fold(0, (s, r) => s + r.count);
             return GestureDetector(
-              onTap: () => widget.onTabSwitch(3),
+              onTap: () => widget.onNavigate(const _MotoClubScreen()),
               child: Container(
                 width: 180,
                 margin: const EdgeInsets.only(right: 10),
@@ -733,14 +671,13 @@ class _MotoHomeTabState extends State<_MotoHomeTab> {
           Text('주변 바이크 점포', style: _ts(14, FontWeight.w700, _mt1)),
           const Spacer(),
           GestureDetector(
-            onTap: () => widget.onTabSwitch(1),
+            onTap: () => widget.onNavigate(const _MotoShopScreen()),
             child: Text('더보기', style: _ts(12, FontWeight.w500, _mt3)),
           ),
         ]),
       ),
       ...state.shops.take(3).map((s) => _ShopMiniCard(shop: s,
-          onTap: () => widget.shopNavKey.currentState!.push(
-              MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: s))))),
+          onTap: () => widget.onNavigate(_MotoShopDetailScreen(shop: s)))),
 
       const SizedBox(height: 20),
     ]);
@@ -813,60 +750,201 @@ class _ShopMiniCard extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 // 탭 1: 점포
 // ── 점포 탭 독립 Navigator 래퍼 ────────────────────────────────
-class _MotoShopNavTab extends StatelessWidget {
-  final GlobalKey<NavigatorState> navigatorKey;
-  const _MotoShopNavTab({required this.navigatorKey});
+// ══════════════════════════════════════════════════════════════
+// 서브 스크린: 점포
+// ══════════════════════════════════════════════════════════════
+class _MotoShopScreen extends StatefulWidget {
+  const _MotoShopScreen();
+  @override
+  State<_MotoShopScreen> createState() => _MotoShopScreenState();
+}
+class _MotoShopScreenState extends State<_MotoShopScreen> {
+  final _navKey = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: navigatorKey,
-      onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => _MotoShopTab(navigatorKey: navigatorKey),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+          _navKey.currentState!.pop();
+        } else {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _mbg,
+        appBar: AppBar(
+          backgroundColor: _mcard,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20),
+            onPressed: () {
+              if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+                _navKey.currentState!.pop();
+              } else {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+            },
+          ),
+          title: Text('점포', style: _ts(17, FontWeight.w700, _mt1)),
+          elevation: 0,
+        ),
+        body: Navigator(
+          key: _navKey,
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (_) => _MotoShopTab(navigatorKey: _navKey),
+          ),
+        ),
       ),
     );
   }
 }
 
-// ── 사고팔기 탭 독립 Navigator 래퍼 ─────────────────────────
-class _MotoListingsNavTab extends StatelessWidget {
-  final GlobalKey<NavigatorState> navigatorKey;
-  const _MotoListingsNavTab({required this.navigatorKey});
+// ══════════════════════════════════════════════════════════════
+// 서브 스크린: 사고팔기
+// ══════════════════════════════════════════════════════════════
+class _MotoListingsScreen extends StatefulWidget {
+  const _MotoListingsScreen();
+  @override
+  State<_MotoListingsScreen> createState() => _MotoListingsScreenState();
+}
+class _MotoListingsScreenState extends State<_MotoListingsScreen> {
+  final _navKey = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: navigatorKey,
-      onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => _MotoListingsTab(navigatorKey: navigatorKey),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+          _navKey.currentState!.pop();
+        } else {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _mbg,
+        appBar: AppBar(
+          backgroundColor: _mcard,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20),
+            onPressed: () {
+              if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+                _navKey.currentState!.pop();
+              } else {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+            },
+          ),
+          title: Text('사고팔기', style: _ts(17, FontWeight.w700, _mt1)),
+          elevation: 0,
+        ),
+        body: Navigator(
+          key: _navKey,
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (_) => _MotoListingsTab(navigatorKey: _navKey),
+          ),
+        ),
       ),
     );
   }
 }
 
-// ── 동호회 탭 독립 Navigator 래퍼 ───────────────────────────
-class _MotoClubNavTab extends StatelessWidget {
-  final GlobalKey<NavigatorState> navigatorKey;
-  const _MotoClubNavTab({required this.navigatorKey});
+// ══════════════════════════════════════════════════════════════
+// 서브 스크린: 동호회
+// ══════════════════════════════════════════════════════════════
+class _MotoClubScreen extends StatefulWidget {
+  const _MotoClubScreen();
+  @override
+  State<_MotoClubScreen> createState() => _MotoClubScreenState();
+}
+class _MotoClubScreenState extends State<_MotoClubScreen> {
+  final _navKey = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: navigatorKey,
-      onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => _MotoClubTab(navigatorKey: navigatorKey),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+          _navKey.currentState!.pop();
+        } else {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _mbg,
+        appBar: AppBar(
+          backgroundColor: _mcard,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20),
+            onPressed: () {
+              if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+                _navKey.currentState!.pop();
+              } else {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+            },
+          ),
+          title: Text('동호회', style: _ts(17, FontWeight.w700, _mt1)),
+          elevation: 0,
+        ),
+        body: Navigator(
+          key: _navKey,
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (_) => _MotoClubTab(navigatorKey: _navKey),
+          ),
+        ),
       ),
     );
   }
 }
 
-// ── 영상/정보 탭 독립 Navigator 래퍼 ────────────────────────
-class _MotoVideoNavTab extends StatelessWidget {
-  final GlobalKey<NavigatorState> navigatorKey;
-  const _MotoVideoNavTab({required this.navigatorKey});
+// ══════════════════════════════════════════════════════════════
+// 서브 스크린: 영상/정보
+// ══════════════════════════════════════════════════════════════
+class _MotoVideoScreen extends StatefulWidget {
+  const _MotoVideoScreen();
+  @override
+  State<_MotoVideoScreen> createState() => _MotoVideoScreenState();
+}
+class _MotoVideoScreenState extends State<_MotoVideoScreen> {
+  final _navKey = GlobalKey<NavigatorState>();
   @override
   Widget build(BuildContext context) {
-    return Navigator(
-      key: navigatorKey,
-      onGenerateRoute: (_) => MaterialPageRoute(
-        builder: (_) => _MotoVideoInfoTab(navigatorKey: navigatorKey),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+          _navKey.currentState!.pop();
+        } else {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: _mbg,
+        appBar: AppBar(
+          backgroundColor: _mcard,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _mt1, size: 20),
+            onPressed: () {
+              if (_navKey.currentState != null && _navKey.currentState!.canPop()) {
+                _navKey.currentState!.pop();
+              } else {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+            },
+          ),
+          title: Text('영상/정보', style: _ts(17, FontWeight.w700, _mt1)),
+          elevation: 0,
+        ),
+        body: Navigator(
+          key: _navKey,
+          onGenerateRoute: (_) => MaterialPageRoute(
+            builder: (_) => _MotoVideoInfoTab(navigatorKey: _navKey),
+          ),
+        ),
       ),
     );
   }
