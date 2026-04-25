@@ -241,6 +241,139 @@ Future<List<String>> _pickImages(BuildContext ctx, {int max = 10}) async {
   }
 }
 
+// ── YouTube 인앱 재생 모달 ───────────────────────────────────
+String? _extractYtId(String url) {
+  final r = RegExp(
+    r'(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([\w-]{11})',
+    caseSensitive: false,
+  );
+  return r.firstMatch(url)?.group(1);
+}
+
+void _showYoutubeModal(BuildContext ctx, String youtubeUrl, String title) {
+  final videoId = _extractYtId(youtubeUrl);
+  showModalBottomSheet(
+    context: ctx,
+    isScrollControlled: true,
+    backgroundColor: const Color(0xFF050A0F),
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+    builder: (_) => DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (__, sc) => Column(children: [
+        const SizedBox(height: 12),
+        Container(width: 36, height: 3,
+            decoration: BoxDecoration(color: const Color(0xFF546E7A),
+                borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(children: [
+            Expanded(child: Text(title,
+                style: GoogleFonts.notoSansKr(
+                    fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+                maxLines: 2, overflow: TextOverflow.ellipsis)),
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF546E7A), size: 20),
+              onPressed: () => Navigator.pop(_),
+            ),
+          ]),
+        ),
+        if (videoId != null) ...[
+          // 썸네일 + 재생 버튼 (외부 YouTube 앱/브라우저로 열기)
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri.parse('https://www.youtube.com/watch?v=$videoId');
+              if (await canLaunchUrl(uri)) {
+                launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Stack(alignment: Alignment.center, children: [
+              Image.network(
+                'https://img.youtube.com/vi/$videoId/hqdefault.jpg',
+                width: double.infinity,
+                height: 220,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                    height: 220, color: const Color(0xFF0D1721),
+                    child: const Icon(Icons.play_circle_outline,
+                        color: Colors.white54, size: 64)),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                child: const Icon(Icons.play_arrow_rounded,
+                    color: Colors.white, size: 48),
+              ),
+              Positioned(bottom: 8, right: 8, child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(4)),
+                child: Text('YouTube에서 보기',
+                    style: GoogleFonts.notoSansKr(
+                        fontSize: 11, color: Colors.white70)),
+              )),
+            ]),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GestureDetector(
+              onTap: () async {
+                final uri = Uri.parse('https://www.youtube.com/watch?v=$videoId');
+                if (await canLaunchUrl(uri)) {
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Container(
+                height: 46,
+                decoration: BoxDecoration(
+                    color: const Color(0xFFFF0000).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFF0000).withOpacity(0.5))),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.open_in_new_rounded,
+                      color: Color(0xFFFF0000), size: 18),
+                  const SizedBox(width: 8),
+                  Text('YouTube 앱에서 재생',
+                      style: GoogleFonts.notoSansKr(
+                          fontSize: 13, fontWeight: FontWeight.w700,
+                          color: const Color(0xFFFF0000))),
+                ]),
+              ),
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 40),
+          const Icon(Icons.error_outline, color: Color(0xFF546E7A), size: 48),
+          const SizedBox(height: 12),
+          Text('재생할 수 없는 URL입니다.',
+              style: GoogleFonts.notoSansKr(
+                  fontSize: 14, color: const Color(0xFF546E7A))),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () async {
+              final uri = Uri.parse(youtubeUrl);
+              if (await canLaunchUrl(uri)) {
+                launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: Text('외부 링크로 열기',
+                style: GoogleFonts.notoSansKr(
+                    fontSize: 13, color: const Color(0xFF4FC3F7))),
+          ),
+        ],
+        const SizedBox(height: 20),
+      ]),
+    ),
+  );
+}
+
 // ── 완료 팝업 (확인 후 콜백 실행) ────────────────────────────
 Future<void> _showDone(BuildContext ctx, String msg, {VoidCallback? then}) async {
   await showDialog(
@@ -772,13 +905,14 @@ class _MotoShopTabState extends State<_MotoShopTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
+    final shops = _shops;
+    return ListView(children: [
       // ── 가상 지도 ──
-      Container(
+      SizedBox(
         height: 180,
-        color: const Color(0xFF0A1828),
         child: Stack(children: [
-          CustomPaint(size: const Size(double.infinity, 180), painter: _MapPainter()),
+          Container(height: 180, color: const Color(0xFF0A1828),
+            child: CustomPaint(size: const Size(double.infinity, 180), painter: _MapPainter())),
           // 점포 마커
           ...MotoState().shops.asMap().entries.map((e) {
             final i = e.key;
@@ -874,7 +1008,6 @@ class _MotoShopTabState extends State<_MotoShopTab> {
                 ),
               );
             }
-            // 정렬 버튼
             final sortLabel = i == _filterLabels.length ? '가까운순' : '평점순';
             return GestureDetector(
               onTap: () => setState(() => _sort = sortLabel),
@@ -898,18 +1031,13 @@ class _MotoShopTabState extends State<_MotoShopTab> {
       ),
       const SizedBox(height: 6),
 
-      // ── 점포 리스트 ──
-      Expanded(
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          itemCount: _shops.length,
-          itemBuilder: (_, i) => _MotoShopCard(
-            shop: _shops[i],
-            onTap: () => widget.navigatorKey.currentState!.push(
-                MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: _shops[i]))),
-          ),
-        ),
-      ),
+      // ── 점포 리스트 (shrinkWrap) ──
+      ...shops.map((s) => _MotoShopCard(
+        shop: s,
+        onTap: () => widget.navigatorKey.currentState!.push(
+            MaterialPageRoute(builder: (_) => _MotoShopDetailScreen(shop: s))),
+      )),
+      const SizedBox(height: 20),
     ]);
   }
 }
@@ -1264,7 +1392,7 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
           l.region.contains(_keyword);
     }).toList();
 
-    return Column(children: [
+    return ListView(children: [
       // 검색 + 등록 버튼
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
@@ -1309,21 +1437,23 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
       ),
 
       // 리스트
-      Expanded(
-        child: items.isEmpty
-            ? Center(child: Text('등록된 매물이 없습니다', style: _ts(14, FontWeight.w500, _mt3)))
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: items.length,
-                itemBuilder: (_, i) => _MotoListingCard(
-                  listing: items[i],
-                  onTap: () => widget.navigatorKey.currentState!.push(
-                      MaterialPageRoute(
-                          builder: (_) => _MotoListingDetailScreen(listing: items[i])))
-                      .then((_) => setState(() {})),
-                ),
-              ),
-      ),
+      if (items.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 80),
+          child: Center(child: Text('등록된 매물이 없습니다', style: _ts(14, FontWeight.w500, _mt3))),
+        )
+      else
+        ...items.map((item) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: _MotoListingCard(
+            listing: item,
+            onTap: () => widget.navigatorKey.currentState!.push(
+                MaterialPageRoute(
+                    builder: (_) => _MotoListingDetailScreen(listing: item)))
+                .then((_) => setState(() {})),
+          ),
+        )),
+      const SizedBox(height: 20),
     ]);
   }
 }
@@ -2301,7 +2431,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
     final latestPosts = state.clubs.expand((c) => c.posts.map((p) => (club: c, post: p))).toList()
       ..sort((a, b) => b.post.createdAt.compareTo(a.post.createdAt));
 
-    return Column(children: [
+    return ListView(children: [
       // 검색창
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
@@ -2414,32 +2544,27 @@ class _MotoClubTabState extends State<_MotoClubTab> {
       ],
 
       // 동호회 목록
-      Expanded(
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          itemCount: _clubs.length,
-          itemBuilder: (_, i) => _MotoClubCard(
-            club: _clubs[i],
-            onTap: () => widget.navigatorKey.currentState!.push(
-                MaterialPageRoute(
-                    builder: (_) => _MotoClubDetailScreen(club: _clubs[i])))
-                .then((_) => setState(() {})),
-            onJoin: () {
-              final club = _clubs[i];
-              MotoState().joinClub(club.clubId);
-              setState(() {});
-              _showDone(context,
-                '${club.name} 동호회에 가입했습니다!\n멤버들에게 인사를 건네보세요.',
-                then: () {
-                  widget.navigatorKey.currentState!.push(
-                      MaterialPageRoute(
-                          builder: (_) => _MotoClubDetailScreen(club: club)))
-                      .then((_) => setState(() {}));
-                });
-            },
-          ),
+      ..._clubs.map((club) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: _MotoClubCard(
+          club: club,
+          onTap: () => widget.navigatorKey.currentState!.push(
+              MaterialPageRoute(builder: (_) => _MotoClubDetailScreen(club: club)))
+              .then((_) => setState(() {})),
+          onJoin: () {
+            MotoState().joinClub(club.clubId);
+            setState(() {});
+            _showDone(context,
+              '${club.name} 동호회에 가입했습니다!\n멤버들에게 인사를 건네보세요.',
+              then: () {
+                widget.navigatorKey.currentState!.push(
+                    MaterialPageRoute(builder: (_) => _MotoClubDetailScreen(club: club)))
+                    .then((_) => setState(() {}));
+              });
+          },
         ),
-      ),
+      )),
+      const SizedBox(height: 20),
     ]);
   }
 
@@ -2596,12 +2721,35 @@ class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
-                  if (c.myJoined)
+                  if (c.myJoined) ...[
+                    // 초대 버튼
+                    IconButton(
+                      icon: const Icon(Icons.person_add_alt_1_rounded,
+                          color: Colors.white, size: 22),
+                      tooltip: '초대',
+                      onPressed: () {
+                        final inviteText =
+                            '[MOINCAR 동호회 초대]\n'
+                            '동호회: \${c.name}\n'
+                            '지역: \${c.region}\n'
+                            '소개: \${c.description}\n\n'
+                            '가입 링크: https://moincar.app/club/\${c.clubId}';
+                        Clipboard.setData(ClipboardData(text: inviteText));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('초대 링크가 클립보드에 복사되었습니다! 카카오톡 등으로 공유하세요.'),
+                            backgroundColor: Color(0xFF10B981),
+                            duration: Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                    ),
                     IconButton(
                       icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
                       onPressed: () => _showClubMenu(context, c,
                         onChanged: () => setState(() {})),
                     ),
+                  ],
                 ]),
               ),
             ),
@@ -3593,10 +3741,7 @@ class _VideoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        final uri = Uri.parse(video.youtubeUrl);
-        if (await canLaunchUrl(uri)) launchUrl(uri);
-      },
+      onTap: () => _showYoutubeModal(context, video.youtubeUrl, video.title),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(12),
@@ -3605,10 +3750,16 @@ class _VideoCard extends StatelessWidget {
           Stack(children: [
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-              child: Image.network(video.thumbnailUrl, width: 110, height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                      width: 110, height: 80, color: _mcard2)),
+              child: Builder(builder: (bCtx) {
+                final ytId = _extractYtId(video.youtubeUrl);
+                final thumb = ytId != null
+                    ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg'
+                    : video.thumbnailUrl;
+                return Image.network(thumb, width: 110, height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                        width: 110, height: 80, color: _mcard2));
+              }),
             ),
             Positioned.fill(child: Center(child: Container(
               padding: const EdgeInsets.all(6),
@@ -3676,7 +3827,34 @@ class _VideoRegisterScreenState extends State<_VideoRegisterScreen> {
         ],
       ),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        _field('YouTube URL', _urlCtrl, 'https://www.youtube.com/watch?v=...'),
+        _field('YouTube URL', _urlCtrl, 'https://www.youtube.com/watch?v=...', onChangedRebuild: true),
+        // 썸네일 미리보기
+        Builder(builder: (_) {
+          final ytId = _extractYtId(_urlCtrl.text.trim());
+          if (ytId == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Stack(alignment: Alignment.center, children: [
+                Image.network(
+                  'https://img.youtube.com/vi/$ytId/hqdefault.jpg',
+                  width: double.infinity, height: 160, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                      height: 160, color: _mcard2),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 36),
+                ),
+              ]),
+            ),
+          );
+        }),
         _field('제목', _titleCtrl, '영상 제목'),
         _field('채널명', _chCtrl, '채널 이름'),
         const SizedBox(height: 8),
@@ -3717,10 +3895,13 @@ class _VideoRegisterScreenState extends State<_VideoRegisterScreen> {
           const SnackBar(content: Text('URL과 제목을 입력해주세요.'), backgroundColor: _mred));
       return;
     }
+    final ytId = _extractYtId(_urlCtrl.text.trim());
     final vid = MotoVideo(
-      videoId: 'V-${DateTime.now().millisecondsSinceEpoch}',
+      videoId: 'V-\${DateTime.now().millisecondsSinceEpoch}',
       youtubeUrl: _urlCtrl.text.trim(),
-      thumbnailUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
+      thumbnailUrl: ytId != null
+          ? 'https://img.youtube.com/vi/\$ytId/hqdefault.jpg'
+          : 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=400&q=80',
       title: _titleCtrl.text.trim(),
       channelName: _chCtrl.text.trim().isEmpty ? '사용자 등록' : _chCtrl.text.trim(),
       viewCountText: '0회',
@@ -3730,11 +3911,13 @@ class _VideoRegisterScreenState extends State<_VideoRegisterScreen> {
     Navigator.pop(context);
   }
 
-  Widget _field(String label, TextEditingController ctrl, String hint) =>
+  Widget _field(String label, TextEditingController ctrl, String hint,
+      {bool onChangedRebuild = false}) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: TextField(
           controller: ctrl,
+          onChanged: onChangedRebuild ? (_) => setState(() {}) : null,
           style: _ts(13, FontWeight.w400, _mt1),
           decoration: InputDecoration(
             labelText: label, labelStyle: _ts(12, FontWeight.w500, _mt3),
