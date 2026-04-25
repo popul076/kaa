@@ -533,7 +533,6 @@ class _HomeScreenState extends State<HomeScreen>
                 _buildRecommendSection(),
                 const YoutubeShortSlider(),
                 _buildQuickActions(),
-                _buildUsedCarAxisCards(),
                 _buildMapPreview(),
                 _buildNearbySection(),
                 _buildPromoBand(),
