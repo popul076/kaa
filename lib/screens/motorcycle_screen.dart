@@ -441,40 +441,38 @@ class _MotorcycleScreenState extends State<MotorcycleScreen> {
       canPop: true,
       child: Scaffold(
         backgroundColor: _mbg,
-        body: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  color: _mcard,
-                  padding: const EdgeInsets.fromLTRB(4, 6, 16, 10),
-                  child: Row(children: [
-                    IconButton(
-                      onPressed: () => _handleBack(context),
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: _mt1, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 4),
-                    Text('오토바이',
-                        style: _ts(18, FontWeight.w800, _mt1, ls: -0.5)),
-                    const Spacer(),
-                    _badge('협회인증', _mred),
-                    const SizedBox(width: 8),
-                    _badge('전기이륜 ⚡', _maccent),
-                  ]),
+        body: SafeArea(
+          bottom: false,
+          child: Column(children: [
+            // ── 헤더 ──
+            Container(
+              color: _mcard,
+              padding: const EdgeInsets.fromLTRB(4, 6, 16, 10),
+              child: Row(children: [
+                IconButton(
+                  onPressed: () => _handleBack(context),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: _mt1, size: 20),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-              ),
+                const SizedBox(width: 4),
+                Text('오토바이',
+                    style: _ts(18, FontWeight.w800, _mt1, ls: -0.5)),
+                const Spacer(),
+                _badge('협회인증', _mred),
+                const SizedBox(width: 8),
+                _badge('전기이륜 ⚡', _maccent),
+              ]),
             ),
-            SliverToBoxAdapter(
+            // ── 홈 콘텐츠 (전체 스크롤) ──
+            Expanded(
               child: _MotoHomeTab(
                 onNavigate: (screen) => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => screen)),
               ),
             ),
-          ],
+          ]),
         ),
       ),
     );
