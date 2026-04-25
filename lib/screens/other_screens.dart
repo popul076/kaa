@@ -12,6 +12,7 @@ import '../widgets/common_widgets.dart';
 import 'quote_screens.dart' show QuoteDetailScreen;
 import 'used_car_screen.dart' show UsedCarDetailScreen;
 import 'motorcycle_screen.dart' show MotorcycleScreen;
+import 'rent_car_screen.dart' show RentMyBookingsScreen;
 
 // ── MOINCAR 공통 다크 색상 상수 ──
 const Color _mBg      = Color(0xFF020810);
@@ -847,6 +848,10 @@ class _MyScreenState extends State<MyScreen> {
                       _DarkMenuItem(icon: Icons.monetization_on_outlined, label: '내차 시세 조회',
                         color: _orange,
                         onTap: () => Navigator.pushNamed(context, '/car-price')),
+                      _DarkMenuItem(icon: Icons.car_rental_rounded, label: '내 렌트 예약',
+                        color: _accent,
+                        onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RentMyBookingsScreen()))),
                       _DarkMenuItem(icon: Icons.sell_rounded, label: '내 중고차 매물',
                         color: const Color(0xFF8B5CF6),
                         badge: _myListingCount > 0 ? '$_myListingCount개' : null,

@@ -362,8 +362,14 @@ class _HomeScreenState extends State<HomeScreen>
     final name  = c['name']  as String;
     final emoji = c['emoji'] as String;
 
-    // 특수 처리: 주유소, 주차장, 렌트카, 중고차수출, 차량용품 → 스낵바
-    const simpleCategories = ['주차장', '렌트카', '중고차수출', '차량용품'];
+    // 렌트카 → RentCarScreen 직접 이동
+    if (name == '렌트카') {
+      Navigator.pushNamed(context, '/rent-car');
+      return;
+    }
+
+    // 특수 처리: 주차장, 중고차수출, 차량용품 → 스낵바
+    const simpleCategories = ['주차장', '중고차수출', '차량용품'];
     if (simpleCategories.contains(name)) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: const Color(0xFF0D1B2A),

@@ -2414,3 +2414,312 @@ class MotoState extends ChangeNotifier {
     notifyListeners();
   }
 }
+
+// =====================================================
+// 렌트카 모델
+// =====================================================
+
+enum RentCarFuel { gasoline, diesel, hybrid, electric, lpg }
+enum RentCarGrade { micro, small, medium, large, suv, van, import_ }
+enum RentCarBookingStatus { confirmed, inUse, completed, cancelled }
+enum RentInsuranceType { basic, fullCoverage, none }
+
+extension RentCarFuelExt on RentCarFuel {
+  String get label {
+    switch (this) {
+      case RentCarFuel.gasoline: return '가솔린';
+      case RentCarFuel.diesel:   return '디젤';
+      case RentCarFuel.hybrid:   return '하이브리드';
+      case RentCarFuel.electric: return '전기';
+      case RentCarFuel.lpg:      return 'LPG';
+    }
+  }
+}
+
+extension RentCarGradeExt on RentCarGrade {
+  String get label {
+    switch (this) {
+      case RentCarGrade.micro:   return '경차';
+      case RentCarGrade.small:   return '소형';
+      case RentCarGrade.medium:  return '중형';
+      case RentCarGrade.large:   return '대형';
+      case RentCarGrade.suv:     return 'SUV';
+      case RentCarGrade.van:     return '승합';
+      case RentCarGrade.import_: return '수입차';
+    }
+  }
+}
+
+extension RentCarBookingStatusExt on RentCarBookingStatus {
+  String get label {
+    switch (this) {
+      case RentCarBookingStatus.confirmed:  return '예약완료';
+      case RentCarBookingStatus.inUse:      return '이용중';
+      case RentCarBookingStatus.completed:  return '이용완료';
+      case RentCarBookingStatus.cancelled:  return '취소됨';
+    }
+  }
+}
+
+extension RentInsuranceTypeExt on RentInsuranceType {
+  String get label {
+    switch (this) {
+      case RentInsuranceType.basic:        return '기본보험';
+      case RentInsuranceType.fullCoverage: return '완전자차';
+      case RentInsuranceType.none:         return '보험없음';
+    }
+  }
+  int get dailyPrice {
+    switch (this) {
+      case RentInsuranceType.basic:        return 5000;
+      case RentInsuranceType.fullCoverage: return 15000;
+      case RentInsuranceType.none:         return 0;
+    }
+  }
+}
+
+class RentCar {
+  final String id;
+  final String name;
+  final String brand;
+  final int year;
+  final RentCarGrade grade;
+  final RentCarFuel fuel;
+  final int seats;
+  final int dailyPrice;
+  final int? originalPrice;
+  final bool instantBooking;
+  final bool insuranceIncluded;
+  final List<String> options;
+  final List<String> images;
+  final String region;
+  final String branchName;
+  final double rating;
+  final int reviewCount;
+
+  RentCar({
+    required this.id,
+    required this.name,
+    required this.brand,
+    required this.year,
+    required this.grade,
+    required this.fuel,
+    required this.seats,
+    required this.dailyPrice,
+    this.originalPrice,
+    this.instantBooking = true,
+    this.insuranceIncluded = false,
+    required this.options,
+    required this.images,
+    required this.region,
+    required this.branchName,
+    this.rating = 4.5,
+    this.reviewCount = 0,
+  });
+}
+
+class RentCarBooking {
+  final String bookingId;
+  final RentCar car;
+  final String pickupRegion;
+  final String pickupBranch;
+  final String returnRegion;
+  final String returnBranch;
+  final DateTime pickupAt;
+  final DateTime returnAt;
+  final RentInsuranceType insurance;
+  final List<String> extraOptions;
+  final int totalPrice;
+  final String userName;
+  final String userPhone;
+  final String licenseConfirmed;
+  final String paymentMethod;
+  RentCarBookingStatus status;
+  final DateTime bookedAt;
+
+  RentCarBooking({
+    required this.bookingId,
+    required this.car,
+    required this.pickupRegion,
+    required this.pickupBranch,
+    required this.returnRegion,
+    required this.returnBranch,
+    required this.pickupAt,
+    required this.returnAt,
+    required this.insurance,
+    required this.extraOptions,
+    required this.totalPrice,
+    required this.userName,
+    required this.userPhone,
+    required this.licenseConfirmed,
+    required this.paymentMethod,
+    this.status = RentCarBookingStatus.confirmed,
+    required this.bookedAt,
+  });
+
+  int get days => returnAt.difference(pickupAt).inDays.clamp(1, 999);
+}
+
+class RentCarState extends ChangeNotifier {
+  static final RentCarState _instance = RentCarState._internal();
+  factory RentCarState() => _instance;
+  RentCarState._internal() {
+    _initDummyCars();
+  }
+
+  final List<RentCarBooking> bookings = [];
+  final List<RentCar> _cars = [];
+  List<RentCar> get cars => List.unmodifiable(_cars);
+
+  void _initDummyCars() {
+    _cars.addAll([
+      RentCar(
+        id: 'rc001', name: '모닝', brand: '기아', year: 2023,
+        grade: RentCarGrade.micro, fuel: RentCarFuel.gasoline, seats: 4,
+        dailyPrice: 38000, originalPrice: 48000, instantBooking: true, insuranceIncluded: true,
+        options: ['네비게이션', '블루투스', '후방카메라'],
+        images: ['https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=600&q=80'],
+        region: '서울', branchName: '강남점', rating: 4.6, reviewCount: 128,
+      ),
+      RentCar(
+        id: 'rc002', name: '아반떼', brand: '현대', year: 2024,
+        grade: RentCarGrade.small, fuel: RentCarFuel.gasoline, seats: 5,
+        dailyPrice: 55000, originalPrice: 68000, instantBooking: true, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '열선시트', '블루투스'],
+        images: ['https://images.unsplash.com/photo-1502877338535-766e1452684a?w=600&q=80'],
+        region: '서울', branchName: '홍대점', rating: 4.7, reviewCount: 254,
+      ),
+      RentCar(
+        id: 'rc003', name: 'K5', brand: '기아', year: 2024,
+        grade: RentCarGrade.medium, fuel: RentCarFuel.gasoline, seats: 5,
+        dailyPrice: 72000, originalPrice: 88000, instantBooking: true, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '열선시트', '스마트키', '크루즈컨트롤'],
+        images: ['https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80'],
+        region: '서울', branchName: '서울역점', rating: 4.8, reviewCount: 189,
+      ),
+      RentCar(
+        id: 'rc004', name: '투싼', brand: '현대', year: 2024,
+        grade: RentCarGrade.suv, fuel: RentCarFuel.diesel, seats: 5,
+        dailyPrice: 88000, originalPrice: 108000, instantBooking: false, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '어라운드뷰', '열선시트', '스마트키'],
+        images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=600&q=80'],
+        region: '경기', branchName: '수원점', rating: 4.5, reviewCount: 97,
+      ),
+      RentCar(
+        id: 'rc005', name: '카니발', brand: '기아', year: 2023,
+        grade: RentCarGrade.van, fuel: RentCarFuel.diesel, seats: 9,
+        dailyPrice: 118000, originalPrice: 148000, instantBooking: true, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '열선시트', '전동슬라이딩도어', '어라운드뷰'],
+        images: ['https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&q=80'],
+        region: '서울', branchName: '인천공항점', rating: 4.9, reviewCount: 312,
+      ),
+      RentCar(
+        id: 'rc006', name: '아이오닉5', brand: '현대', year: 2024,
+        grade: RentCarGrade.suv, fuel: RentCarFuel.electric, seats: 5,
+        dailyPrice: 95000, originalPrice: 120000, instantBooking: true, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '어라운드뷰', '열선시트', 'V2L', '원페달드라이빙'],
+        images: ['https://images.unsplash.com/photo-1617788138017-80ad40651399?w=600&q=80'],
+        region: '서울', branchName: '강남점', rating: 4.8, reviewCount: 201,
+      ),
+      RentCar(
+        id: 'rc007', name: '그랜저', brand: '현대', year: 2024,
+        grade: RentCarGrade.large, fuel: RentCarFuel.hybrid, seats: 5,
+        dailyPrice: 128000, originalPrice: 158000, instantBooking: false, insuranceIncluded: true,
+        options: ['네비게이션', '후방카메라', '어라운드뷰', '열선시트', '통풍시트', '헤드업디스플레이', '크루즈컨트롤'],
+        images: ['https://images.unsplash.com/photo-1616422285623-13ff0162193c?w=600&q=80'],
+        region: '부산', branchName: '부산역점', rating: 4.7, reviewCount: 143,
+      ),
+      RentCar(
+        id: 'rc008', name: 'BMW 3시리즈', brand: 'BMW', year: 2023,
+        grade: RentCarGrade.import_, fuel: RentCarFuel.gasoline, seats: 5,
+        dailyPrice: 185000, originalPrice: 230000, instantBooking: false, insuranceIncluded: false,
+        options: ['네비게이션', '후방카메라', '어라운드뷰', '열선시트', '통풍시트', '헤드업디스플레이', '주차보조'],
+        images: ['https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80'],
+        region: '서울', branchName: '청담점', rating: 4.6, reviewCount: 76,
+      ),
+    ]);
+  }
+
+  List<RentCar> search({
+    String? region,
+    RentCarGrade? grade,
+    int? maxPrice,
+    RentCarFuel? fuel,
+    String? sort, // 'price', 'rating', 'popular'
+  }) {
+    var result = List<RentCar>.from(_cars);
+    if (region != null && region.isNotEmpty) {
+      result = result.where((c) => c.region.contains(region)).toList();
+    }
+    if (grade != null) {
+      result = result.where((c) => c.grade == grade).toList();
+    }
+    if (maxPrice != null) {
+      result = result.where((c) => c.dailyPrice <= maxPrice).toList();
+    }
+    if (fuel != null) {
+      result = result.where((c) => c.fuel == fuel).toList();
+    }
+    switch (sort) {
+      case 'price':
+        result.sort((a, b) => a.dailyPrice.compareTo(b.dailyPrice));
+        break;
+      case 'rating':
+        result.sort((a, b) => b.rating.compareTo(a.rating));
+        break;
+      case 'popular':
+        result.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
+        break;
+      default:
+        result.sort((a, b) => b.reviewCount.compareTo(a.reviewCount));
+    }
+    return result;
+  }
+
+  RentCarBooking addBooking({
+    required RentCar car,
+    required String pickupRegion,
+    required String pickupBranch,
+    required String returnRegion,
+    required String returnBranch,
+    required DateTime pickupAt,
+    required DateTime returnAt,
+    required RentInsuranceType insurance,
+    required List<String> extraOptions,
+    required int totalPrice,
+    required String userName,
+    required String userPhone,
+    required String licenseConfirmed,
+    required String paymentMethod,
+  }) {
+    final b = RentCarBooking(
+      bookingId: 'RNT${DateTime.now().millisecondsSinceEpoch}',
+      car: car,
+      pickupRegion: pickupRegion,
+      pickupBranch: pickupBranch,
+      returnRegion: returnRegion,
+      returnBranch: returnBranch,
+      pickupAt: pickupAt,
+      returnAt: returnAt,
+      insurance: insurance,
+      extraOptions: extraOptions,
+      totalPrice: totalPrice,
+      userName: userName,
+      userPhone: userPhone,
+      licenseConfirmed: licenseConfirmed,
+      paymentMethod: paymentMethod,
+      bookedAt: DateTime.now(),
+    );
+    bookings.insert(0, b);
+    notifyListeners();
+    return b;
+  }
+
+  void cancelBooking(String bookingId) {
+    try {
+      final b = bookings.firstWhere((b) => b.bookingId == bookingId);
+      b.status = RentCarBookingStatus.cancelled;
+    } catch (_) {}
+    notifyListeners();
+  }
+}

@@ -10,6 +10,7 @@ import 'screens/quote_screens.dart';
 import 'screens/category_landing_screen.dart';
 import 'screens/used_car_screen.dart';
 import 'screens/motorcycle_screen.dart';
+import 'screens/rent_car_screen.dart';
 import 'models/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -98,6 +99,8 @@ class KaaApp extends StatelessWidget {
             else if (raw is Map) tab = (raw as Map<String, dynamic>)['initialTab'] as int? ?? 0;
             return MotorcycleScreen(initialTab: tab);
           },
+          '/rent-car': (_) => const RentCarScreen(),
+          '/rent-bookings': (_) => const RentMyBookingsScreen(),
         },
         onGenerateRoute: (settings) {
           if (settings.name == '/category-landing') {
