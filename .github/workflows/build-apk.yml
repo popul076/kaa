@@ -40,12 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v66"
+          APK_VERSION="v67"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v65"
+          PREV_VERSION="v66"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 뒤로가기 완전수정 - Navigator.push(context) 제거)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 슬라이드탭 제거 - 메인박스카드 진입 + 독립 Scaffold 뒤로가기)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
