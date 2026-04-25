@@ -1420,7 +1420,7 @@ class _MotoListingsTabState extends State<_MotoListingsTab> {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => widget.navigatorKey.currentState!.push(
-                MaterialPageRoute(builder: (_) => const _MotoListingRegisterScreen()))
+                MaterialPageRoute(builder: (_) => _MotoListingRegisterScreen(navigatorKey: widget.navigatorKey)))
                 .then((_) => setState(() {})),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1959,7 +1959,8 @@ class _MotoListingDetailScreenState extends State<_MotoListingDetailScreen> {
 }
 // ── 매물 등록 화면 ────────────────────────────────────────────
 class _MotoListingRegisterScreen extends StatefulWidget {
-  const _MotoListingRegisterScreen();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoListingRegisterScreen({required this.navigatorKey});
   @override
   State<_MotoListingRegisterScreen> createState() => _MotoListingRegisterScreenState();
 }
@@ -2310,9 +2311,10 @@ class _MotoListingRegisterScreenState extends State<_MotoListingRegisterScreen> 
       createdAt: DateTime.now(),
     );
     MotoState().addListing(listing);
+    final navState = widget.navigatorKey.currentState;
     _showDone(context, '매물이 등록되었습니다!\n내 매물 목록에서 확인할 수 있습니다.', then: () {
-      Navigator.pop(context);
-      Navigator.push(context,
+      navState?.pop();
+      navState?.push(
           MaterialPageRoute(builder: (_) => _MotoListingDetailScreen(listing: listing)));
     });
   }
@@ -2459,7 +2461,7 @@ class _MotoClubTabState extends State<_MotoClubTab> {
           const SizedBox(width: 8),
           GestureDetector(
             onTap: () => widget.navigatorKey.currentState!.push(
-                MaterialPageRoute(builder: (_) => const _MotoClubCreateScreen()))
+                MaterialPageRoute(builder: (_) => _MotoClubCreateScreen(navigatorKey: widget.navigatorKey)))
                 .then((_) => setState(() {})),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -2824,7 +2826,7 @@ class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen>
       ]),
       floatingActionButton: c.myJoined ? FloatingActionButton(
         backgroundColor: _mgreen,
-        onPressed: () => Navigator.push(context,
+        onPressed: () => Navigator.of(context, rootNavigator: false).push(
             MaterialPageRoute(builder: (_) => _MotoPostWriteScreen(clubId: c.clubId)))
             .then((_) => setState(() {})),
         child: const Icon(Icons.edit_rounded, color: Colors.white),
@@ -3412,7 +3414,8 @@ class _MotoPostWriteScreenState extends State<_MotoPostWriteScreen> {
 
 // ── 동호회 개설 화면 ──────────────────────────────────────────
 class _MotoClubCreateScreen extends StatefulWidget {
-  const _MotoClubCreateScreen();
+  final GlobalKey<NavigatorState> navigatorKey;
+  const _MotoClubCreateScreen({required this.navigatorKey});
   @override
   State<_MotoClubCreateScreen> createState() => _MotoClubCreateScreenState();
 }
@@ -3574,9 +3577,10 @@ class _MotoClubCreateScreenState extends State<_MotoClubCreateScreen> {
       ],
     );
     MotoState().createClub(club);
+    final navState = widget.navigatorKey.currentState;
     _showDone(context, '\${club.name} 동호회가 개설되었습니다!', then: () {
-      Navigator.pop(context);
-      Navigator.push(context,
+      navState?.pop();
+      navState?.push(
           MaterialPageRoute(builder: (_) => _MotoClubDetailScreen(club: club)));
     });
   }
