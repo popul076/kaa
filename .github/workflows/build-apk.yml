@@ -45,7 +45,7 @@ jobs:
           PREV_VERSION="v65"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (YouTube 모달+썸네일, 클럽 초대버튼, 커버이미지 앨범/카메라)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 뒤로가기 완전수정 - Navigator.push(context) 제거)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
