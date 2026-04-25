@@ -1,4 +1,4 @@
-name: Build APK v65
+name: Build APK v66
 
 on:
   push:
@@ -40,12 +40,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v65"
+          APK_VERSION="v66"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v64"
+          PREV_VERSION="v65"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (오토바이 뒤로가기 NestedScrollView 제거 PopScope 정상화)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (YouTube 모달+썸네일, 클럽 초대버튼, 커버이미지 앨범/카메라)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
