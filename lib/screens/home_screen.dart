@@ -1680,7 +1680,22 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-) {
+  Widget _usedCarAxisCard({
+    required IconData icon,
+    required LinearGradient gradient,
+    required Color borderColor,
+    required Color iconColor,
+    required String badge,
+    required Color badgeColor,
+    required String title,
+    required String subtitle,
+    required List<String> bullets,
+    required Color bulletColor,
+    required String actionLabel,
+    required Color actionColor,
+    required Color actionTextColor,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

@@ -1015,9 +1015,8 @@ class _FilterSheetState extends State<_FilterSheet> {
           Row(children: [
             Text('필터', style: GoogleFonts.notoSansKr(color: _pri, fontSize: 16, fontWeight: FontWeight.w800)),
             const Spacer(),
-            TextButton(
+            GestureDetector(
               onTap: () => setState(() { _grade = null; _fuel = null; _maxPrice = null; }),
-              onPressed: () => setState(() { _grade = null; _fuel = null; _maxPrice = null; }),
               child: Text('초기화', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 13)),
             ),
           ]),
