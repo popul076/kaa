@@ -692,9 +692,9 @@ class _ShopCard extends StatelessWidget {
                 if (firstCar != null) {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => RentCarBookingScreen(
                     car: firstCar!,
+                    days: days,
                     pickupAt: pickupAt, returnAt: returnAt,
                     pickupRegion: pickupRegion, returnRegion: returnRegion,
-                    days: days,
                     insurance: RentInsuranceType.standard,
                     extraOptions: const [],
                     totalPrice: firstCar!.pricePerDay * days,

@@ -2958,13 +2958,163 @@ class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen> {
 
   Widget _buildTabContent(MotoClub c) {
     switch (_tab) {
-      case 0: return _ClubPostsInline(club: c, onChanged: () => setState(() {}));
-      case 1: return _ClubPhotosInline(club: c);
-      case 2: return _ClubVideosInline(club: c);
-      case 3: return _ClubEventsInline(club: c, onChanged: () => setState(() {}));
-      case 4: return _ClubMembersInline(club: c, onChanged: () => setState(() {}));
+      case 0: return _buildPostsContent(c);
+      case 1: return _buildPhotosContent(c);
+      case 2: return _buildVideosContent(c);
+      case 3: return _buildEventsContent(c);
+      case 4: return _buildMembersContent(c);
       default: return const SizedBox();
     }
+  }
+
+  Widget _buildPostsContent(MotoClub c) {
+    final posts = c.posts;
+    if (posts.isEmpty) {
+      return Padding(padding: const EdgeInsets.all(40),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.article_outlined, color: _mt3, size: 48),
+          const SizedBox(height: 12),
+          Text('아직 게시글이 없습니다', style: _ts(14, FontWeight.w500, _mt3)),
+        ])));
+    }
+    return Column(children: posts.map((p) => _ClubPostCard(
+      post: p, clubId: c.clubId,
+      onReact: (idx) { MotoState().toggleClubPostReaction(c.clubId, p.postId, idx); setState(() {}); },
+      onComment: () { _showCommentSheet(context, p.comments, (text) {
+        MotoState().addClubComment(c.clubId, p.postId,
+          MotoComment(id: 'cc-${DateTime.now().millisecondsSinceEpoch}',
+            authorName: '나', content: text, createdAt: DateTime.now()));
+        setState(() {});
+      }); },
+    )).toList());
+  }
+
+  Widget _buildPhotosContent(MotoClub c) {
+    final photos = c.posts.expand((p) => p.photoUrls).toList();
+    if (photos.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+      child: Center(child: Text('등록된 사진이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    final w = (MediaQuery.of(context).size.width - 4) / 3;
+    return Wrap(spacing: 2, runSpacing: 2, children: photos.map((url) =>
+      ClipRRect(child: Image.network(url, width: w, height: w, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(width: w, height: w, color: _mcard2)))).toList());
+  }
+
+  Widget _buildVideosContent(MotoClub c) {
+    final videos = c.posts.where((p) => p.videoUrl != null).toList();
+    if (videos.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+      child: Center(child: Text('등록된 영상이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    return Column(children: videos.map((p) => Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(p.authorName, style: _ts(13, FontWeight.w700, _mt1)),
+        const SizedBox(height: 6),
+        Text(p.content, style: _ts(12, FontWeight.w400, _mt2), maxLines: 2, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () async { final uri = Uri.parse(p.videoUrl!); if (await canLaunchUrl(uri)) launchUrl(uri); },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: _mcard2, borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFF0000).withOpacity(0.3))),
+            child: Row(children: [
+              const Icon(Icons.play_circle_filled_rounded, color: Color(0xFFFF0000), size: 24),
+              const SizedBox(width: 8),
+              Text('영상 보기', style: _ts(12, FontWeight.w600, _mt2)),
+            ]),
+          ),
+        ),
+      ]),
+    )).toList());
+  }
+
+  Widget _buildEventsContent(MotoClub c) {
+    final events = c.events;
+    if (events.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+      child: Center(child: Text('등록된 일정이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    return Column(children: events.map((e) {
+      final dDay = e.eventDate.difference(DateTime.now()).inDays;
+      return Container(
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Expanded(child: Text(e.title, style: _ts(14, FontWeight.w700, _mt1))),
+            _badge('D-$dDay', dDay <= 3 ? _mred : _maccent),
+          ]),
+          const SizedBox(height: 6),
+          Text(e.description, style: _ts(12, FontWeight.w400, _mt2)),
+          const SizedBox(height: 4),
+          Row(children: [
+            const Icon(Icons.calendar_today_rounded, color: _mt3, size: 12),
+            Text(' ${_dateStr(e.eventDate)}', style: _ts(11, FontWeight.w400, _mt3)),
+            const SizedBox(width: 10),
+            const Icon(Icons.location_on_outlined, color: _mt3, size: 12),
+            Text(' ${e.location}', style: _ts(11, FontWeight.w400, _mt3)),
+          ]),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () { setState(() { e.myJoined = !e.myJoined; e.participantCount += e.myJoined ? 1 : -1; }); },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: e.myJoined ? _mgreen.withOpacity(0.2) : _mred,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: e.myJoined ? _mgreen.withOpacity(0.6) : _mred),
+              ),
+              child: Text(e.myJoined ? '참여중 (취소)' : '참여하기',
+                style: _ts(12, FontWeight.w700, e.myJoined ? _mgreen : Colors.white)),
+            ),
+          ),
+        ]),
+      );
+    }).toList());
+  }
+
+  Widget _buildMembersContent(MotoClub c) {
+    final members = c.members;
+    final isOwner = members.any((m) => m.userId == 'me' && m.role == MotoClubRole.owner);
+    return Column(children: members.map((m) {
+      final isMe = m.userId == 'me';
+      final isOwnerMember = m.role == MotoClubRole.owner;
+      return Container(
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+        child: Row(children: [
+          CircleAvatar(radius: 18,
+            backgroundColor: isOwnerMember ? _mred.withOpacity(0.2) : m.role == MotoClubRole.vice ? _morange.withOpacity(0.2) : _mcard2,
+            child: Text(m.name[0], style: _ts(14, FontWeight.w700,
+              isOwnerMember ? _mred : m.role == MotoClubRole.vice ? _morange : _maccent))),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Text(m.name, style: _ts(13, FontWeight.w700, _mt1)),
+              if (isMe) ...[const SizedBox(width: 6), _badge('나', _maccent)],
+            ]),
+            Text('가입 ${_dateStr(m.joinedAt)}', style: _ts(10, FontWeight.w400, _mt3)),
+          ])),
+          _badge(m.role.label, m.role == MotoClubRole.owner ? _mred : m.role == MotoClubRole.vice ? _morange : _mt3),
+          if (isOwner && !isMe && !isOwnerMember) ...[
+            const SizedBox(width: 6),
+            PopupMenuButton<String>(
+              color: _mcard2,
+              icon: Icon(Icons.more_vert, color: _mt3, size: 18),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'vice', child: Text(m.role == MotoClubRole.vice ? '부방장 해제' : '부방장 지정', style: _ts(13, FontWeight.w500, _morange))),
+                PopupMenuItem(value: 'kick', child: Text('내보내기', style: _ts(13, FontWeight.w500, _mred))),
+              ],
+              onSelected: (v) {
+                if (v == 'kick') { MotoState().kickMember(c.clubId, m.userId); setState(() {}); }
+                else { MotoState().toggleVice(c.clubId, m.userId); setState(() {}); }
+              },
+            ),
+          ],
+        ]),
+      );
+    }).toList());
   }
 }
 
