@@ -425,10 +425,13 @@ class _MotorcycleScreenState extends State<MotorcycleScreen> {
     // 특정 매물 하이라이트 요청 처리
     if (widget.highlightListingId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         final listing = MotoState().listings.firstWhere(
             (l) => l.listingId == widget.highlightListingId,
             orElse: () => MotoState().listings.first);
-        Navigator.of(context).push(
+        // rootNavigator: false → 탭 내부 Navigator 사용 불가하므로
+        // MotorcycleScreen 위에 push (pop 시 오토바이 메인으로 복귀)
+        Navigator.of(context, rootNavigator: false).push(
             MaterialPageRoute(
                 builder: (_) => _MotoListingDetailScreen(listing: listing)));
       });
@@ -468,7 +471,7 @@ class _MotorcycleScreenState extends State<MotorcycleScreen> {
             // ── 홈 콘텐츠 (전체 스크롤) ──
             Expanded(
               child: _MotoHomeTab(
-                onNavigate: (screen) => Navigator.of(context).push(
+                onNavigate: (screen) => Navigator.of(context, rootNavigator: false).push(
                     MaterialPageRoute(builder: (_) => screen)),
               ),
             ),

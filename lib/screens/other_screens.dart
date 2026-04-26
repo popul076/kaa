@@ -949,7 +949,7 @@ class _MyScreenState extends State<MyScreen> {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text('v50.0.0 · MOINCAR 모빌리티 플랫폼',
+                          Text('v71.0.0 · MOINCAR 모빌리티 플랫폼',
                             style: TextStyle(fontSize: 11, color: _textSec.withOpacity(0.5))),
                         ],
                       ),
