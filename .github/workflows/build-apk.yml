@@ -34,6 +34,8 @@ jobs:
         run: flutter clean
 
       - name: Build APK
+        env:
+          GRADLE_OPTS: "-Xmx2g -XX:MaxMetaspaceSize=512m"
         run: flutter build apk --release --no-tree-shake-icons
 
       - name: Deploy to GitHub Pages
