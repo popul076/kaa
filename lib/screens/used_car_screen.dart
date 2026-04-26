@@ -97,6 +97,55 @@ class _UsedCarMainScreenState extends State<UsedCarMainScreen>
                       const SizedBox(width: 48),
                     ],
                   ),
+                  // ── 서브타이틀 ──
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 6, 16, 10),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '내 차 팔기, 찾기, 견적을 한 번에',
+                        style: TextStyle(
+                          color: _textSec,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // ── 3개 퀵 카드 ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Row(
+                      children: [
+                        _UsedCarQuickCard(
+                          icon: Icons.sell_rounded,
+                          label: '내 차 팔기',
+                          sub: '역경매·최고가',
+                          color: const Color(0xFF0D2A4A),
+                          accent: _accent,
+                          onTap: () => _tabController.animateTo(0),
+                        ),
+                        const SizedBox(width: 8),
+                        _UsedCarQuickCard(
+                          icon: Icons.search_rounded,
+                          label: '내 차 찾기',
+                          sub: '정밀검색·인증',
+                          color: const Color(0xFF0A2A1A),
+                          accent: _green,
+                          onTap: () => _tabController.animateTo(1),
+                        ),
+                        const SizedBox(width: 8),
+                        _UsedCarQuickCard(
+                          icon: Icons.request_quote_rounded,
+                          label: '견적 연결',
+                          sub: '딜러·점포 견적',
+                          color: const Color(0xFF1A1040),
+                          accent: _purple,
+                          onTap: () => _tabController.animateTo(1),
+                        ),
+                      ],
+                    ),
+                  ),
                   // ── 2탭 슬라이더 ──
                   TabBar(
                     controller: _tabController,
@@ -4281,6 +4330,61 @@ String _timeAgo(DateTime dt) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
   if (diff.inHours < 24) return '${diff.inHours}시간 전';
   return '${diff.inDays}일 전';
+}
+
+// ── 중고차 메인 퀵 카드 ─────────────────────────────────────────────────
+class _UsedCarQuickCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String sub;
+  final Color color;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _UsedCarQuickCard({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.color,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accent.withOpacity(0.3), width: 1),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: accent, size: 22),
+              const SizedBox(height: 6),
+              Text(label,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(sub,
+                  style: TextStyle(
+                      color: accent.withOpacity(0.8),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 String _relativeTime(DateTime dt) {
