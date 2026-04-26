@@ -694,6 +694,7 @@ class _ShopCard extends StatelessWidget {
                     car: firstCar!,
                     pickupAt: pickupAt, returnAt: returnAt,
                     pickupRegion: pickupRegion, returnRegion: returnRegion,
+                    days: days,
                   )));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

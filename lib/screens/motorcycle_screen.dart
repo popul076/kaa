@@ -3378,6 +3378,186 @@ class _ClubMembersTabState extends State<_ClubMembersTab> {
   }
 }
 
+// ── 인라인 탭 위젯 (세로 스크롤용) ───────────────────────────
+
+class _ClubPostsInline extends StatefulWidget {
+  final MotoClub club;
+  final VoidCallback onChanged;
+  const _ClubPostsInline({required this.club, required this.onChanged});
+  @override State<_ClubPostsInline> createState() => _ClubPostsInlineState();
+}
+class _ClubPostsInlineState extends State<_ClubPostsInline> {
+  @override
+  Widget build(BuildContext context) {
+    final posts = widget.club.posts;
+    if (posts.isEmpty) {
+      return Padding(padding: const EdgeInsets.all(40),
+        child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.article_outlined, color: _mt3, size: 48),
+          const SizedBox(height: 12),
+          Text('아직 게시글이 없습니다', style: _ts(14, FontWeight.w500, _mt3)),
+        ])));
+    }
+    return Column(children: posts.map((p) => _ClubPostCard(
+      post: p, clubId: widget.club.clubId,
+      onReact: (idx) { MotoState().toggleClubPostReaction(widget.club.clubId, p.postId, idx); setState(() {}); widget.onChanged(); },
+      onComment: () { _showCommentSheet(context, p.comments, (text) {
+        MotoState().addClubComment(widget.club.clubId, p.postId,
+            MotoComment(id: 'cc-${DateTime.now().millisecondsSinceEpoch}', authorName: '나', content: text, createdAt: DateTime.now()));
+        setState(() {});
+      }); },
+    )).toList());
+  }
+}
+
+class _ClubPhotosInline extends StatelessWidget {
+  final MotoClub club;
+  const _ClubPhotosInline({required this.club});
+  @override
+  Widget build(BuildContext context) {
+    final photos = club.posts.expand((p) => p.photoUrls).toList();
+    if (photos.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+        child: Center(child: Text('등록된 사진이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    final w = (MediaQuery.of(context).size.width - 4) / 3;
+    return Wrap(spacing: 2, runSpacing: 2, children: photos.map((url) =>
+      Image.network(url, width: w, height: w, fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(width: w, height: w, color: _mcard2))).toList());
+  }
+}
+
+class _ClubVideosInline extends StatelessWidget {
+  final MotoClub club;
+  const _ClubVideosInline({required this.club});
+  @override
+  Widget build(BuildContext context) {
+    final videos = club.posts.where((p) => p.videoUrl != null).toList();
+    if (videos.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+        child: Center(child: Text('등록된 영상이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    return Column(children: videos.map((p) => Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(p.authorName, style: _ts(13, FontWeight.w700, _mt1)),
+        const SizedBox(height: 6),
+        Text(p.content, style: _ts(12, FontWeight.w400, _mt2), maxLines: 2, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 8),
+        GestureDetector(
+          onTap: () async { final uri = Uri.parse(p.videoUrl!); if (await canLaunchUrl(uri)) launchUrl(uri); },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: _mcard2, borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFF0000).withOpacity(0.3))),
+            child: Row(children: [
+              const Icon(Icons.play_circle_filled_rounded, color: Color(0xFFFF0000), size: 24),
+              const SizedBox(width: 8),
+              Text('영상 보기', style: _ts(12, FontWeight.w600, _mt2)),
+            ]),
+          ),
+        ),
+      ]),
+    )).toList());
+  }
+}
+
+class _ClubEventsInline extends StatefulWidget {
+  final MotoClub club;
+  final VoidCallback onChanged;
+  const _ClubEventsInline({required this.club, required this.onChanged});
+  @override State<_ClubEventsInline> createState() => _ClubEventsInlineState();
+}
+class _ClubEventsInlineState extends State<_ClubEventsInline> {
+  @override
+  Widget build(BuildContext context) {
+    final events = widget.club.events;
+    if (events.isEmpty) return Padding(padding: const EdgeInsets.all(40),
+        child: Center(child: Text('등록된 일정이 없습니다', style: _ts(14, FontWeight.w500, _mt3))));
+    return Column(children: events.map((e) {
+      final dDay = e.eventDate.difference(DateTime.now()).inDays;
+      return Container(
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Expanded(child: Text(e.title, style: _ts(14, FontWeight.w700, _mt1))), _badge('D-$dDay', dDay <= 3 ? _mred : _maccent)]),
+          const SizedBox(height: 6),
+          Text(e.description, style: _ts(12, FontWeight.w400, _mt2)),
+          const SizedBox(height: 4),
+          Row(children: [
+            const Icon(Icons.calendar_today_rounded, color: _mt3, size: 12),
+            Text(' ${_dateStr(e.eventDate)}', style: _ts(11, FontWeight.w400, _mt3)),
+            const SizedBox(width: 10),
+            const Icon(Icons.location_on_outlined, color: _mt3, size: 12),
+            Text(' ${e.location}', style: _ts(11, FontWeight.w400, _mt3)),
+            const Spacer(),
+            const Icon(Icons.people_rounded, color: _mt3, size: 12),
+            Text(' ${e.participantCount}명', style: _ts(11, FontWeight.w400, _mt3)),
+          ]),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () { setState(() { e.myJoined = !e.myJoined; e.participantCount += e.myJoined ? 1 : -1; }); widget.onChanged(); },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(color: e.myJoined ? _mgreen.withOpacity(0.2) : _mred,
+                  borderRadius: BorderRadius.circular(20), border: Border.all(color: e.myJoined ? _mgreen.withOpacity(0.6) : _mred)),
+              child: Text(e.myJoined ? '참여중 (취소)' : '참여하기',
+                  style: _ts(12, FontWeight.w700, e.myJoined ? _mgreen : Colors.white)),
+            ),
+          ),
+        ]),
+      );
+    }).toList());
+  }
+}
+
+class _ClubMembersInline extends StatefulWidget {
+  final MotoClub club;
+  final VoidCallback onChanged;
+  const _ClubMembersInline({required this.club, required this.onChanged});
+  @override State<_ClubMembersInline> createState() => _ClubMembersInlineState();
+}
+class _ClubMembersInlineState extends State<_ClubMembersInline> {
+  @override
+  Widget build(BuildContext context) {
+    final members = widget.club.members;
+    final isOwner = members.any((m) => m.userId == 'me' && m.role == MotoClubRole.owner);
+    return Column(children: members.map((m) {
+      final isMe = m.userId == 'me';
+      final isOwnerMember = m.role == MotoClubRole.owner;
+      return Container(
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(color: _mcard, borderRadius: BorderRadius.circular(10), border: Border.all(color: _mborder)),
+        child: Row(children: [
+          CircleAvatar(radius: 18,
+              backgroundColor: isOwnerMember ? _mred.withOpacity(0.2) : m.role == MotoClubRole.vice ? _morange.withOpacity(0.2) : _mcard2,
+              child: Text(m.name[0], style: _ts(14, FontWeight.w700, isOwnerMember ? _mred : m.role == MotoClubRole.vice ? _morange : _maccent))),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [Text(m.name, style: _ts(13, FontWeight.w700, _mt1)), if (isMe) ...[const SizedBox(width: 6), _badge('나', _maccent)]]),
+            Text('가입 ${_dateStr(m.joinedAt)}', style: _ts(10, FontWeight.w400, _mt3)),
+          ])),
+          _badge(m.role.label, m.role == MotoClubRole.owner ? _mred : m.role == MotoClubRole.vice ? _morange : _mt3),
+          if (isOwner && !isMe && !isOwnerMember) ...[
+            const SizedBox(width: 6),
+            PopupMenuButton<String>(
+              color: _mcard2, icon: Icon(Icons.more_vert, color: _mt3, size: 18),
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 'vice', child: Text(m.role == MotoClubRole.vice ? '부방장 해제' : '부방장 지정', style: _ts(13, FontWeight.w500, _morange))),
+                PopupMenuItem(value: 'kick', child: Text('내보내기', style: _ts(13, FontWeight.w500, _mred))),
+              ],
+              onSelected: (v) {
+                if (v == 'kick') { MotoState().kickMember(widget.club.clubId, m.userId); setState(() {}); widget.onChanged(); }
+                else { MotoState().toggleVice(widget.club.clubId, m.userId); setState(() {}); widget.onChanged(); }
+              },
+            ),
+          ],
+        ]),
+      );
+    }).toList());
+  }
+}
+
 // ── 글쓰기 화면 ───────────────────────────────────────────────
 class _MotoPostWriteScreen extends StatefulWidget {
   final String clubId;
