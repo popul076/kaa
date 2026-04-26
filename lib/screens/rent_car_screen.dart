@@ -117,12 +117,13 @@ class RentCar {
   final int? originalPrice;
   final double rating;
   final List<String> options;
+  final bool instantBooking;
   const RentCar({
     required this.id, required this.brand, required this.name,
     required this.branchName, required this.imageUrl, required this.images,
     required this.grade, required this.fuel, required this.year,
     required this.seats, required this.dailyPrice, this.originalPrice,
-    this.rating = 4.5, this.options = const [],
+    this.rating = 4.5, this.options = const [], this.instantBooking = false,
   });
 }
 
