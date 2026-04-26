@@ -489,23 +489,44 @@ class _RentCarListScreenState extends State<RentCarListScreen> {
             ]),
           ),
           Expanded(
-            child: cars.isEmpty
-                ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.directions_car_outlined, color: _sec, size: 48),
-                    const SizedBox(height: 12),
-                    Text('검색된 차량이 없습니다', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 14)),
-                    const SizedBox(height: 6),
-                    Text('필터를 조정해 보세요', style: GoogleFonts.notoSansKr(color: _sec.withOpacity(0.6), fontSize: 12)),
-                  ]))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: cars.length,
-                    itemBuilder: (_, i) => _CarCard(
-                      car: cars[i], days: _days,
-                      pickupAt: widget.pickupAt, returnAt: widget.returnAt,
-                      pickupRegion: widget.pickupRegion, returnRegion: widget.returnRegion,
-                    ),
-                  ),
+            child: ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                if (cars.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.directions_car_outlined, color: _sec, size: 48),
+                      const SizedBox(height: 12),
+                      Text('검색된 차량이 없습니다', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 14)),
+                    ])),
+                  )
+                else
+                  ...cars.map((car) => _CarCard(
+                    car: car, days: _days,
+                    pickupAt: widget.pickupAt, returnAt: widget.returnAt,
+                    pickupRegion: widget.pickupRegion, returnRegion: widget.returnRegion,
+                  )),
+                const SizedBox(height: 20),
+                Row(children: [
+                  const Icon(Icons.store_rounded, color: _accent, size: 18),
+                  const SizedBox(width: 6),
+                  Text('내 위치에서 가까운 렌트카 점포',
+                      style: GoogleFonts.notoSansKr(color: _pri, fontSize: 15, fontWeight: FontWeight.w800)),
+                ]),
+                const SizedBox(height: 4),
+                Text('가까운 순', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
+                const SizedBox(height: 10),
+                ..._sampleShops.map((s) => _ShopCard(
+                  shop: s,
+                  pickupAt: widget.pickupAt, returnAt: widget.returnAt,
+                  pickupRegion: widget.pickupRegion, returnRegion: widget.returnRegion,
+                  days: _days,
+                  firstCar: cars.isNotEmpty ? cars.first : null,
+                )),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ]),
       ),
@@ -550,6 +571,156 @@ class _RentCarListScreenState extends State<RentCarListScreen> {
       onApply: (g, f, p) => setState(() { _filterGrade = g; _filterFuel = f; _maxPrice = p; }),
     ),
   );
+}
+
+// ── 샘플 점포 데이터 ──────────────────────────────────────────
+class _RentShop {
+  final String name, region, phone;
+  final double distanceKm;
+  final int carCount;
+  final bool available;
+  const _RentShop({required this.name, required this.region, required this.phone,
+      required this.distanceKm, required this.carCount, required this.available});
+}
+
+const _sampleShops = [
+  _RentShop(name: '모인카렌트 강남점', region: '서울 강남구', phone: '02-1234-5678', distanceKm: 0.8, carCount: 24, available: true),
+  _RentShop(name: '서울렌터카 서초점', region: '서울 서초구', phone: '02-2345-6789', distanceKm: 1.4, carCount: 18, available: true),
+  _RentShop(name: '나이스렌트카 송파점', region: '서울 송파구', phone: '02-3456-7890', distanceKm: 2.1, carCount: 31, available: true),
+  _RentShop(name: '그린렌터카 마포점', region: '서울 마포구', phone: '02-4567-8901', distanceKm: 3.5, carCount: 15, available: false),
+  _RentShop(name: '하이렌트카 강서점', region: '서울 강서구', phone: '02-5678-9012', distanceKm: 5.2, carCount: 20, available: true),
+];
+
+// ── 점포 카드 ─────────────────────────────────────────────────
+class _ShopCard extends StatelessWidget {
+  final _RentShop shop;
+  final DateTime pickupAt, returnAt;
+  final String pickupRegion, returnRegion;
+  final int days;
+  final RentCar? firstCar;
+  const _ShopCard({required this.shop, required this.pickupAt, required this.returnAt,
+      required this.pickupRegion, required this.returnRegion, required this.days, this.firstCar});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: _card, borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: _accent.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.store_rounded, color: _accent, size: 22),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(shop.name, style: GoogleFonts.notoSansKr(color: _pri, fontSize: 14, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(shop.region, style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
+          ])),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: shop.available ? _green.withOpacity(0.15) : _red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(shop.available ? '예약가능' : '마감',
+                style: GoogleFonts.notoSansKr(color: shop.available ? _green : _red, fontSize: 11, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          const Icon(Icons.near_me_rounded, color: _sec, size: 13),
+          Text(' ${shop.distanceKm}km',
+              style: GoogleFonts.notoSansKr(color: _sec, fontSize: 12)),
+          const SizedBox(width: 12),
+          const Icon(Icons.directions_car_rounded, color: _sec, size: 13),
+          Text(' 보유 ${shop.carCount}대',
+              style: GoogleFonts.notoSansKr(color: _sec, fontSize: 12)),
+        ]),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('${shop.phone} 로 전화 연결합니다'),
+                  backgroundColor: _accent.withOpacity(0.9),
+                  duration: const Duration(seconds: 2),
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                    border: Border.all(color: _border), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.phone_rounded, color: _sec, size: 15),
+                  const SizedBox(width: 4),
+                  Text('전화', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('지도 앱으로 길찾기를 시작합니다'),
+                  duration: Duration(seconds: 2),
+                ));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                    border: Border.all(color: _border), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Icon(Icons.map_rounded, color: _sec, size: 15),
+                  const SizedBox(width: 4),
+                  Text('길찾기', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: shop.available ? () {
+                if (firstCar != null) {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => RentCarBookingScreen(
+                    car: firstCar!,
+                    pickupAt: pickupAt, returnAt: returnAt,
+                    pickupRegion: pickupRegion, returnRegion: returnRegion,
+                  )));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('차량을 먼저 선택해 주세요'),
+                    duration: Duration(seconds: 2),
+                  ));
+                }
+              } : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                    color: shop.available ? _accent.withOpacity(0.15) : _border.withOpacity(0.3),
+                    border: Border.all(color: shop.available ? _accent.withOpacity(0.5) : _border),
+                    borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.calendar_today_rounded, color: shop.available ? _accent : _sec, size: 15),
+                  const SizedBox(width: 4),
+                  Text('예약', style: GoogleFonts.notoSansKr(
+                      color: shop.available ? _accent : _sec, fontSize: 12, fontWeight: FontWeight.w600)),
+                ]),
+              ),
+            ),
+          ),
+        ]),
+      ]),
+    );
+  }
 }
 
 class _CarCard extends StatelessWidget {

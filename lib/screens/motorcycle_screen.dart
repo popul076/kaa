@@ -2765,16 +2765,7 @@ class _MotoClubDetailScreen extends StatefulWidget {
   State<_MotoClubDetailScreen> createState() => _MotoClubDetailScreenState();
 }
 
-class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tab;
-  @override
-  void initState() {
-    super.initState();
-    _tab = TabController(length: 5, vsync: this);
-  }
-  @override
-  void dispose() { _tab.dispose(); super.dispose(); }
+class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
