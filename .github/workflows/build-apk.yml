@@ -51,12 +51,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v73"
+          APK_VERSION="v74"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v72"
+          PREV_VERSION="v73"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (중고차 메인 내차팔기/내차찾기/견적연결 퀵카드 추가)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (앱 아이콘 원형 변경)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
