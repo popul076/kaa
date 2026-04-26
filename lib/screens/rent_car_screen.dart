@@ -695,6 +695,9 @@ class _ShopCard extends StatelessWidget {
                     pickupAt: pickupAt, returnAt: returnAt,
                     pickupRegion: pickupRegion, returnRegion: returnRegion,
                     days: days,
+                    insurance: RentInsuranceType.standard,
+                    extraOptions: const [],
+                    totalPrice: firstCar!.pricePerDay * days,
                   )));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
