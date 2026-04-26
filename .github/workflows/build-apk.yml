@@ -56,7 +56,7 @@ jobs:
           PREV_VERSION="v73"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (앱 아이콘 원형 변경)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (앱 아이콘 둥근사각 복구)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
