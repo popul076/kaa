@@ -2688,9 +2688,9 @@ class _MotoClubCard extends StatelessWidget {
           // 커버 이미지
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(c.coverImageUrl, height: 90,
+            child: Image.network(c.coverImageUrl, height: 180,
                 width: double.infinity, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(height: 90, color: _mcard2)),
+                errorBuilder: (_, __, ___) => Container(height: 180, color: _mcard2)),
           ),
           Padding(
             padding: const EdgeInsets.all(12),
@@ -2766,142 +2766,205 @@ class _MotoClubDetailScreen extends StatefulWidget {
 }
 
 class _MotoClubDetailScreenState extends State<_MotoClubDetailScreen> {
+  int _tab = 0;
+  static const _tabs = ['게시글', '사진', '영상', '일정', '멤버'];
 
   @override
   Widget build(BuildContext context) {
     final c = widget.club;
+    final topPad = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: _mbg,
-      body: Column(children: [
-        // 커버 + 앱바
-        SizedBox(
-          height: 160,
-          child: Stack(fit: StackFit.expand, children: [
-            Image.network(c.coverImageUrl, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: _mcard2)),
-            Container(decoration: BoxDecoration(
-                gradient: LinearGradient(
-                    begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                    colors: [Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.8)]))),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white, size: 20),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Spacer(),
-                  if (c.myJoined) ...[
-                    // 초대 버튼
-                    IconButton(
-                      icon: const Icon(Icons.person_add_alt_1_rounded,
-                          color: Colors.white, size: 22),
-                      tooltip: '초대',
-                      onPressed: () {
-                        final inviteText =
-                            '[MOINCAR 동호회 초대]\n'
-                            '동호회: \${c.name}\n'
-                            '지역: \${c.region}\n'
-                            '소개: \${c.description}\n\n'
-                            '가입 링크: https://moincar.app/club/\${c.clubId}';
-                        Clipboard.setData(ClipboardData(text: inviteText));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('초대 링크가 클립보드에 복사되었습니다! 카카오톡 등으로 공유하세요.'),
-                            backgroundColor: Color(0xFF10B981),
-                            duration: Duration(seconds: 3),
-                          ),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-                      onPressed: () => _showClubMenu(context, c,
-                        onChanged: () => setState(() {})),
-                    ),
-                  ],
-                ]),
-              ),
+      body: SingleChildScrollView(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+          // ① 커버 이미지 height:240 전체폭
+          Stack(children: [
+            Image.network(
+              c.coverImageUrl,
+              width: double.infinity,
+              height: 240,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  Container(width: double.infinity, height: 240, color: _mcard2),
             ),
-            Positioned(bottom: 14, left: 16, right: 80, child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.name, style: _ts(20, FontWeight.w800, Colors.white)),
-              const SizedBox(height: 4),
+            // 뒤로가기 / 메뉴
+            Positioned(
+              top: topPad + 4, left: 0, right: 0,
+              child: Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                const Spacer(),
+                if (c.myJoined) ...[
+                  IconButton(
+                    icon: const Icon(Icons.person_add_alt_1_rounded,
+                        color: Colors.white, size: 22),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(
+                          text: '[MOINCAR 동호회 초대]\n동호회: ${c.name}\n'
+                              '가입 링크: https://moincar.app/club/${c.clubId}'));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('초대 링크가 복사되었습니다!'),
+                          backgroundColor: Color(0xFF10B981)));
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.more_vert,
+                        color: Colors.white, size: 22),
+                    onPressed: () =>
+                        _showClubMenu(context, c, onChanged: () => setState(() {})),
+                  ),
+                ],
+              ]),
+            ),
+          ]),
+
+          // ② 동호회명 + 정보
+          Container(
+            color: _mcard,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(c.name, style: _ts(20, FontWeight.w800, _mt1)),
+              const SizedBox(height: 8),
               Row(children: [
                 _badge(c.category.label, _mgreen),
                 const SizedBox(width: 6),
-                Text('${c.memberCount}명', style: _ts(12, FontWeight.w500, _mt2)),
+                _badge(c.isPublic ? '공개' : '비공개', _maccent),
                 const SizedBox(width: 8),
-                const Icon(Icons.location_on_outlined, color: _mt2, size: 12),
-                Text(c.region, style: _ts(12, FontWeight.w400, _mt2)),
+                const Icon(Icons.people_rounded, color: _mt3, size: 14),
+                Text(' ${c.memberCount}명', style: _ts(12, FontWeight.w500, _mt2)),
+                const SizedBox(width: 8),
+                const Icon(Icons.location_on_outlined, color: _mt3, size: 14),
+                Text(' ${c.region}', style: _ts(12, FontWeight.w400, _mt2)),
               ]),
-            ])),
-            // 가입 버튼
-            Positioned(bottom: 14, right: 16, child: GestureDetector(
-              onTap: c.myJoined ? null : () {
-                MotoState().joinClub(c.clubId);
-                setState(() {});
-                _showDone(context,
-                  '${c.name}에 가입했습니다!\n멤버들에게 인사를 건네보세요.', then: () {
+              const SizedBox(height: 8),
+              Text(c.description,
+                  style: _ts(12, FontWeight.w400, _mt2).copyWith(height: 1.5),
+                  maxLines: 3, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 14),
+
+              // ③ 가입하기 전체폭 버튼
+              GestureDetector(
+                onTap: c.myJoined ? null : () {
+                  MotoState().joinClub(c.clubId);
                   setState(() {});
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: c.myJoined ? _mgreen : _mred,
-                  borderRadius: BorderRadius.circular(20),
+                  _showDone(context,
+                      '${c.name}에 가입했습니다!\n멤버들에게 인사를 건네보세요.',
+                      then: () => setState(() {}));
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: c.myJoined
+                        ? _mgreen.withOpacity(0.15)
+                        : _mgreen,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: c.myJoined
+                            ? _mgreen.withOpacity(0.4)
+                            : _mgreen),
+                  ),
+                  child: Center(
+                    child: Text(
+                      c.myJoined ? '✓ 가입중' : '가입하기',
+                      style: _ts(15, FontWeight.w700,
+                          c.myJoined ? _mgreen : Colors.white),
+                    ),
+                  ),
                 ),
-                child: Text(c.myJoined ? '가입됨' : '가입하기',
-                    style: _ts(12, FontWeight.w700, Colors.white)),
               ),
-            )),
-          ]),
-        ),
-        // 탭바
-        Container(
-          color: _mcard,
-          child: TabBar(
-            controller: _tab,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorColor: _mgreen,
-            labelColor: _mt1,
-            unselectedLabelColor: _mt3,
-            labelStyle: _ts(12, FontWeight.w700, _mt1),
-            unselectedLabelStyle: _ts(12, FontWeight.w500, _mt3),
-            tabs: const [
-              Tab(text: '게시글'),
-              Tab(text: '사진'),
-              Tab(text: '공지'),
-              Tab(text: '일정'),
-              Tab(text: '멤버'),
-            ],
+              const SizedBox(height: 14),
+            ]),
           ),
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _tab,
-            children: [
-              _ClubPostsTab(club: c, onChanged: () => setState(() {})),
-              _ClubPhotosTab(club: c),
-              _ClubNoticesTab(club: c),
-              _ClubEventsTab(club: c, onChanged: () => setState(() {})),
-              _ClubMembersTab(club: c),
-            ],
+
+          // ④ 탭 가로 띠 (슬라이드 없음)
+          Container(
+            color: _mcard,
+            child: Row(
+              children: List.generate(_tabs.length, (i) {
+                final sel = _tab == i;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _tab = i),
+                    child: Container(
+                      height: 42,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: sel ? _mgreen : Colors.transparent,
+                            width: 2.5,
+                          ),
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _tabs[i],
+                          style: _ts(12,
+                              sel ? FontWeight.w700 : FontWeight.w500,
+                              sel ? _mgreen : _mt3),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
           ),
-        ),
-      ]),
-      floatingActionButton: c.myJoined ? FloatingActionButton(
-        backgroundColor: _mgreen,
-        onPressed: () => Navigator.of(context, rootNavigator: false).push(
-            MaterialPageRoute(builder: (_) => _MotoPostWriteScreen(clubId: c.clubId)))
-            .then((_) => setState(() {})),
-        child: const Icon(Icons.edit_rounded, color: Colors.white),
-      ) : null,
+          Container(height: 1, color: _mborder),
+
+          // ⑤ 탭 콘텐츠 (세로 배치, 슬라이드 없음)
+          _buildTabContent(c),
+
+          // ⑥ 글쓰기 버튼
+          if (c.myJoined) ...[  
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: GestureDetector(
+                onTap: () => Navigator.of(context, rootNavigator: false)
+                    .push(MaterialPageRoute(
+                        builder: (_) =>
+                            _MotoPostWriteScreen(clubId: c.clubId)))
+                    .then((_) => setState(() {})),
+                child: Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                      color: _mgreen,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+                      SizedBox(width: 8),
+                      Text('글쓰기',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ]),
+      ),
     );
+  }
+
+  Widget _buildTabContent(MotoClub c) {
+    switch (_tab) {
+      case 0: return _ClubPostsInline(club: c, onChanged: () => setState(() {}));
+      case 1: return _ClubPhotosInline(club: c);
+      case 2: return _ClubVideosInline(club: c);
+      case 3: return _ClubEventsInline(club: c, onChanged: () => setState(() {}));
+      case 4: return _ClubMembersInline(club: c, onChanged: () => setState(() {}));
+      default: return const SizedBox();
+    }
   }
 }
 
