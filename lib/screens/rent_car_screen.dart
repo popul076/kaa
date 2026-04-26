@@ -48,6 +48,220 @@ const Map<String, List<String>> _regionData = {
 };
 
 // ═══════════════════════════════════════════════
+// 모델 & Enum
+// ═══════════════════════════════════════════════
+enum RentCarGrade {
+  economy, compact, midsize, suv, van, electric, imported;
+  String get label {
+    switch (this) {
+      case RentCarGrade.economy:  return '경차';
+      case RentCarGrade.compact:  return '소형';
+      case RentCarGrade.midsize:  return '중형';
+      case RentCarGrade.suv:      return 'SUV';
+      case RentCarGrade.van:      return '승합';
+      case RentCarGrade.electric: return '전기';
+      case RentCarGrade.imported: return '수입';
+    }
+  }
+}
+
+enum RentCarFuel {
+  gasoline, diesel, hybrid, electric, lpg;
+  String get label {
+    switch (this) {
+      case RentCarFuel.gasoline: return '휘발유';
+      case RentCarFuel.diesel:   return '경유';
+      case RentCarFuel.hybrid:   return '하이브리드';
+      case RentCarFuel.electric: return '전기';
+      case RentCarFuel.lpg:      return 'LPG';
+    }
+  }
+}
+
+enum RentInsuranceType {
+  none, basic, fullCoverage;
+  String get label {
+    switch (this) {
+      case RentInsuranceType.none:         return '보험없음';
+      case RentInsuranceType.basic:        return '일반보험';
+      case RentInsuranceType.fullCoverage: return '완전보험';
+    }
+  }
+  int get dailyPrice {
+    switch (this) {
+      case RentInsuranceType.none:         return 0;
+      case RentInsuranceType.basic:        return 3000;
+      case RentInsuranceType.fullCoverage: return 8000;
+    }
+  }
+}
+
+enum RentCarBookingStatus {
+  confirmed, inUse, completed, cancelled;
+  String get label {
+    switch (this) {
+      case RentCarBookingStatus.confirmed:  return '예약확정';
+      case RentCarBookingStatus.inUse:      return '이용중';
+      case RentCarBookingStatus.completed:  return '이용완료';
+      case RentCarBookingStatus.cancelled:  return '취소됨';
+    }
+  }
+}
+
+class RentCar {
+  final String id, brand, name, branchName, imageUrl;
+  final List<String> images;
+  final RentCarGrade grade;
+  final RentCarFuel fuel;
+  final int year, seats, dailyPrice;
+  final int? originalPrice;
+  final double rating;
+  final List<String> options;
+  const RentCar({
+    required this.id, required this.brand, required this.name,
+    required this.branchName, required this.imageUrl, required this.images,
+    required this.grade, required this.fuel, required this.year,
+    required this.seats, required this.dailyPrice, this.originalPrice,
+    this.rating = 4.5, this.options = const [],
+  });
+}
+
+class RentCarBooking {
+  final String bookingId;
+  final RentCar car;
+  final String pickupRegion, pickupBranch, returnRegion, returnBranch;
+  final DateTime pickupAt, returnAt;
+  final int days;
+  final RentInsuranceType insurance;
+  final List<String> extraOptions;
+  final int totalPrice;
+  final String userName, userPhone, licenseConfirmed, paymentMethod;
+  RentCarBookingStatus status;
+  RentCarBooking({
+    required this.bookingId, required this.car,
+    required this.pickupRegion, required this.pickupBranch,
+    required this.returnRegion, required this.returnBranch,
+    required this.pickupAt, required this.returnAt, required this.days,
+    required this.insurance, required this.extraOptions, required this.totalPrice,
+    required this.userName, required this.userPhone,
+    required this.licenseConfirmed, required this.paymentMethod,
+    this.status = RentCarBookingStatus.confirmed,
+  });
+}
+
+class RentCarState extends ChangeNotifier {
+  static final RentCarState _instance = RentCarState._internal();
+  factory RentCarState() => _instance;
+  RentCarState._internal();
+
+  final List<RentCarBooking> _bookings = [];
+  List<RentCarBooking> get bookings => List.unmodifiable(_bookings);
+
+  static const _sampleCars = [
+    RentCar(
+      id: 'c1', brand: '기아', name: '모닝', branchName: '모인카렌트 강남점',
+      imageUrl: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=400',
+      images: ['https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800'],
+      grade: RentCarGrade.economy, fuel: RentCarFuel.gasoline,
+      year: 2023, seats: 4, dailyPrice: 35000, originalPrice: 45000,
+      rating: 4.3, options: ['에어컨', 'USB충전', '블루투스'],
+    ),
+    RentCar(
+      id: 'c2', brand: '현대', name: '아반떼', branchName: '모인카렌트 강남점',
+      imageUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400',
+      images: ['https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800'],
+      grade: RentCarGrade.compact, fuel: RentCarFuel.gasoline,
+      year: 2024, seats: 5, dailyPrice: 55000, originalPrice: 68000,
+      rating: 4.6, options: ['스마트키', '후방카메라', '크루즈컨트롤', '애플카플레이'],
+    ),
+    RentCar(
+      id: 'c3', brand: '기아', name: 'K5', branchName: '서울렌터카 서초점',
+      imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400',
+      images: ['https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800'],
+      grade: RentCarGrade.midsize, fuel: RentCarFuel.gasoline,
+      year: 2024, seats: 5, dailyPrice: 72000,
+      rating: 4.7, options: ['스마트크루즈', 'LED헤드램프', '통풍시트', '선루프'],
+    ),
+    RentCar(
+      id: 'c4', brand: '현대', name: '투싼', branchName: '나이스렌트카 송파점',
+      imageUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=400',
+      images: ['https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800'],
+      grade: RentCarGrade.suv, fuel: RentCarFuel.diesel,
+      year: 2023, seats: 5, dailyPrice: 90000, originalPrice: 110000,
+      rating: 4.8, options: ['AWD', '파노라마선루프', '어댑티브크루즈', '헤드업디스플레이'],
+    ),
+    RentCar(
+      id: 'c5', brand: '기아', name: '카니발', branchName: '하이렌트카 강서점',
+      imageUrl: 'https://images.unsplash.com/photo-1567818735868-e71b99932e29?w=400',
+      images: ['https://images.unsplash.com/photo-1567818735868-e71b99932e29?w=800'],
+      grade: RentCarGrade.van, fuel: RentCarFuel.diesel,
+      year: 2023, seats: 9, dailyPrice: 120000,
+      rating: 4.5, options: ['3열시트', '파워슬라이딩도어', '어라운드뷰', '스마트크루즈'],
+    ),
+    RentCar(
+      id: 'c6', brand: '현대', name: '아이오닉6', branchName: '서울렌터카 서초점',
+      imageUrl: 'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400',
+      images: ['https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800'],
+      grade: RentCarGrade.electric, fuel: RentCarFuel.electric,
+      year: 2024, seats: 5, dailyPrice: 95000, originalPrice: 120000,
+      rating: 4.9, options: ['초고속충전', 'V2L', '디지털사이드미러', '증강현실HUD'],
+    ),
+  ];
+
+  List<RentCar> search({
+    String? region,
+    RentCarGrade? grade,
+    RentCarFuel? fuel,
+    int? maxPrice,
+    String sort = 'popular',
+  }) {
+    var list = List<RentCar>.from(_sampleCars);
+    if (grade != null) list = list.where((c) => c.grade == grade).toList();
+    if (fuel != null) list = list.where((c) => c.fuel == fuel).toList();
+    if (maxPrice != null) list = list.where((c) => c.dailyPrice <= maxPrice).toList();
+    switch (sort) {
+      case 'price': list.sort((a, b) => a.dailyPrice.compareTo(b.dailyPrice)); break;
+      case 'rating': list.sort((a, b) => b.rating.compareTo(a.rating)); break;
+      default: break;
+    }
+    return list;
+  }
+
+  RentCarBooking addBooking({
+    required RentCar car,
+    required String pickupRegion, required String pickupBranch,
+    required String returnRegion, required String returnBranch,
+    required DateTime pickupAt, required DateTime returnAt,
+    required RentInsuranceType insurance, required List<String> extraOptions,
+    required int totalPrice, required String userName, required String userPhone,
+    required String licenseConfirmed, required String paymentMethod,
+  }) {
+    final days = returnAt.difference(pickupAt).inDays.clamp(1, 999);
+    final b = RentCarBooking(
+      bookingId: 'RC${DateTime.now().millisecondsSinceEpoch % 1000000}',
+      car: car,
+      pickupRegion: pickupRegion, pickupBranch: pickupBranch,
+      returnRegion: returnRegion, returnBranch: returnBranch,
+      pickupAt: pickupAt, returnAt: returnAt, days: days,
+      insurance: insurance, extraOptions: extraOptions, totalPrice: totalPrice,
+      userName: userName, userPhone: userPhone,
+      licenseConfirmed: licenseConfirmed, paymentMethod: paymentMethod,
+    );
+    _bookings.insert(0, b);
+    notifyListeners();
+    return b;
+  }
+
+  void cancelBooking(String bookingId) {
+    final idx = _bookings.indexWhere((b) => b.bookingId == bookingId);
+    if (idx >= 0) {
+      _bookings[idx].status = RentCarBookingStatus.cancelled;
+      notifyListeners();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
 // 렌트카 메인 (검색)
 // ═══════════════════════════════════════════════
 class RentCarScreen extends StatefulWidget {
@@ -695,9 +909,9 @@ class _ShopCard extends StatelessWidget {
                     days: days,
                     pickupAt: pickupAt, returnAt: returnAt,
                     pickupRegion: pickupRegion, returnRegion: returnRegion,
-                    insurance: RentInsuranceType.standard,
+                    insurance: RentInsuranceType.basic,
                     extraOptions: const [],
-                    totalPrice: firstCar!.pricePerDay * days,
+                    totalPrice: firstCar!.dailyPrice * days,
                   )));
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -788,12 +1002,12 @@ class _CarCard extends StatelessWidget {
               Row(children: [
                 const Icon(Icons.star_rounded, color: Color(0xFFFFC107), size: 14),
                 const SizedBox(width: 2),
-                Text('${car.rating} (${car.reviewCount})', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
+                Text('${car.rating}', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
                 const SizedBox(width: 10),
                 const Icon(Icons.location_on_rounded, color: _sec, size: 12),
-                Text('${car.region} ${car.branchName}', style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
+                Text(car.branchName, style: GoogleFonts.notoSansKr(color: _sec, fontSize: 11)),
                 const Spacer(),
-                if (car.insuranceIncluded) _badge('보험포함', _purple),
+                _badge('즉시예약', _green),
               ]),
             ]),
           ),
