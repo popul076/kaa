@@ -51,12 +51,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          APK_VERSION="v70"
+          APK_VERSION="v71"
           APK_FILE="moincar-${APK_VERSION}.apk"
-          PREV_VERSION="v69"
+          PREV_VERSION="v70"
           PREV_APK="moincar-${PREV_VERSION}.apk"
           BUILD_DATE=$(date +"%Y-%m-%d")
-          COMMIT_MSG="${APK_VERSION} APK 배포 (렌트카 카테고리 신규 구축 - 검색/결과/상세/예약/결제/완료/마이페이지)"
+          COMMIT_MSG="${APK_VERSION} APK 배포 (동호회 UI 개선 + 렌트카 점포섹션 추가)"
 
           git clone https://$GH_TOKEN@github.com/popul076/popul076.github.io.git pages_repo
           cp build/app/outputs/flutter-apk/app-release.apk pages_repo/${APK_FILE}
